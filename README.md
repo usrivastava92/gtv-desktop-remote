@@ -1,5 +1,7 @@
 # GTV Desktop Remote
 
+![GTV Desktop Remote icon](assets/icons/gtv-remote-icon.svg)
+
 macOS-first desktop remote for Google TV and Android TV devices.
 
 ## First Cut
@@ -31,3 +33,9 @@ The project venv can be prepared with:
 ```bash
 .venv/bin/python -m pip install -r requirements.txt
 ```
+
+## Icon Assets
+
+- Primary source icon: `assets/icons/gtv-remote-icon.svg`
+- Renderer favicon assets: `public/favicon.svg`, `public/favicon-32.png`, `public/favicon-16.png`
+- macOS app bundle icon: `build/icon.icns`

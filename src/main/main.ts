@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 
 import { app, BrowserWindow, globalShortcut, ipcMain, Menu, nativeImage, Tray } from 'electron';
@@ -12,30 +13,62 @@ let tray: Tray | undefined;
 let windowRef: BrowserWindow | undefined;
 
 const adapter = new GoogleTvAdapter();
+const appName = 'GTV Remote';
 const shortcut = 'CommandOrControl+Shift+G';
 
-function createTrayImage() {
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18">
-      <rect x="2" y="2" width="14" height="14" rx="4" fill="#20242b"/>
-      <circle cx="9" cy="6" r="1.2" fill="#f6f4ef"/>
-      <circle cx="9" cy="12" r="1.2" fill="#f6f4ef"/>
-      <circle cx="6" cy="9" r="1.2" fill="#f6f4ef"/>
-      <circle cx="12" cy="9" r="1.2" fill="#f6f4ef"/>
-      <circle cx="9" cy="9" r="1.4" fill="#d5a021"/>
-    </svg>
-  `;
+function getAssetPath(...parts: string[]) {
+  return path.join(app.getAppPath(), 'assets', 'icons', ...parts);
+}
 
-  return nativeImage.createFromDataURL(`data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`);
+function loadSvgIcon(size: number) {
+  const svg = fs.readFileSync(getAssetPath('gtv-remote-icon.svg'), 'utf8');
+  const image = nativeImage.createFromDataURL(`data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`);
+
+  return image.resize({ width: size, height: size });
+}
+
+function loadPngIcon(size: number) {
+  const iconPath = getAssetPath('taskbar-icon-black.png');
+  const image = nativeImage.createFromPath(iconPath);
+
+  return image.resize({ width: size, height: size, quality: 'best' });
+}
+
+function loadMenubarIcon(size: number) {
+  const image = nativeImage.createFromPath(getAssetPath('menubar-icon-white.png'));
+
+  return image.resize({ height: size, quality: 'best' });
+}
+
+function createTrayImage() {
+  const trayImage = loadMenubarIcon(18);
+
+  if (process.platform === 'darwin') {
+    trayImage.setTemplateImage(true);
+  }
+
+  return trayImage;
+}
+
+function applyApplicationIcon() {
+  const iconImage = loadPngIcon(256);
+
+  if (process.platform === 'darwin') {
+    app.dock?.setIcon(iconImage);
+  }
+
+  return iconImage;
 }
 
 async function createWindow(): Promise<BrowserWindow> {
+  const iconImage = applyApplicationIcon();
   const window = new BrowserWindow({
     width: 420,
     height: 760,
     show: false,
     resizable: false,
-    title: 'GTV Desktop Remote',
+    title: appName,
+    icon: iconImage,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -86,13 +119,16 @@ async function bootstrapApp() {
   windowRef.show();
   windowRef.focus();
   tray = new Tray(createTrayImage());
-  tray.setToolTip('GTV Desktop Remote');
+  tray.setToolTip(appName);
   tray.setContextMenu(buildContextMenu());
   tray.on('click', toggleWindow);
 
   globalShortcut.register(shortcut, toggleWindow);
   await logInfo('main', 'Application bootstrap complete', { shortcut, logPath: getLoggerPath() });
 }
+
+app.setName(appName);
+process.title = appName;
 
 function registerIpc() {
   ipcMain.handle('device:bootstrap', async () => adapter.getBootstrapState());

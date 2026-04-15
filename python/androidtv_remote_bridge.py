@@ -8,8 +8,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from androidtvremote2 import AndroidTVRemote, CannotConnect, ConnectionClosed, InvalidAuth
-
+from androidtvremote2 import (AndroidTVRemote, CannotConnect, ConnectionClosed,
+                              InvalidAuth)
 
 LOGGER = logging.getLogger("androidtv_remote_bridge")
 

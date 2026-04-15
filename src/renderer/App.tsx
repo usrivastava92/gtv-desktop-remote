@@ -56,6 +56,10 @@ const initialDraft: DeviceDraft = {
   pairingPort: 0
 };
 
+type DevicePickerSelection =
+  | { kind: 'saved'; key: string; savedDevice: SavedDevice; discoveredDevice: DiscoveredDevice }
+  | { kind: 'discovered'; key: string; discoveredDevice: DiscoveredDevice };
+
 function getDesktopApi() {
   const api = window.gtvRemote;
 
@@ -84,7 +88,7 @@ function App() {
     }
   });
   const [discoveredDevices, setDiscoveredDevices] = useState<DiscoveredDevice[]>([]);
-  const [selectedDiscoveredDeviceId, setSelectedDiscoveredDeviceId] = useState('');
+  const [selectedDeviceKey, setSelectedDeviceKey] = useState('');
   const [scanning, setScanning] = useState(false);
   const [pairCode, setPairCode] = useState('');
   const [pairingDeviceId, setPairingDeviceId] = useState('');
@@ -92,9 +96,119 @@ function App() {
   const [busy, setBusy] = useState(false);
   const [bridgeReady, setBridgeReady] = useState(false);
   const [pairingReady, setPairingReady] = useState(false);
+
+  const discoveredByHost = new Map(discoveredDevices.map((device) => [device.host, device]));
+  const pairedNetworkDevices = bootstrap.devices
+    .map((savedDevice) => {
+      const discoveredDevice = discoveredByHost.get(savedDevice.host);
+      if (!discoveredDevice) {
+        return null;
+      }
+
+      return {
+        key: `saved:${savedDevice.id}`,
+        savedDevice,
+        discoveredDevice
+      };
+    })
+    .filter((entry): entry is { key: string; savedDevice: SavedDevice; discoveredDevice: DiscoveredDevice } => entry !== null);
+  const unpairedNetworkDevices = discoveredDevices.filter(
+    (discoveredDevice) => !bootstrap.devices.some((savedDevice) => savedDevice.host === discoveredDevice.host)
+  );
+
+  const selectedDevice: DevicePickerSelection | undefined = (() => {
+    const savedSelection = pairedNetworkDevices.find((option) => option.key === selectedDeviceKey);
+    if (savedSelection) {
+      return {
+        kind: 'saved',
+        key: savedSelection.key,
+        savedDevice: savedSelection.savedDevice,
+        discoveredDevice: savedSelection.discoveredDevice
+      };
+    }
+
+    const discoveredSelection = unpairedNetworkDevices.find((device) => `discovered:${device.id}` === selectedDeviceKey);
+    if (discoveredSelection) {
+      return {
+        kind: 'discovered',
+        key: `discovered:${discoveredSelection.id}`,
+        discoveredDevice: discoveredSelection
+      };
+    }
+
+    return undefined;
+  })();
+
+  const selectedSavedDevice = selectedDevice?.kind === 'saved' ? selectedDevice.savedDevice : undefined;
+  const selectedPairedDeviceId = selectedSavedDevice?.id ?? pairingDeviceId;
+  const isSelectedDeviceActive = selectedSavedDevice ? bootstrap.deviceState.activeDeviceId === selectedSavedDevice.id : false;
+  const primaryActionLabel = (() => {
+    if (!selectedDevice) {
+      return 'Choose Device';
+    }
+
+    if (selectedDevice.kind === 'saved') {
+      return isSelectedDeviceActive ? 'Reconnect Device' : 'Connect Device';
+    }
+
+    return 'Pair Device';
+  })();
+  const pickerHelpText = (() => {
+    if (!selectedDevice) {
+      return 'Choose a scanned Google TV to connect or pair.';
+    }
+
+    if (selectedDevice.kind === 'saved') {
+      return `${selectedDevice.savedDevice.name} is already paired and available on the network.`;
+    }
+
+    return `${selectedDevice.discoveredDevice.name} is available on the network and needs pairing.`;
+  })();
+
   async function refreshState() {
     const nextBootstrap = await getDesktopApi().bootstrap();
     setBootstrap(nextBootstrap);
+  }
+
+  async function handleScanDevices(silent = false) {
+    setScanning(true);
+    try {
+      const devices = await getDesktopApi().scanDevices();
+      setDiscoveredDevices(devices);
+      setSelectedDeviceKey((current) => {
+        const validSavedKeys = bootstrap.devices
+          .filter((savedDevice) => devices.some((device: DiscoveredDevice) => device.host === savedDevice.host))
+          .map((savedDevice) => `saved:${savedDevice.id}`);
+        const validDiscoveredKeys = devices.map((device: DiscoveredDevice) => `discovered:${device.id}`);
+
+        if (validSavedKeys.includes(current) || validDiscoveredKeys.includes(current)) {
+          return current;
+        }
+
+        return validSavedKeys[0] ?? validDiscoveredKeys[0] ?? '';
+      });
+
+      if (!silent) {
+        setBootstrap((current) => ({
+          ...current,
+          deviceState: {
+            ...current.deviceState,
+            status: 'idle',
+            message: devices.length > 0 ? `Found ${devices.length} device${devices.length > 1 ? 's' : ''}.` : 'No Google TV devices found on the local network.'
+          }
+        }));
+      }
+    } catch (error) {
+      setBootstrap((current) => ({
+        ...current,
+        deviceState: {
+          status: 'error',
+          message: (error as Error).message
+        }
+      }));
+    } finally {
+      setScanning(false);
+    }
   }
 
   useEffect(() => {
@@ -145,65 +259,52 @@ function App() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [bootstrap.deviceState.status, bridgeReady, busy]);
 
-  async function handleScanDevices(silent = false) {
-    setScanning(true);
-    try {
-      const devices = await getDesktopApi().scanDevices();
-      setDiscoveredDevices(devices);
-      setSelectedDiscoveredDeviceId((current) => {
-        if (devices.some((device: DiscoveredDevice) => device.id === current)) {
-          return current;
-        }
+  async function saveDiscoveredDevice(device: DiscoveredDevice): Promise<SavedDevice> {
+    const devices = await getDesktopApi().saveDevice({
+      name: device.name,
+      host: device.host,
+      adbPort: device.adbPort || initialDraft.adbPort,
+      pairingPort: device.pairingPort
+    });
+    const savedDevice = devices.find((item: SavedDevice) => item.host === device.host);
 
-        return devices[0]?.id ?? '';
-      });
-      if (!silent) {
-        setBootstrap((current) => ({
-          ...current,
-          deviceState: {
-            ...current.deviceState,
-            status: 'idle',
-            message: devices.length > 0 ? `Found ${devices.length} device${devices.length > 1 ? 's' : ''}.` : 'No Google TV devices found on the local network.'
-          }
-        }));
-      }
-    } catch (error) {
-      setBootstrap((current) => ({
-        ...current,
-        deviceState: {
-          status: 'error',
-          message: (error as Error).message
-        }
-      }));
-    } finally {
-      setScanning(false);
+    if (!savedDevice) {
+      throw new Error('Saved device could not be resolved after saving.');
     }
+
+    setBootstrap((current) => ({
+      ...current,
+      devices,
+      deviceState: {
+        ...current.deviceState,
+        status: 'idle',
+        message: `Saved ${device.name}.`
+      }
+    }));
+    setPairingDeviceId(savedDevice.id);
+    setSelectedDeviceKey(`saved:${savedDevice.id}`);
+    setPairingReady(false);
+    return savedDevice;
   }
 
-  async function handleSaveDiscoveredDevice(device: DiscoveredDevice) {
+  async function startPairingFlow(deviceId: string) {
+    const deviceState = await getDesktopApi().startPairing(deviceId);
+    setBootstrap((current) => ({ ...current, deviceState }));
+    setPairingDeviceId(deviceId);
+    setPairingReady(true);
+  }
+
+  async function handleStartPairing(deviceId = selectedPairedDeviceId) {
+    if (!deviceId) {
+      return;
+    }
+
     setBusy(true);
     try {
-      const devices = await getDesktopApi().saveDevice({
-        name: device.name,
-        host: device.host,
-        adbPort: device.adbPort || initialDraft.adbPort,
-        pairingPort: device.pairingPort
-      });
-      setBootstrap((current) => ({
-        ...current,
-        devices,
-        deviceState: {
-          ...current.deviceState,
-          status: 'idle',
-          message: `Saved ${device.name}.`
-        }
-      }));
-      setPairingDeviceId((current) => {
-        const savedDevice = devices.find((item: SavedDevice) => item.host === device.host);
-        return savedDevice?.id ?? current;
-      });
-      setPairingReady(false);
+      await startPairingFlow(deviceId);
+      await refreshState();
     } catch (error) {
+      setPairingReady(false);
       setBootstrap((current) => ({
         ...current,
         deviceState: {
@@ -216,26 +317,20 @@ function App() {
     }
   }
 
-  async function handleSaveSelectedDiscoveredDevice() {
-    const device = discoveredDevices.find((item) => item.id === selectedDiscoveredDeviceId);
-    if (!device) {
+  async function handleChooseDevice() {
+    if (!selectedDevice) {
       return;
     }
 
-    await handleSaveDiscoveredDevice(device);
-  }
-
-  async function handleStartPairing() {
-    if (!pairingDeviceId) {
+    if (selectedDevice.kind === 'saved') {
+      await handleConnect(selectedDevice.savedDevice.id);
       return;
     }
 
     setBusy(true);
     try {
-      const deviceState = await getDesktopApi().startPairing(pairingDeviceId);
-      setBootstrap((current) => ({ ...current, deviceState }));
-      setPairingReady(true);
-      await refreshState();
+      const savedDevice = await saveDiscoveredDevice(selectedDevice.discoveredDevice);
+      await startPairingFlow(savedDevice.id);
     } catch (error) {
       setPairingReady(false);
       setBootstrap((current) => ({
@@ -251,11 +346,11 @@ function App() {
   }
 
   async function handlePair() {
-    if (!pairingDeviceId || !pairCode.trim()) {
+    if (!selectedPairedDeviceId || !pairCode.trim()) {
       return;
     }
 
-    const device = bootstrap.devices.find((item) => item.id === pairingDeviceId);
+    const device = bootstrap.devices.find((item) => item.id === selectedPairedDeviceId);
     if (!device) {
       return;
     }
@@ -270,6 +365,7 @@ function App() {
       await refreshState();
       setPairCode('');
       setPairingReady(false);
+      setSelectedDeviceKey(`saved:${device.id}`);
     } catch (error) {
       setBootstrap((current) => ({
         ...current,
@@ -391,6 +487,7 @@ function App() {
       }));
       setPairingDeviceId((current) => (current === deviceId ? '' : current));
       setPairingReady(false);
+      setSelectedDeviceKey((current) => (current === `saved:${deviceId}` ? '' : current));
     } finally {
       setBusy(false);
     }
@@ -399,13 +496,82 @@ function App() {
   return (
     <main className="shell">
       <section className="hero card">
-        <div>
-          <p className="eyebrow">Google TV Remote</p>
-          <h1>Desktop remote for Google TV</h1>
-          <p className="subtle">
-            Scan, pair once, connect, and use the remote with either clicks or keyboard keys.
-          </p>
+        <div className="hero-top">
+          <div>
+            <p className="eyebrow">Google TV Remote</p>
+            <h1>Desktop remote for Google TV</h1>
+            <p className="subtle">
+              Choose a TV from the dropdown, then connect or pair depending on whether it is already known.
+            </p>
+          </div>
+          <button className="ghost" disabled={busy || scanning || !bridgeReady} onClick={() => handleScanDevices()}>
+            {scanning ? 'Scanning…' : 'Scan Network'}
+          </button>
         </div>
+
+        <div className="device-picker-card">
+          <label>
+            Choose Device
+            <select
+              value={selectedDeviceKey}
+              onChange={(event) => {
+                setSelectedDeviceKey(event.target.value);
+                setPairingReady(false);
+                setPairCode('');
+                if (event.target.value.startsWith('saved:')) {
+                  setPairingDeviceId(event.target.value.replace('saved:', ''));
+                } else {
+                  setPairingDeviceId('');
+                }
+              }}
+            >
+              <option value="">Choose device</option>
+              {pairedNetworkDevices.length > 0 ? (
+                <optgroup label="Paired Devices">
+                  {pairedNetworkDevices.map((option) => (
+                    <option key={option.key} value={option.key}>
+                      {option.savedDevice.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ) : null}
+              {unpairedNetworkDevices.length > 0 ? (
+                <optgroup label="Available on Network">
+                  {unpairedNetworkDevices.map((device) => (
+                    <option key={`discovered:${device.id}`} value={`discovered:${device.id}`}>
+                      {device.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ) : null}
+            </select>
+          </label>
+          <div className="device-picker-actions">
+            <button className="primary" disabled={busy || !bridgeReady || !selectedDevice} onClick={handleChooseDevice}>
+              {primaryActionLabel}
+            </button>
+            <button
+              className="ghost"
+              disabled={busy || !bridgeReady || bootstrap.deviceState.status !== 'connected'}
+              onClick={handleDisconnect}
+            >
+              Disconnect
+            </button>
+            <button
+              className="ghost"
+              disabled={busy || !bridgeReady || !selectedSavedDevice}
+              onClick={() => {
+                if (selectedSavedDevice) {
+                  void handleRemove(selectedSavedDevice.id);
+                }
+              }}
+            >
+              Forget
+            </button>
+          </div>
+          <p className="subtle small">{pickerHelpText}</p>
+        </div>
+
         <div className={`status status-${bootstrap.deviceState.status}`}>
           {bootstrap.deviceState.message}
         </div>
@@ -415,95 +581,23 @@ function App() {
       <section className="grid-two">
         <article className="card">
           <div className="section-head">
-            <h2>Devices</h2>
-            <button className="primary" disabled={busy || scanning || !bridgeReady} onClick={() => handleScanDevices()}>
-              {scanning ? 'Scanning…' : 'Scan'}
-            </button>
-          </div>
-          <div className="device-list">
-            {discoveredDevices.length === 0 ? <p className="subtle">No devices found yet.</p> : null}
-            {discoveredDevices.map((device) => (
-              <button
-                type="button"
-                className={device.id === selectedDiscoveredDeviceId ? 'device-choice device-choice-selected' : 'device-choice'}
-                key={device.id}
-                onClick={() => setSelectedDiscoveredDeviceId(device.id)}
-              >
-                <div>
-                  <strong>{device.name}</strong>
-                  <p className="subtle small">
-                    {device.host}
-                    {device.model ? ` · ${device.model}` : ''}
-                  </p>
-                </div>
-                <span className="device-choice-indicator">{device.id === selectedDiscoveredDeviceId ? 'Selected' : 'Select'}</span>
-              </button>
-            ))}
-          </div>
-          <button
-            className="primary"
-            disabled={busy || !bridgeReady || !selectedDiscoveredDeviceId}
-            onClick={handleSaveSelectedDiscoveredDevice}
-          >
-            Save Device
-          </button>
-          <div className="device-list saved-list">
-            {bootstrap.devices.length === 0 ? <p className="subtle">No saved devices yet.</p> : null}
-            {bootstrap.devices.map((device: SavedDevice) => {
-              const isActive = bootstrap.deviceState.activeDeviceId === device.id;
-
-              return (
-                <div className="device-row" key={device.id}>
-                  <div>
-                    <strong>{device.name}</strong>
-                    <p className="subtle small">{device.host}</p>
-                  </div>
-                  <div className="row actions">
-                    <button
-                      className="ghost"
-                      disabled={busy || !bridgeReady}
-                      onClick={() => {
-                        setPairingDeviceId(device.id);
-                        setPairingReady(false);
-                        setPairCode('');
-                      }}
-                    >
-                      Pair
-                    </button>
-                    <button className="primary" disabled={busy || !bridgeReady} onClick={() => handleConnect(device.id)}>
-                      {isActive ? 'Reconnect' : 'Connect'}
-                    </button>
-                    <button className="ghost" disabled={busy || !bridgeReady} onClick={() => handleRemove(device.id)}>
-                      Forget
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <button className="ghost" disabled={busy || !bridgeReady || bootstrap.deviceState.status !== 'connected'} onClick={handleDisconnect}>
-            Disconnect
-          </button>
-        </article>
-
-        <article className="card">
-          <div className="section-head">
             <h2>Pair</h2>
-            <button className="ghost" disabled={busy || !bridgeReady || !pairingDeviceId} onClick={handleStartPairing}>
+            <button className="ghost" disabled={busy || !bridgeReady || !selectedPairedDeviceId} onClick={() => handleStartPairing()}>
               Show TV Code
             </button>
           </div>
           <label>
             Device
             <select
-              value={pairingDeviceId}
+              value={selectedPairedDeviceId}
               onChange={(event) => {
                 setPairingDeviceId(event.target.value);
+                setSelectedDeviceKey(event.target.value ? `saved:${event.target.value}` : '');
                 setPairingReady(false);
                 setPairCode('');
               }}
             >
-              <option value="">Select a saved device</option>
+              <option value="">Select a paired device</option>
               {bootstrap.devices.map((device) => (
                 <option key={device.id} value={device.id}>
                   {device.name}
@@ -519,9 +613,12 @@ function App() {
               placeholder="6-digit code"
             />
           </label>
-          <button className="primary" disabled={busy || !bridgeReady || !pairingDeviceId || !pairingReady || !pairCode.trim()} onClick={handlePair}>
+          <button className="primary" disabled={busy || !bridgeReady || !selectedPairedDeviceId || !pairingReady || !pairCode.trim()} onClick={handlePair}>
             Confirm Pairing
           </button>
+          <p className="subtle small">
+            Unpaired TVs start pairing automatically when chosen from the dropdown above. Paired TVs can be re-paired here if needed.
+          </p>
         </article>
       </section>
 

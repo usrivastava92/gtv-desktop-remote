@@ -13,15 +13,21 @@
   },
   "build": {
     "appId": "com.example.gtvdesktopremote",
-    "productName": "GTV Desktop Remote",
+    "productName": "GTV Remote",
+    "directories": {
+      "buildResources": "build"
+    },
+    "icon": "build/icon.icns",
     "files": [
+      "assets/**/*",
       "dist/**/*",
       "dist-electron/**/*",
       "python/**/*",
       "package.json"
     ],
     "mac": {
-      "category": "public.app-category.utilities"
+      "category": "public.app-category.utilities",
+      "icon": "build/icon.icns"
     }
   },
   "dependencies": {
