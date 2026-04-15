@@ -1,0 +1,259 @@
+:root {
+  font-family: 'Avenir Next', 'Segoe UI', sans-serif;
+  color: #11141a;
+  background:
+    radial-gradient(circle at top left, rgba(215, 159, 22, 0.18), transparent 28%),
+    linear-gradient(160deg, #f6f2e8 0%, #e7ebef 52%, #d9dee2 100%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 100vw;
+  min-height: 100vh;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  border: none;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+input,
+select {
+  width: 100%;
+  padding: 0.85rem 0.95rem;
+  border-radius: 14px;
+  border: 1px solid rgba(17, 20, 26, 0.12);
+  background: rgba(255, 255, 255, 0.75);
+}
+
+label {
+  display: grid;
+  gap: 0.45rem;
+  font-size: 0.9rem;
+  color: #3c4652;
+}
+
+.shell {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.card {
+  padding: 1rem;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 12px 36px rgba(39, 45, 57, 0.1);
+  backdrop-filter: blur(16px);
+}
+
+.hero {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.72rem;
+  color: #8d6513;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 1.7rem;
+  line-height: 1.05;
+  max-width: 14ch;
+}
+
+h2 {
+  font-size: 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.subtle {
+  color: #5d6673;
+}
+
+.small {
+  font-size: 0.82rem;
+}
+
+.status {
+  padding: 0.8rem 0.95rem;
+  border-radius: 16px;
+  font-size: 0.92rem;
+}
+
+.status-idle {
+  background: rgba(18, 82, 124, 0.08);
+  color: #1a5678;
+}
+
+.status-connecting {
+  background: rgba(202, 145, 21, 0.15);
+  color: #6c4d0d;
+}
+
+.status-connected {
+  background: rgba(37, 139, 101, 0.14);
+  color: #13684a;
+}
+
+.status-error {
+  background: rgba(182, 50, 44, 0.14);
+  color: #8d2a25;
+}
+
+.grid-two,
+.row {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.grid-two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.primary,
+.ghost,
+.remote-button {
+  border-radius: 16px;
+  padding: 0.85rem 1rem;
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+.primary {
+  background: linear-gradient(135deg, #151a22 0%, #2d343e 100%);
+  color: #f5f1e8;
+  box-shadow: 0 10px 24px rgba(21, 26, 34, 0.2);
+}
+
+.ghost {
+  background: rgba(17, 20, 26, 0.06);
+  color: #25303d;
+}
+
+.primary:hover,
+.ghost:hover,
+.remote-button:hover {
+  transform: translateY(-1px);
+}
+
+.section-head,
+.device-row,
+.actions,
+.text-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.device-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.saved-list {
+  margin-top: 1rem;
+}
+
+.device-choice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(17, 20, 26, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.66);
+  color: #131920;
+  text-align: left;
+}
+
+.device-choice-selected {
+  border-color: rgba(186, 126, 18, 0.45);
+  background: rgba(215, 166, 43, 0.12);
+  box-shadow: 0 10px 24px rgba(186, 126, 18, 0.12);
+}
+
+.device-choice-indicator {
+  font-size: 0.82rem;
+  color: #8d6513;
+  white-space: nowrap;
+}
+
+.device-row {
+  padding: 0.9rem 0;
+  border-top: 1px solid rgba(17, 20, 26, 0.08);
+}
+
+.device-row:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.remote-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.remote-row {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.remote-button {
+  min-width: 5.6rem;
+  background: rgba(255, 255, 255, 0.84);
+  color: #131920;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 10px 24px rgba(34, 40, 48, 0.08);
+}
+
+.remote-button.accent {
+  background: linear-gradient(135deg, #d7a62b 0%, #ba7e12 100%);
+  color: #fffdf9;
+}
+
+@media (max-width: 720px) {
+  .grid-two {
+    grid-template-columns: 1fr;
+  }
+
+  .device-row,
+  .device-choice,
+  .section-head,
+  .actions,
+  .text-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .remote-row {
+    flex-wrap: wrap;
+  }
+}

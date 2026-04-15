@@ -1,0 +1,43 @@
+{
+  "name": "gtv-desktop-remote",
+  "version": "0.1.0",
+  "description": "macOS-first desktop remote for Google TV and Android TV",
+  "main": "dist-electron/main/main.js",
+  "author": "",
+  "license": "MIT",
+  "scripts": {
+    "dev": "concurrently -k \"vite\" \"tsc -p tsconfig.electron.json --watch --preserveWatchOutput\" \"wait-on tcp:5173 file:dist-electron/main/main.js file:dist-electron/main/preload.js && electron .\"",
+    "build": "tsc -p tsconfig.electron.json && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.electron.json --noEmit"
+  },
+  "build": {
+    "appId": "com.example.gtvdesktopremote",
+    "productName": "GTV Desktop Remote",
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "python/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.utilities"
+    }
+  },
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "@vitejs/plugin-react": "^4.4.1",
+    "concurrently": "^9.1.2",
+    "electron": "^35.1.5",
+    "electron-builder": "^26.0.12",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.3",
+    "wait-on": "^8.0.3"
+  }
+}
