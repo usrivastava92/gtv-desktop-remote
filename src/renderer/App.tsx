@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 
 import type {
-  BootstrapState,
-  DeviceDraft,
-  DiscoveredDevice,
-  RemoteCommand,
-  SavedDevice
+    BootstrapState,
+    DeviceCapabilities,
+    DeviceDraft,
+    DiscoveredDevice,
+    RemoteCommand,
+    SavedDevice
 } from '../shared/types';
 
 const initialDraft: DeviceDraft = {
@@ -45,7 +46,6 @@ type DevicePickerSelection =
 type IconName =
   | 'devices'
   | 'dropdown'
-  | 'swap'
   | 'disconnect'
   | 'trash'
   | 'tv'
@@ -94,6 +94,10 @@ function classes(...values: Array<string | false | null | undefined>): string {
   return values.filter(Boolean).join(' ');
 }
 
+function shouldRestartPairingFlow(message: string): boolean {
+  return /invalid pairing code|request a new code|no pairing session is active|pairing failed/i.test(message);
+}
+
 function Icon({ name, className }: { name: IconName; className?: string }) {
   const props = {
     className,
@@ -121,15 +125,6 @@ function Icon({ name, className }: { name: IconName; className?: string }) {
       return (
         <svg {...props}>
           <path d="M6.5 9.5L12 15L17.5 9.5" />
-        </svg>
-      );
-    case 'swap':
-      return (
-        <svg {...props}>
-          <path d="M7 7H18" />
-          <path d="M14.5 3.5L18 7L14.5 10.5" />
-          <path d="M17 17H6" />
-          <path d="M9.5 13.5L6 17L9.5 20.5" />
         </svg>
       );
     case 'disconnect':
@@ -311,6 +306,10 @@ function App() {
   const [pairingDeviceId, setPairingDeviceId] = useState('');
   const [textInput, setTextInput] = useState('');
   const [textInputOpen, setTextInputOpen] = useState(false);
+  const [capabilities, setCapabilities] = useState<DeviceCapabilities>({
+    textInput: false,
+    powerToggle: true
+  });
   const [devicePickerOpen, setDevicePickerOpen] = useState(true);
   const [busy, setBusy] = useState(false);
   const [bridgeReady, setBridgeReady] = useState(false);
@@ -319,13 +318,17 @@ function App() {
   const pendingCommandCountRef = useRef(0);
 
   const discoveredByHost = new Map(discoveredDevices.map((device) => [device.host, device]));
-  const pairedNetworkDevices = bootstrap.devices.map((savedDevice) => ({
-    key: `saved:${savedDevice.id}`,
-    savedDevice,
-    discoveredDevice: discoveredByHost.get(savedDevice.host)
-  }));
+  const pairedNetworkDevices = bootstrap.devices
+    .filter((savedDevice) => savedDevice.isPaired)
+    .map((savedDevice) => ({
+      key: `saved:${savedDevice.id}`,
+      savedDevice,
+      discoveredDevice: discoveredByHost.get(savedDevice.host)
+    }));
   const unpairedNetworkDevices = discoveredDevices.filter(
-    (discoveredDevice) => !bootstrap.devices.some((savedDevice) => savedDevice.host === discoveredDevice.host)
+    (discoveredDevice) => !bootstrap.devices.some(
+      (savedDevice) => savedDevice.host === discoveredDevice.host && savedDevice.isPaired
+    )
   );
 
   const selectedDevice: DevicePickerSelection | undefined = (() => {
@@ -362,7 +365,11 @@ function App() {
   const selectedDeviceName = currentRemoteDeviceName
     ?? (selectedDevice?.kind === 'discovered' ? selectedDevice.discoveredDevice.name : undefined);
   const isConnected = bootstrap.deviceState.status === 'connected';
-  const currentView = pairingReady ? 'pairing' : devicePickerOpen || !currentRemoteDevice ? 'devices' : 'remote';
+  const currentView = pairingReady
+    ? 'pairing'
+    : !devicePickerOpen && currentRemoteDevice && (isConnected || bootstrap.deviceState.status === 'connecting')
+      ? 'remote'
+      : 'devices';
   const bridgeDisabled = busy || !bridgeReady;
   const remoteDisabled = bridgeDisabled || !isConnected;
   const frameHeaderClassName = classes(
@@ -426,7 +433,11 @@ function App() {
   useEffect(() => {
     async function initialize() {
       try {
-        const nextBootstrap = await refreshState();
+        const [nextBootstrap, nextCapabilities] = await Promise.all([
+          refreshState(),
+          getDesktopApi().capabilities()
+        ]);
+        setCapabilities(nextCapabilities);
         setBridgeReady(true);
         setDevicePickerOpen(!nextBootstrap.deviceState.activeDeviceId);
         await handleScanDevices(true, nextBootstrap.devices, nextBootstrap.deviceState.activeDeviceId);
@@ -527,9 +538,9 @@ function App() {
     setBusy(true);
     try {
       await startPairingFlow(deviceId);
-      await refreshState();
     } catch (error) {
       setPairingReady(false);
+      setDevicePickerOpen(true);
       setBootstrap((current) => ({
         ...current,
         deviceState: {
@@ -567,6 +578,7 @@ function App() {
       await startPairingFlow(savedDevice.id);
     } catch (error) {
       setPairingReady(false);
+      setDevicePickerOpen(true);
       setBootstrap((current) => ({
         ...current,
         deviceState: {
@@ -603,11 +615,18 @@ function App() {
       setSelectedDeviceKey(`saved:${device.id}`);
       await handleScanDevices(true, nextBootstrap.devices, nextBootstrap.deviceState.activeDeviceId);
     } catch (error) {
+      const message = (error as Error).message;
+      if (shouldRestartPairingFlow(message)) {
+        setPairCode('');
+        setPairingReady(false);
+        setDevicePickerOpen(true);
+      }
+
       setBootstrap((current) => ({
         ...current,
         deviceState: {
           status: 'error',
-          message: (error as Error).message
+          message
         }
       }));
     } finally {
@@ -731,6 +750,40 @@ function App() {
     }
   }
 
+  async function handleResetState() {
+    const confirmed = window.confirm('Reset the app and remove all saved devices and pairing certificates?');
+    if (!confirmed) {
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const deviceState = await getDesktopApi().resetState();
+      setBootstrap({
+        devices: [],
+        deviceState
+      });
+      setDiscoveredDevices([]);
+      setSelectedDeviceKey('');
+      setPairCode('');
+      setPairingDeviceId('');
+      setPairingReady(false);
+      setTextInput('');
+      setTextInputOpen(false);
+      setDevicePickerOpen(true);
+    } catch (error) {
+      setBootstrap((current) => ({
+        ...current,
+        deviceState: {
+          status: 'error',
+          message: (error as Error).message
+        }
+      }));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function openDevicePicker() {
     setTextInputOpen(false);
     setPairingReady(false);
@@ -754,42 +807,58 @@ function App() {
     <main className="ui-shell">
       <section className="ui-frame">
         <header className={frameHeaderClassName}>
-          {currentView === 'pairing' ? (
+          {currentView === "pairing" ? (
             <>
-              <div className="text-xs font-extrabold uppercase tracking-widest text-on-surface">Android TV</div>
+              <div className="text-xs font-extrabold uppercase tracking-widest text-on-surface">
+                Android TV
+              </div>
               <div className="flex items-center ui-dragless">
-                <Icon name="devices" className="h-[1.15rem] w-[1.15rem] text-primary-strong" />
+                <Icon
+                  name="devices"
+                  className="h-[1.15rem] w-[1.15rem] text-primary-strong"
+                />
               </div>
             </>
-          ) : currentView === 'devices' ? (
+          ) : currentView === "devices" ? (
             <>
               <div className="ui-brand">
-                <Icon name="devices" className="h-[1.28rem] w-[1.28rem] text-primary-strong" />
-                <span className="ui-brand-label ui-brand-label-muted">Android TV</span>
+                <Icon
+                  name="devices"
+                  className="h-[1.28rem] w-[1.28rem] text-primary-strong"
+                />
+                <span className="ui-brand-label ui-brand-label-muted">
+                  Android TV
+                </span>
               </div>
             </>
           ) : (
             <>
               <div className="ui-brand">
-                <Icon name="devices" className="h-[1.28rem] w-[1.28rem] text-primary-strong" />
+                <Icon
+                  name="devices"
+                  className="h-[1.28rem] w-[1.28rem] text-primary-strong"
+                />
                 <span className="ui-brand-label">Android TV</span>
               </div>
               <div className="flex min-w-0 items-center gap-3 ui-dragless">
                 <div
                   className={classes(
-                    'ui-status-pill',
-                    bootstrap.deviceState.status === 'error' && 'ui-status-pill-error'
+                    "ui-status-pill",
+                    bootstrap.deviceState.status === "error" &&
+                      "ui-status-pill-error",
                   )}
                 >
                   <span className="ui-status-dot" />
-                  <span>{isConnected ? 'Connected' : bootstrap.deviceState.status}</span>
+                  <span>
+                    {isConnected ? "Connected" : bootstrap.deviceState.status}
+                  </span>
                 </div>
               </div>
             </>
           )}
         </header>
 
-        {currentView === 'devices' ? (
+        {currentView === "devices" ? (
           <div className="ui-screen-scroll">
             <section className="ui-section">
               <div className="ui-section-row">
@@ -801,26 +870,50 @@ function App() {
                   <div className="ui-empty">No paired devices yet.</div>
                 ) : (
                   pairedNetworkDevices.map((option) => {
-                    const status = renderStatusLabel(option.savedDevice, option.discoveredDevice);
-                    const displayName = option.discoveredDevice?.name ?? option.savedDevice.name;
-                    const subtitle = option.discoveredDevice?.model ?? option.savedDevice.host;
-                    const isActive = bootstrap.deviceState.activeDeviceId === option.savedDevice.id;
+                    const status = renderStatusLabel(
+                      option.savedDevice,
+                      option.discoveredDevice,
+                    );
+                    const displayName =
+                      option.discoveredDevice?.name ?? option.savedDevice.name;
+                    const subtitle =
+                      option.discoveredDevice?.model ?? option.savedDevice.host;
+                    const isActive =
+                      bootstrap.deviceState.activeDeviceId ===
+                      option.savedDevice.id;
 
                     return (
                       <button
                         key={option.key}
-                        className={classes('ui-card', isActive && 'ui-card-active')}
+                        className={classes(
+                          "ui-card",
+                          isActive && "ui-card-active",
+                        )}
                         disabled={bridgeDisabled}
-                        onClick={() => void handleSelectSavedDevice(option.savedDevice.id)}
+                        onClick={() =>
+                          void handleSelectSavedDevice(option.savedDevice.id)
+                        }
                       >
                         <div className="ui-card-row">
-                          <div className={classes('ui-avatar', isActive && 'ui-avatar-active')}>
+                          <div
+                            className={classes(
+                              "ui-avatar",
+                              isActive && "ui-avatar-active",
+                            )}
+                          >
                             <Icon name="tv" className="h-[1.2rem] w-[1.2rem]" />
                           </div>
                           <div className="ui-card-copy">
                             <div className="flex items-center justify-between gap-3">
-                              <span className="ui-card-title">{displayName}</span>
-                              <span className={classes('ui-badge', isActive && 'ui-badge-active')}>
+                              <span className="ui-card-title">
+                                {displayName}
+                              </span>
+                              <span
+                                className={classes(
+                                  "ui-badge",
+                                  isActive && "ui-badge-active",
+                                )}
+                              >
                                 {status}
                               </span>
                             </div>
@@ -837,13 +930,19 @@ function App() {
             <section className="ui-section">
               <div className="ui-section-row">
                 <h2 className="ui-section-heading">New Devices Found</h2>
-                <button className="ui-icon-button" disabled={bridgeDisabled} onClick={() => void handleScanDevices(false)}>
+                <button
+                  className="ui-icon-button"
+                  disabled={bridgeDisabled}
+                  onClick={() => void handleScanDevices(false)}
+                >
                   <Icon name="refresh" className="h-5 w-5" />
                 </button>
               </div>
               <div className="ui-list">
                 {unpairedNetworkDevices.length === 0 ? (
-                  <div className="ui-empty ui-empty-recessed">No new devices detected right now.</div>
+                  <div className="ui-empty ui-empty-recessed">
+                    No new devices detected right now.
+                  </div>
                 ) : (
                   unpairedNetworkDevices.map((device) => (
                     <button
@@ -855,11 +954,22 @@ function App() {
                       <div className="ui-found-content">
                         <div className="ui-found-main">
                           <div className="ui-found-icon">
-                            <Icon name={device.source === 'googlecast' ? 'cast' : 'devices'} className="h-[1.2rem] w-[1.2rem]" />
+                            <Icon
+                              name={
+                                device.source === "googlecast"
+                                  ? "cast"
+                                  : "devices"
+                              }
+                              className="h-[1.2rem] w-[1.2rem]"
+                            />
                           </div>
                           <div>
-                            <span className="block text-sm font-bold text-on-surface">{device.name}</span>
-                            <span className="block text-[10px] font-medium text-on-surface-variant">{device.model ?? 'Ready to pair'}</span>
+                            <span className="block text-sm font-bold text-on-surface">
+                              {device.name}
+                            </span>
+                            <span className="block text-[10px] font-medium text-on-surface-variant">
+                              {device.model ?? "Ready to pair"}
+                            </span>
                           </div>
                         </div>
                         <div className="ui-found-add">
@@ -873,33 +983,63 @@ function App() {
             </section>
 
             <div className="ui-help">
-              <button className="ui-help-chip" disabled={bridgeDisabled} onClick={() => void handleScanDevices(false)}>
+              <button
+                className="ui-help-chip"
+                disabled={bridgeDisabled}
+                onClick={() => void handleScanDevices(false)}
+              >
                 Don&apos;t see your device?
+              </button>
+              <button
+                className="ui-help-chip ui-help-chip-danger"
+                disabled={bridgeDisabled}
+                onClick={() => void handleResetState()}
+              >
+                Reset App State
               </button>
             </div>
 
-            {bootstrap.deviceState.status === 'error' || !bridgeReady ? (
-              <div className="ui-alert">{!bridgeReady ? 'Electron bridge not ready yet.' : bootstrap.deviceState.message}</div>
+            {bootstrap.deviceState.status === "error" || !bridgeReady ? (
+              <div className="ui-alert">
+                {!bridgeReady
+                  ? "Electron bridge not ready yet."
+                  : bootstrap.deviceState.message}
+              </div>
             ) : null}
           </div>
         ) : null}
 
-        {currentView === 'pairing' ? (
+        {currentView === "pairing" ? (
           <div className="ui-pair-screen">
             <div className="ui-pair-icon">
               <Icon name="remote" className="h-8 w-8 text-primary" />
             </div>
-            <h1 className="mb-2 text-3xl font-bold tracking-tight text-on-surface">Enter Code</h1>
-            <p className="mb-12 text-sm text-on-surface-variant">Type the 6-character pairing code displayed on your Android TV screen.</p>
+            <h1 className="mb-2 text-3xl font-bold tracking-tight text-on-surface">
+              Enter Code
+            </h1>
+            <p className="mb-12 text-sm text-on-surface-variant">
+              Type the 6-character pairing code displayed on your Android TV
+              screen.
+            </p>
 
-            <button className="ui-code-row" disabled={busy} onClick={() => pairCodeInputRef.current?.focus()}>
+            <button
+              className="ui-code-row"
+              disabled={busy}
+              onClick={() => pairCodeInputRef.current?.focus()}
+            >
               {Array.from({ length: 6 }, (_, index) => {
                 const char = pairCode[index];
                 const filled = Boolean(char);
 
                 return (
-                  <span key={index} className={classes('ui-code-slot', filled && 'ui-code-slot-filled')}>
-                    {char ?? '_'}
+                  <span
+                    key={index}
+                    className={classes(
+                      "ui-code-slot",
+                      filled && "ui-code-slot-filled",
+                    )}
+                  >
+                    {char ?? "_"}
                   </span>
                 );
               })}
@@ -908,57 +1048,92 @@ function App() {
               ref={pairCodeInputRef}
               className="sr-only-input"
               value={pairCode}
-              onChange={(event) => setPairCode(sanitizePairCode(event.target.value))}
+              onChange={(event) =>
+                setPairCode(sanitizePairCode(event.target.value))
+              }
               maxLength={6}
               autoComplete="one-time-code"
             />
 
             <div className="ui-action-stack">
-              <button className="ui-primary-button" disabled={busy || !bridgeReady || pairCode.length < 6 || !selectedPairedDeviceId} onClick={handlePair}>
+              <button
+                className="ui-primary-button"
+                disabled={
+                  busy ||
+                  !bridgeReady ||
+                  pairCode.length < 6 ||
+                  !selectedPairedDeviceId
+                }
+                onClick={handlePair}
+              >
                 <span>Connect</span>
                 <Icon name="cast" className="h-5 w-5" />
               </button>
-              <button className="ui-secondary-button" disabled={busy} onClick={openDevicePicker}>
+              <button
+                className="ui-secondary-button"
+                disabled={busy}
+                onClick={openDevicePicker}
+              >
                 Cancel
               </button>
             </div>
-            {bootstrap.deviceState.status === 'error' ? <div className="ui-alert mt-4 w-full">{bootstrap.deviceState.message}</div> : null}
+            {bootstrap.deviceState.status === "error" ? (
+              <div className="ui-alert mt-4 w-full">
+                {bootstrap.deviceState.message}
+              </div>
+            ) : null}
           </div>
         ) : null}
 
-        {currentView === 'remote' ? (
+        {currentView === "remote" ? (
           <div className="ui-remote-screen">
-            <section className="ui-hero-compact">
-              <div className="ui-hero-row">
-                <div>
-                  <span className="ui-kicker mb-1">Current Device</span>
-                  <h1 className="ui-title-device">{currentRemoteDeviceName ?? 'Choose Device'}</h1>
-                </div>
-                <button className="ui-round-action" disabled={busy} onClick={openDevicePicker} aria-label="Switch device">
-                  <Icon name="swap" className="h-5 w-5" />
-                </button>
+            <section className="ui-remote-summary">
+              <div className="ui-status-pill">
+                <span>{currentRemoteDeviceName ?? 'Choose Device'}</span>
               </div>
             </section>
 
-            {bootstrap.deviceState.status === 'error' ? (
-              <div className="ui-alert mx-6 mb-3 mt-0">{bootstrap.deviceState.message}</div>
+            {bootstrap.deviceState.status === "error" ? (
+              <div className="ui-alert mx-6 mb-3 mt-0">
+                {bootstrap.deviceState.message}
+              </div>
             ) : null}
 
             <section className="ui-dpad-wrap">
               <div className="ui-dpad">
-                <button className="ui-dpad-edge ui-dpad-up" disabled={remoteDisabled} onClick={() => void handleCommand('up')}>
+                <button
+                  className="ui-dpad-edge ui-dpad-up"
+                  disabled={remoteDisabled}
+                  onClick={() => void handleCommand("up")}
+                >
                   <Icon name="up" className="h-7 w-7" />
                 </button>
-                <button className="ui-dpad-edge ui-dpad-down" disabled={remoteDisabled} onClick={() => void handleCommand('down')}>
+                <button
+                  className="ui-dpad-edge ui-dpad-down"
+                  disabled={remoteDisabled}
+                  onClick={() => void handleCommand("down")}
+                >
                   <Icon name="down" className="h-7 w-7" />
                 </button>
-                <button className="ui-dpad-edge ui-dpad-left" disabled={remoteDisabled} onClick={() => void handleCommand('left')}>
+                <button
+                  className="ui-dpad-edge ui-dpad-left"
+                  disabled={remoteDisabled}
+                  onClick={() => void handleCommand("left")}
+                >
                   <Icon name="left" className="h-7 w-7" />
                 </button>
-                <button className="ui-dpad-edge ui-dpad-right" disabled={remoteDisabled} onClick={() => void handleCommand('right')}>
+                <button
+                  className="ui-dpad-edge ui-dpad-right"
+                  disabled={remoteDisabled}
+                  onClick={() => void handleCommand("right")}
+                >
                   <Icon name="right" className="h-7 w-7" />
                 </button>
-                <button className="ui-dpad-center" disabled={remoteDisabled} onClick={() => void handleCommand('select')}>
+                <button
+                  className="ui-dpad-center"
+                  disabled={remoteDisabled}
+                  onClick={() => void handleCommand("select")}
+                >
                   Select
                 </button>
               </div>
@@ -966,32 +1141,68 @@ function App() {
 
             <section className="ui-nav-well">
               <div className="ui-nav-grid">
-                <button className="ui-nav-item" disabled={remoteDisabled} onClick={() => void handleCommand('back')}>
-                  <span className="ui-nav-button"><Icon name="back" className="h-6 w-6" /></span>
+                <button
+                  className="ui-nav-item"
+                  disabled={remoteDisabled}
+                  onClick={() => void handleCommand("back")}
+                >
+                  <span className="ui-nav-button">
+                    <Icon name="back" className="h-6 w-6" />
+                  </span>
                   <span className="ui-nav-label">Back</span>
                 </button>
-                <button className="ui-nav-item" disabled={remoteDisabled} onClick={() => void handleCommand('home')}>
-                  <span className="ui-nav-button ui-nav-button-active"><Icon name="home" className="h-7 w-7" /></span>
+                <button
+                  className="ui-nav-item"
+                  disabled={remoteDisabled}
+                  onClick={() => void handleCommand("home")}
+                >
+                  <span className="ui-nav-button ui-nav-button-active">
+                    <Icon name="home" className="h-7 w-7" />
+                  </span>
                   <span className="ui-nav-label ui-nav-label-active">Home</span>
                 </button>
-                <button className="ui-nav-item" disabled={remoteDisabled} onClick={() => setTextInputOpen((current) => !current)}>
-                  <span className="ui-nav-button"><Icon name="keyboard" className="h-6 w-6" /></span>
-                  <span className="ui-nav-label">Text</span>
-                </button>
+                {capabilities.textInput ? (
+                  <button
+                    className="ui-nav-item"
+                    disabled={remoteDisabled}
+                    onClick={() => setTextInputOpen((current) => !current)}
+                  >
+                    <span className="ui-nav-button">
+                      <Icon name="keyboard" className="h-6 w-6" />
+                    </span>
+                    <span className="ui-nav-label">Text</span>
+                  </button>
+                ) : null}
               </div>
             </section>
 
-            {textInputOpen ? (
+            {textInputOpen && capabilities.textInput ? (
               <section className="ui-glass-sheet">
                 <div className="ui-section-row">
                   <h2 className="ui-section-heading">Text Input</h2>
-                  <button className="rounded-full px-4 py-2 text-sm text-on-surface-variant" disabled={busy} onClick={() => setTextInputOpen(false)}>
+                  <button
+                    className="rounded-full px-4 py-2 text-sm text-on-surface-variant"
+                    disabled={busy}
+                    onClick={() => setTextInputOpen(false)}
+                  >
                     Close
                   </button>
                 </div>
-                <p className="ui-copy">Open this when your TV is focused on a text field.</p>
-                <textarea className="ui-textarea" value={textInput} onChange={(event) => setTextInput(event.target.value)} placeholder="Type text to send to the TV" rows={3} />
-                <button className="ui-primary-button" disabled={remoteDisabled || !textInput.trim()} onClick={handleSendText}>
+                <p className="ui-copy">
+                  Open this when your TV is focused on a text field.
+                </p>
+                <textarea
+                  className="ui-textarea"
+                  value={textInput}
+                  onChange={(event) => setTextInput(event.target.value)}
+                  placeholder="Type text to send to the TV"
+                  rows={3}
+                />
+                <button
+                  className="ui-primary-button"
+                  disabled={remoteDisabled || !textInput.trim()}
+                  onClick={handleSendText}
+                >
                   Send Text
                 </button>
               </section>
@@ -1000,27 +1211,52 @@ function App() {
             <section className="ui-media-section">
               <div className="ui-media-grid">
                 <div className="ui-media-column">
-                  <button className="ui-media-button ui-media-button-block" disabled={remoteDisabled} onClick={() => void handleCommand('volume_up')}>
+                  <button
+                    className="ui-media-button ui-media-button-block"
+                    disabled={remoteDisabled}
+                    onClick={() => void handleCommand("volume_up")}
+                  >
                     <Icon name="plus" className="h-5 w-5" />
                   </button>
                   <div className="ui-media-caption">
-                    <Icon name="volumeUp" className="h-4 w-4 text-on-surface-variant" />
+                    <Icon
+                      name="volumeUp"
+                      className="h-4 w-4 text-on-surface-variant"
+                    />
                     <span className="ui-media-caption-label">Vol</span>
                   </div>
-                  <button className="ui-media-button ui-media-button-block" disabled={remoteDisabled} onClick={() => void handleCommand('volume_down')}>
+                  <button
+                    className="ui-media-button ui-media-button-block"
+                    disabled={remoteDisabled}
+                    onClick={() => void handleCommand("volume_down")}
+                  >
                     <Icon name="minus" className="h-5 w-5" />
                   </button>
                 </div>
 
                 <div className="ui-media-stack">
-                  <button className="ui-media-button ui-media-primary" disabled={remoteDisabled} onClick={() => void handleCommand('play_pause')}>
+                  <button
+                    className="ui-media-button ui-media-primary"
+                    disabled={remoteDisabled}
+                    onClick={() => void handleCommand("play_pause")}
+                  >
                     <Icon name="play" className="h-8 w-8" />
                   </button>
                   <div className="ui-media-subgrid">
-                    <button className="ui-media-button" disabled={remoteDisabled} onClick={() => void handleStartPairing(currentRemoteDevice?.id)}>
+                    <button
+                      className="ui-media-button"
+                      disabled={remoteDisabled}
+                      onClick={() =>
+                        void handleStartPairing(currentRemoteDevice?.id)
+                      }
+                    >
                       <Icon name="remote" className="h-5 w-5" />
                     </button>
-                    <button className="ui-media-button ui-media-danger" disabled={remoteDisabled} onClick={() => void handleCommand('power')}>
+                    <button
+                      className="ui-media-button ui-media-danger"
+                      disabled={remoteDisabled}
+                      onClick={() => void handleCommand("power")}
+                    >
                       <Icon name="power" className="h-5 w-5" />
                     </button>
                   </div>
@@ -1029,15 +1265,30 @@ function App() {
             </section>
 
             <footer className="ui-footer-bar">
-              <button className="ui-footer-item" disabled={busy} onClick={openDevicePicker}>
+              <button
+                className="ui-footer-item"
+                disabled={busy}
+                onClick={openDevicePicker}
+              >
                 <Icon name="back" className="h-5 w-5" />
                 <span className="ui-footer-label">Devices</span>
               </button>
-              <button className="ui-footer-item" disabled={bridgeDisabled} onClick={handleDisconnect}>
+              <button
+                className="ui-footer-item"
+                disabled={bridgeDisabled}
+                onClick={handleDisconnect}
+              >
                 <Icon name="disconnect" className="h-5 w-5" />
                 <span className="ui-footer-label">Disconnect</span>
               </button>
-              <button className="ui-footer-item" disabled={bridgeDisabled || !currentRemoteDevice} onClick={() => currentRemoteDevice && void handleRemove(currentRemoteDevice.id)}>
+              <button
+                className="ui-footer-item"
+                disabled={bridgeDisabled || !currentRemoteDevice}
+                onClick={() =>
+                  currentRemoteDevice &&
+                  void handleRemove(currentRemoteDevice.id)
+                }
+              >
                 <Icon name="trash" className="h-5 w-5" />
                 <span className="ui-footer-label">Forget</span>
               </button>

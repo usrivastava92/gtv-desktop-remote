@@ -7,6 +7,7 @@ const api = {
   scanDevices: () => ipcRenderer.invoke('device:scan'),
   saveDevice: (draft: DeviceDraft) => ipcRenderer.invoke('device:save', draft),
   removeDevice: (deviceId: string) => ipcRenderer.invoke('device:remove', deviceId),
+  resetState: () => ipcRenderer.invoke('device:reset'),
   startPairing: (deviceId: string) => ipcRenderer.invoke('device:startPairing', deviceId),
   pair: (request: PairingRequest) => ipcRenderer.invoke('device:pair', request),
   connect: (deviceId: string) => ipcRenderer.invoke('device:connect', deviceId),

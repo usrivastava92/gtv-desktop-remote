@@ -15,6 +15,7 @@ export interface SavedDevice {
   id: string;
   name: string;
   host: string;
+  isPaired?: boolean;
   adbPort?: number;
   pairingPort?: number;
   macAddress?: string;
@@ -67,6 +68,7 @@ export interface DeviceAdapter {
   scanForDevices(): Promise<DiscoveredDevice[]>;
   saveDevice(draft: DeviceDraft): Promise<SavedDevice[]>;
   removeDevice(deviceId: string): Promise<SavedDevice[]>;
+  resetState(): Promise<DeviceState>;
   startPairing(deviceId: string): Promise<DeviceState>;
   pair(request: PairingRequest): Promise<void>;
   connect(deviceId: string): Promise<DeviceState>;

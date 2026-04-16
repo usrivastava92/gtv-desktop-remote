@@ -1,4 +1,7 @@
+import { app } from 'electron';
 import { randomUUID } from 'node:crypto';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
 
 import type {
     BootstrapState,
@@ -11,15 +14,23 @@ import type {
     RemoteCommand,
     SavedDevice
 } from '../../shared/types';
-import { logError, logInfo } from '../logger';
+import { getAppDataPath, logError, logInfo } from '../logger';
 import { androidTvRemoteBridge } from './androidTvRemote';
 import { discoverGoogleTvDevices } from './discovery';
-import { readDevices, writeDevices } from './store';
+import { clearDeviceStore, readDevices, writeDevices } from './store';
 
 const DEFAULT_STATE: DeviceState = {
   status: 'idle',
   message: 'Add a Google TV or Android TV device to get started.'
 };
+
+function getLegacyUserDataPaths(): string[] {
+  const appDataRoot = app.getPath('appData');
+  return [
+    getAppDataPath(),
+    path.join(appDataRoot, 'GTV Desktop Remote')
+  ];
+}
 
 export class GoogleTvAdapter implements DeviceAdapter {
   private activeDevice: SavedDevice | undefined;
@@ -44,6 +55,7 @@ export class GoogleTvAdapter implements DeviceAdapter {
 
     const nextDevice: SavedDevice = {
       id: randomUUID(),
+      isPaired: false,
       name: draft.name.trim() || normalizedHost,
       host: normalizedHost,
       adbPort: draft.adbPort,
@@ -73,6 +85,26 @@ export class GoogleTvAdapter implements DeviceAdapter {
     return nextDevices;
   }
 
+  async resetState(): Promise<DeviceState> {
+    await logInfo('adapter', 'Resetting app state');
+
+    this.activeDevice = undefined;
+    await androidTvRemoteBridge.reset();
+    await clearDeviceStore();
+
+    for (const userDataPath of getLegacyUserDataPaths()) {
+      await fs.rm(path.join(userDataPath, 'devices.json'), { force: true });
+      await fs.rm(path.join(userDataPath, 'androidtvremote'), { force: true, recursive: true });
+    }
+
+    this.deviceState = {
+      ...DEFAULT_STATE,
+      message: 'App state reset. Pair your devices again.'
+    };
+
+    return this.deviceState;
+  }
+
   async pair(request: PairingRequest): Promise<void> {
     await logInfo('adapter', 'Starting pairing', { request: { ...request, code: '[redacted]' } });
     this.deviceState = {
@@ -82,6 +114,16 @@ export class GoogleTvAdapter implements DeviceAdapter {
 
     try {
       await androidTvRemoteBridge.finishPairing(request.host.trim(), request.code.trim());
+      const devices = await readDevices();
+      const nextDevices = devices.map((device) =>
+        device.host === request.host.trim()
+          ? {
+              ...device,
+              isPaired: true
+            }
+          : device
+      );
+      await writeDevices(nextDevices);
       await logInfo('adapter', 'Pairing succeeded', { host: request.host });
       this.deviceState = {
         status: 'idle',
@@ -106,9 +148,15 @@ export class GoogleTvAdapter implements DeviceAdapter {
       throw new Error('Saved device not found.');
     }
 
+    this.activeDevice = undefined;
+    try {
+      await androidTvRemoteBridge.disconnect(device.host);
+    } catch {
+      // Ignore disconnect failures before pairing; a stale remote session should not block pairing.
+    }
+
     this.deviceState = {
       status: 'connecting',
-      activeDeviceId: device.id,
       message: `Requesting pairing code from ${device.name}...`
     };
 
@@ -125,7 +173,6 @@ export class GoogleTvAdapter implements DeviceAdapter {
       await writeDevices(nextDevices);
       this.deviceState = {
         status: 'idle',
-        activeDeviceId: device.id,
         message: `Enter the 6-digit code shown on ${device.name}.`
       };
       return this.deviceState;
@@ -133,7 +180,6 @@ export class GoogleTvAdapter implements DeviceAdapter {
       await logError('adapter', 'Seamless pairing start failed', error);
       this.deviceState = {
         status: 'error',
-        activeDeviceId: device.id,
         message: (error as Error).message
       };
       throw error;
@@ -176,10 +222,10 @@ export class GoogleTvAdapter implements DeviceAdapter {
       await logInfo('adapter', 'Connection succeeded', { deviceId: device.id, host: device.host });
       return this.deviceState;
     } catch (error) {
+      this.activeDevice = undefined;
       await logError('adapter', 'Connection failed', error);
       this.deviceState = {
         status: 'error',
-        activeDeviceId: device.id,
         message: (error as Error).message
       };
       throw error;

@@ -230,24 +230,11 @@ p {
   color: var(--text);
 }
 
-.ui-hero-compact {
-  padding: 1.5rem 1.5rem 1rem;
-}
-
-.ui-hero-row {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.ui-kicker {
-  display: block;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-  color: var(--text-muted);
+.ui-remote-summary {
+  display: grid;
+  justify-items: center;
+  gap: 0.65rem;
+  padding: 1rem 1.5rem 0.55rem;
 }
 
 .ui-title-device {
@@ -256,6 +243,10 @@ p {
   font-weight: 600;
   letter-spacing: -0.04em;
   color: var(--text);
+}
+
+.ui-title-device-centered {
+  text-align: center;
 }
 
 .ui-copy {
@@ -444,6 +435,8 @@ p {
 
 .ui-help {
   display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
   justify-content: center;
   margin-top: 2rem;
 }
@@ -462,6 +455,15 @@ p {
 
 .ui-help-chip:hover {
   background: rgba(187, 195, 255, 0.12);
+}
+
+.ui-help-chip-danger {
+  background: rgba(147, 0, 10, 0.2);
+  color: var(--danger-text);
+}
+
+.ui-help-chip-danger:hover {
+  background: rgba(147, 0, 10, 0.3);
 }
 
 .ui-alert {
@@ -545,7 +547,6 @@ p {
 
 .ui-primary-button:active,
 .ui-secondary-button:active,
-.ui-round-action:active,
 .ui-nav-button:active {
   transform: scale(0.95);
 }
@@ -570,22 +571,6 @@ p {
   flex-direction: column;
   overflow: hidden;
   color: var(--text);
-}
-
-.ui-round-action {
-  width: 2.5rem;
-  height: 2.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: var(--surface-high);
-  color: var(--text);
-  transition: background 120ms ease, transform 150ms ease;
-}
-
-.ui-round-action:hover {
-  background: var(--surface-highest);
 }
 
 .ui-dpad-wrap {

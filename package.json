@@ -9,7 +9,9 @@
     "dev": "concurrently -k \"vite\" \"tsc -p tsconfig.electron.json --watch --preserveWatchOutput\" \"wait-on tcp:5173 file:dist-electron/main/main.js file:dist-electron/main/preload.js && electron .\"",
     "build": "tsc -p tsconfig.electron.json && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit && tsc -p tsconfig.electron.json --noEmit"
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.electron.json --noEmit",
+    "reset:app": "node scripts/reset-app-state.mjs",
+    "reset:app:dry-run": "node scripts/reset-app-state.mjs --dry-run"
   },
   "build": {
     "appId": "com.example.gtvdesktopremote",
@@ -22,7 +24,6 @@
       "assets/**/*",
       "dist/**/*",
       "dist-electron/**/*",
-      "python/**/*",
       "package.json"
     ],
     "mac": {
@@ -31,12 +32,16 @@
     }
   },
   "dependencies": {
+    "androidtv-remote": "^1.0.10",
+    "node-forge": "^1.3.1",
+    "protobufjs": "^7.5.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.2",
     "@types/node": "^22.15.3",
+    "@types/node-forge": "^1.3.14",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^4.4.1",

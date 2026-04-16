@@ -16,8 +16,7 @@ This repo currently includes:
 
 ## Requirements
 
-1. Use the project virtual environment or install the Python dependency from `requirements.txt`.
-2. Ensure the TV has Android TV Remote Service available.
+1. Ensure the TV has Android TV Remote Service available.
 
 ## Development
 
@@ -28,10 +27,16 @@ npm run dev
 
 The tray shortcut is `CmdOrCtrl+Shift+G`.
 
-The project venv can be prepared with:
+To reset saved devices and pairing certificates:
 
 ```bash
-.venv/bin/python -m pip install -r requirements.txt
+npm run reset:app
+```
+
+To preview what would be removed without deleting anything:
+
+```bash
+npm run reset:app:dry-run
 ```
 
 ## Icon Assets

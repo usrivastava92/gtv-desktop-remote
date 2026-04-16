@@ -169,6 +169,7 @@ function registerIpc() {
   ipcMain.handle('device:scan', async () => adapter.scanForDevices());
   ipcMain.handle('device:save', async (_event, draft: DeviceDraft) => adapter.saveDevice(draft));
   ipcMain.handle('device:remove', async (_event, deviceId: string) => adapter.removeDevice(deviceId));
+  ipcMain.handle('device:reset', async () => adapter.resetState());
   ipcMain.handle('device:startPairing', async (_event, deviceId: string) => adapter.startPairing(deviceId));
   ipcMain.handle('device:pair', async (_event, request: PairingRequest) => adapter.pair(request));
   ipcMain.handle('device:connect', async (_event, deviceId: string) => adapter.connect(deviceId));
