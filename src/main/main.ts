@@ -63,12 +63,16 @@ function applyApplicationIcon() {
 async function createWindow(): Promise<BrowserWindow> {
   const iconImage = applyApplicationIcon();
   const window = new BrowserWindow({
-    width: 420,
-    height: 760,
+    width: 360,
+    height: 720,
+    useContentSize: true,
     show: false,
     resizable: false,
     title: appName,
     icon: iconImage,
+    backgroundColor: '#0b0b0b',
+    titleBarStyle: process.platform === 'darwin' ? 'hidden' : 'default',
+    trafficLightPosition: process.platform === 'darwin' ? { x: 16, y: 16 } : undefined,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

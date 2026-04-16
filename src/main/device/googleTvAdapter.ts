@@ -118,7 +118,6 @@ export class GoogleTvAdapter implements DeviceAdapter {
         item.id === device.id
           ? {
               ...item,
-              name: String(result?.name ?? item.name),
               macAddress: typeof result?.mac === 'string' ? result.mac : item.macAddress
             }
           : item
@@ -163,7 +162,6 @@ export class GoogleTvAdapter implements DeviceAdapter {
           ? {
               ...item,
               lastConnectedAt: new Date().toISOString(),
-              name: String(result?.name ?? item.name),
               macAddress: typeof result?.mac === 'string' ? result.mac : item.macAddress
             }
           : item
@@ -214,7 +212,6 @@ export class GoogleTvAdapter implements DeviceAdapter {
       throw new Error('No active device connected.');
     }
 
-    await logInfo('adapter', 'Sending command', { deviceId: this.activeDevice.id, command });
     await androidTvRemoteBridge.sendCommand(this.activeDevice.host, command);
   }
 
@@ -223,7 +220,6 @@ export class GoogleTvAdapter implements DeviceAdapter {
       throw new Error('No active device connected.');
     }
 
-    await logInfo('adapter', 'Sending text', { deviceId: this.activeDevice.id, length: text.length });
     await androidTvRemoteBridge.sendText(this.activeDevice.host, text);
   }
 
