@@ -1,0 +1,12 @@
+{
+	"servers": {
+		"playwright-mcp": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"@robertn702/playwright-mcp-electron@latest"
+			]
+		}
+	},
+	"inputs": []
+}
