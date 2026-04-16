@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 
 import type {
-    BootstrapState,
-    DeviceDraft,
-    DiscoveredDevice,
-    RemoteCommand,
-    SavedDevice
+  BootstrapState,
+  DeviceDraft,
+  DiscoveredDevice,
+  RemoteCommand,
+  SavedDevice
 } from '../shared/types';
 
 const initialDraft: DeviceDraft = {
@@ -46,6 +46,8 @@ type IconName =
   | 'devices'
   | 'dropdown'
   | 'swap'
+  | 'disconnect'
+  | 'trash'
   | 'tv'
   | 'cast'
   | 'refresh'
@@ -128,6 +130,25 @@ function Icon({ name, className }: { name: IconName; className?: string }) {
           <path d="M14.5 3.5L18 7L14.5 10.5" />
           <path d="M17 17H6" />
           <path d="M9.5 13.5L6 17L9.5 20.5" />
+        </svg>
+      );
+    case 'disconnect':
+      return (
+        <svg {...props}>
+          <path d="M8.5 8.5L15.5 15.5" />
+          <path d="M15.5 8.5L8.5 15.5" />
+          <path d="M5 12C5 8.134 8.134 5 12 5" />
+          <path d="M19 12C19 15.866 15.866 19 12 19" />
+        </svg>
+      );
+    case 'trash':
+      return (
+        <svg {...props}>
+          <path d="M4.5 7H19.5" />
+          <path d="M9.5 4.5H14.5" />
+          <path d="M7 7L8 19H16L17 7" />
+          <path d="M10 10V16" />
+          <path d="M14 10V16" />
         </svg>
       );
     case 'tv':
@@ -746,10 +767,6 @@ function App() {
                 <Icon name="devices" className="h-[1.28rem] w-[1.28rem] text-primary-strong" />
                 <span className="ui-brand-label ui-brand-label-muted">Android TV</span>
               </div>
-              <div className="ui-header-mode">Remote</div>
-              <button className="ui-icon-button ui-icon-button-accent ui-dragless justify-self-end" disabled={busy} onClick={openDevicePicker} aria-label="Open device selection">
-                <Icon name="dropdown" className="h-[1.05rem] w-[1.05rem]" />
-              </button>
             </>
           ) : (
             <>
@@ -767,9 +784,6 @@ function App() {
                   <span className="ui-status-dot" />
                   <span>{isConnected ? 'Connected' : bootstrap.deviceState.status}</span>
                 </div>
-                <button className="ui-icon-button" disabled={busy} onClick={openDevicePicker} aria-label="Choose device">
-                  <Icon name="dropdown" className="h-[0.92rem] w-[0.92rem]" />
-                </button>
               </div>
             </>
           )}
@@ -777,11 +791,6 @@ function App() {
 
         {currentView === 'devices' ? (
           <div className="ui-screen-scroll">
-            <section className="ui-hero">
-              <h1 className="ui-title-display">Select Device</h1>
-              <p className="ui-copy">Choose a screen to control or pair a new one.</p>
-            </section>
-
             <section className="ui-section">
               <div className="ui-section-row">
                 <h2 className="ui-section-heading">Known Devices</h2>
@@ -938,16 +947,16 @@ function App() {
             <section className="ui-dpad-wrap">
               <div className="ui-dpad">
                 <button className="ui-dpad-edge ui-dpad-up" disabled={remoteDisabled} onClick={() => void handleCommand('up')}>
-                  <Icon name="up" className="h-8 w-8" />
+                  <Icon name="up" className="h-7 w-7" />
                 </button>
                 <button className="ui-dpad-edge ui-dpad-down" disabled={remoteDisabled} onClick={() => void handleCommand('down')}>
-                  <Icon name="down" className="h-8 w-8" />
+                  <Icon name="down" className="h-7 w-7" />
                 </button>
                 <button className="ui-dpad-edge ui-dpad-left" disabled={remoteDisabled} onClick={() => void handleCommand('left')}>
-                  <Icon name="left" className="h-8 w-8" />
+                  <Icon name="left" className="h-7 w-7" />
                 </button>
                 <button className="ui-dpad-edge ui-dpad-right" disabled={remoteDisabled} onClick={() => void handleCommand('right')}>
-                  <Icon name="right" className="h-8 w-8" />
+                  <Icon name="right" className="h-7 w-7" />
                 </button>
                 <button className="ui-dpad-center" disabled={remoteDisabled} onClick={() => void handleCommand('select')}>
                   Select
@@ -957,10 +966,6 @@ function App() {
 
             <section className="ui-nav-well">
               <div className="ui-nav-grid">
-                <button className="ui-nav-item" disabled={remoteDisabled} onClick={() => void handleCommand('back')}>
-                  <span className="ui-nav-button"><Icon name="back" className="h-6 w-6" /></span>
-                  <span className="ui-nav-label">Back</span>
-                </button>
                 <button className="ui-nav-item" disabled={remoteDisabled} onClick={() => void handleCommand('home')}>
                   <span className="ui-nav-button ui-nav-button-active"><Icon name="home" className="h-7 w-7" /></span>
                   <span className="ui-nav-label ui-nav-label-active">Home</span>
@@ -1019,16 +1024,20 @@ function App() {
               </div>
             </section>
 
-            <div className="ui-footer-actions">
-              <div className="ui-chip-row">
-                <button className="ui-chip" disabled={bridgeDisabled} onClick={handleDisconnect}>
-                  Disconnect
-                </button>
-                <button className="ui-chip" disabled={bridgeDisabled} onClick={() => currentRemoteDevice && void handleRemove(currentRemoteDevice.id)}>
-                  Forget
-                </button>
-              </div>
-            </div>
+            <footer className="ui-footer-bar">
+              <button className="ui-footer-item" disabled={remoteDisabled} onClick={() => void handleCommand('back')}>
+                <Icon name="back" className="h-5 w-5" />
+                <span className="ui-footer-label">Back</span>
+              </button>
+              <button className="ui-footer-item" disabled={bridgeDisabled} onClick={handleDisconnect}>
+                <Icon name="disconnect" className="h-5 w-5" />
+                <span className="ui-footer-label">Disconnect</span>
+              </button>
+              <button className="ui-footer-item" disabled={bridgeDisabled || !currentRemoteDevice} onClick={() => currentRemoteDevice && void handleRemove(currentRemoteDevice.id)}>
+                <Icon name="trash" className="h-5 w-5" />
+                <span className="ui-footer-label">Forget</span>
+              </button>
+            </footer>
           </div>
         ) : null}
       </section>

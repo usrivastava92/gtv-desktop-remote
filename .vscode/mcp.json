@@ -1,6 +1,6 @@
 {
 	"servers": {
-		"playwright-mcp": {
+		"playwright-electron": {
 			"type": "stdio",
 			"command": "npx",
 			"args": [

@@ -80,6 +80,10 @@ async function createWindow(): Promise<BrowserWindow> {
     }
   });
 
+  if (process.platform === 'darwin') {
+    window.setWindowButtonVisibility(false);
+  }
+
   if (app.isPackaged) {
     await window.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
   } else {
@@ -92,27 +96,54 @@ async function createWindow(): Promise<BrowserWindow> {
     }
   });
 
+  window.on('closed', () => {
+    if (windowRef === window) {
+      windowRef = undefined;
+    }
+  });
+
   return window;
 }
 
-function toggleWindow() {
-  if (!windowRef) {
+async function ensureWindow(): Promise<BrowserWindow> {
+  if (windowRef && !windowRef.isDestroyed()) {
+    return windowRef;
+  }
+
+  windowRef = await createWindow();
+  return windowRef;
+}
+
+async function showWindow() {
+  const window = await ensureWindow();
+  window.show();
+  window.focus();
+}
+
+async function hideWindow() {
+  if (!windowRef || windowRef.isDestroyed()) {
     return;
   }
 
-  if (windowRef.isVisible()) {
-    windowRef.hide();
+  windowRef.hide();
+}
+
+async function toggleWindow() {
+  const window = await ensureWindow();
+
+  if (window.isVisible()) {
+    window.hide();
     return;
   }
 
-  windowRef.show();
-  windowRef.focus();
+  window.show();
+  window.focus();
 }
 
 function buildContextMenu() {
   return Menu.buildFromTemplate([
-    { label: 'Show Remote', click: () => windowRef?.show() },
-    { label: 'Hide Remote', click: () => windowRef?.hide() },
+    { label: 'Show Remote', click: () => void showWindow() },
+    { label: 'Hide Remote', click: () => void hideWindow() },
     { type: 'separator' },
     { label: 'Quit', click: () => app.quit() }
   ]);
@@ -120,12 +151,11 @@ function buildContextMenu() {
 
 async function bootstrapApp() {
   windowRef = await createWindow();
-  windowRef.show();
-  windowRef.focus();
+  await showWindow();
   tray = new Tray(createTrayImage());
   tray.setToolTip(appName);
   tray.setContextMenu(buildContextMenu());
-  tray.on('click', toggleWindow);
+  tray.on('click', () => void toggleWindow());
 
   globalShortcut.register(shortcut, toggleWindow);
   await logInfo('main', 'Application bootstrap complete', { shortcut, logPath: getLoggerPath() });
