@@ -966,6 +966,10 @@ function App() {
 
             <section className="ui-nav-well">
               <div className="ui-nav-grid">
+                <button className="ui-nav-item" disabled={remoteDisabled} onClick={() => void handleCommand('back')}>
+                  <span className="ui-nav-button"><Icon name="back" className="h-6 w-6" /></span>
+                  <span className="ui-nav-label">Back</span>
+                </button>
                 <button className="ui-nav-item" disabled={remoteDisabled} onClick={() => void handleCommand('home')}>
                   <span className="ui-nav-button ui-nav-button-active"><Icon name="home" className="h-7 w-7" /></span>
                   <span className="ui-nav-label ui-nav-label-active">Home</span>
@@ -1025,9 +1029,9 @@ function App() {
             </section>
 
             <footer className="ui-footer-bar">
-              <button className="ui-footer-item" disabled={remoteDisabled} onClick={() => void handleCommand('back')}>
+              <button className="ui-footer-item" disabled={busy} onClick={openDevicePicker}>
                 <Icon name="back" className="h-5 w-5" />
-                <span className="ui-footer-label">Back</span>
+                <span className="ui-footer-label">Devices</span>
               </button>
               <button className="ui-footer-item" disabled={bridgeDisabled} onClick={handleDisconnect}>
                 <Icon name="disconnect" className="h-5 w-5" />

@@ -679,8 +679,8 @@ p {
 .ui-nav-grid {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 3rem;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
 .ui-nav-item {
