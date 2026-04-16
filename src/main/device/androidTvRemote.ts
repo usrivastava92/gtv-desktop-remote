@@ -6,12 +6,12 @@ import type { RemoteCommand } from '../../shared/types';
 import { getAppDataPath, logError, logInfo } from '../logger';
 import { generateCertificate, type PemPair } from './protocol/certificate';
 import {
-  createImeBatchEditMessage,
-  createRemoteConfigure,
-  createRemoteKeyInject,
-  createRemotePingResponse,
-  createRemoteSetActive,
-  parseRemoteMessage
+    createImeBatchEditMessage,
+    createRemoteConfigure,
+    createRemoteKeyInject,
+    createRemotePingResponse,
+    createRemoteSetActive,
+    parseRemoteMessage
 } from './protocol/remoteProtocol';
 
 interface PairingManagerInstance {
