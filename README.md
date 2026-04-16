@@ -1,98 +1,84 @@
 # GTV Desktop Remote
 
-![GTV Desktop Remote icon](assets/icons/gtv-remote-icon.svg)
+![GTV Desktop Remote icon](assets/icons/taskbar-icon.png)
 
-macOS-first desktop remote for Google TV and Android TV devices.
+GTV Desktop Remote is a macOS desktop remote for Google TV and Android TV devices. It lets you discover a TV on your local network, pair it once, and then control it from your Mac using either on-screen buttons or your keyboard.
 
-## First Cut
+## What It Does
 
-This repo currently includes:
+- Scans your local network for compatible Google TV and Android TV devices
+- Saves and remembers paired devices
+- Sends navigation, home, back, media, volume, and power commands
+- Supports keyboard-based remote control
+- Sends text input to apps that expose Android TV text entry support
 
-- Local network scan
-- Save, pair, connect, and forget devices
-- Basic remote controls
-- Keyboard shortcuts for remote buttons
-- Text input
+## Before You Start
 
-## Requirements
+Make sure your TV or streaming device has Android TV Remote Service available and is on the same local network as your Mac.
 
-1. Ensure the TV has Android TV Remote Service available.
+## Getting Started
 
-## Development
+1. Launch the app.
+2. Let it scan for devices on your network.
+3. Select your TV from the device list.
+4. Start pairing if the device is not already paired.
+5. Enter the 6-character pairing code shown on the TV.
+6. Once pairing completes, connect and start using the remote.
 
-```bash
-npm install
-npm run dev
-```
+After the first successful pairing, the app remembers the device so future reconnects are faster.
 
-To build the renderer and Electron bundles without packaging:
+## How To Use The Remote
 
-```bash
-npm run build
-```
+The remote view gives you direct access to:
 
-To create a local unpacked bundle for smoke testing:
+- Directional navigation
+- Select / OK
+- Home
+- Back
+- Play / pause
+- Volume up and volume down
+- Power
+- Text input, when the current app on the TV supports it
 
-```bash
-npm run pack
-```
+If text input is available, open the keyboard panel in the app, type your message, and send it to the TV.
 
-To create a local macOS distributable without publishing it:
+## Keyboard Shortcuts
 
-```bash
-npm run dist:mac
-```
+You can drive the TV directly from your Mac keyboard when the remote is connected and the app is focused.
 
-The tray shortcut is `CmdOrCtrl+Shift+G`.
+- `ArrowUp`: Up
+- `ArrowDown`: Down
+- `ArrowLeft`: Left
+- `ArrowRight`: Right
+- `Enter`: Select / OK
+- `Escape`: Back
+- `Backspace`: Back
+- `H`: Home
+- `Space`: Play / pause
+- `K`: Play / pause
+- `+` or `=`: Volume up
+- `-` or `_`: Volume down
+- `P`: Power
 
-To reset saved devices and pairing certificates:
+Modifier shortcuts such as `Cmd`, `Ctrl`, and `Option` are ignored so they do not interfere with normal macOS shortcuts.
 
-```bash
-npm run reset:app
-```
+## Menu Bar Shortcut
 
-To preview what would be removed without deleting anything:
+The app also registers a global shortcut so you can show or hide the remote quickly:
 
-```bash
-npm run reset:app:dry-run
-```
+- `CmdOrCtrl+Shift+G`
 
-## Icon Assets
+## Troubleshooting
 
-- Primary source icon: `assets/icons/gtv-remote-icon.svg`
-- Renderer favicon assets: `public/favicon.svg`, `public/favicon-32.png`, `public/favicon-16.png`
-- macOS app bundle icon: `build/icon.icns`
+If the TV does not appear or pairing does not complete:
 
-## Release Pipeline
+1. Confirm the TV and Mac are on the same network.
+2. Confirm Android TV Remote Service is available on the TV.
+3. Retry the network scan.
+4. Start a fresh pairing session and enter the newest code shown on the TV.
 
-This repository now ships macOS builds through GitHub Actions using `electron-builder`.
+If needed, you can remove a saved device in the app and pair it again.
 
-- `CI` runs on pushes and pull requests and validates `npm ci`, `npm run typecheck`, and `npm run build`.
-- `Release` runs on macOS.
-- A manual `workflow_dispatch` run builds the macOS DMG and ZIP and uploads them as workflow artifacts for inspection.
-- Pushing a tag that matches `vX.Y.Z` builds the same artifacts and publishes them to a draft GitHub Release.
+## For Developers
 
-The first release target is macOS only.
-
-- macOS distribution format: DMG, with ZIP also generated for updater compatibility later.
-- Windows target planned later: NSIS installer.
-- Linux target planned later: AppImage.
-
-## Versioning
-
-Use `package.json` as the source of truth for the app version.
-
-1. Update the version in `package.json`.
-2. Run the CI checks locally if needed.
-3. Commit the version bump.
-4. Create and push a matching Git tag in the form `vX.Y.Z`.
-5. Let the `Release` workflow publish the tagged build to a draft GitHub Release.
-6. Review the release notes and attached artifacts in GitHub, then publish the draft release.
-
-For example, if `package.json` is `0.2.0`, the release tag should be `v0.2.0`.
-
-## Signing And Notarization
-
-The current workflow produces unsigned macOS artifacts so the release pipeline can be exercised without Apple credentials.
-
-When you are ready to distribute signed builds outside development, add Apple signing and notarization secrets in GitHub Actions and extend the release workflow with certificate import and notarization steps. The current workflow structure is intended to support that addition without redesigning the pipeline.
+Development setup, packaging, debug telemetry, and local build workflows are documented in [DEVELOPMENT.md](DEVELOPMENT.md).

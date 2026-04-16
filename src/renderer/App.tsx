@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 
 import type {
-  BootstrapState,
-  DeviceCapabilities,
-  DeviceDraft,
-  DiscoveredDevice,
-  RemoteCommand,
-  SavedDevice
+    BootstrapState,
+    CommandDispatchRequest,
+    DeviceCapabilities,
+    DeviceDraft,
+    DiscoveredDevice,
+    RemoteCommand,
+    RemoteCommandSource,
+    SavedDevice
 } from '../shared/types';
 
 const initialDraft: DeviceDraft = {
@@ -38,6 +40,13 @@ const keyboardCommandMap: Record<string, RemoteCommand> = {
 };
 
 const burstSensitiveCommands = new Set<RemoteCommand>(['up', 'down', 'left', 'right', 'select']);
+const MAX_QUEUED_COMMANDS = 100;
+
+interface QueuedCommandBatch {
+  command: RemoteCommand;
+  source: RemoteCommandSource;
+  requests: CommandDispatchRequest[];
+}
 
 type DevicePickerSelection =
   | { kind: 'saved'; key: string; savedDevice: SavedDevice; discoveredDevice?: DiscoveredDevice }
@@ -315,7 +324,9 @@ function App() {
   const [bridgeReady, setBridgeReady] = useState(false);
   const [pairingReady, setPairingReady] = useState(false);
   const pairCodeInputRef = useRef<HTMLInputElement>(null);
-  const pendingCommandCountRef = useRef(0);
+  const commandQueueRef = useRef<QueuedCommandBatch[]>([]);
+  const queuedCommandCountRef = useRef(0);
+  const isProcessingQueueRef = useRef(false);
 
   const discoveredByHost = new Map(discoveredDevices.map((device) => [device.host, device]));
   const pairedNetworkDevices = bootstrap.devices
@@ -488,7 +499,7 @@ function App() {
       }
 
       event.preventDefault();
-      void handleCommand(command);
+      void handleCommand(command, 'keyboard');
     }
 
     window.addEventListener('keydown', onKeyDown);
@@ -679,26 +690,97 @@ function App() {
     }
   }
 
-  async function handleCommand(command: RemoteCommand) {
-    if (burstSensitiveCommands.has(command) && pendingCommandCountRef.current >= 2) {
+  function createCommandRequest(command: RemoteCommand, source: RemoteCommandSource): CommandDispatchRequest {
+    return {
+      id: crypto.randomUUID(),
+      command,
+      issuedAt: Date.now(),
+      source
+    };
+  }
+
+  function recordQueuedCommandDrop(request: CommandDispatchRequest) {
+    void getDesktopApi().recordCommandDrop({
+      ...request,
+      droppedAt: Date.now(),
+      dropReason: 'renderer_burst_limit',
+      pendingCommandCount: queuedCommandCountRef.current
+    });
+  }
+
+  function enqueueCommand(request: CommandDispatchRequest) {
+    if (queuedCommandCountRef.current >= MAX_QUEUED_COMMANDS) {
+      recordQueuedCommandDrop(request);
       return;
     }
 
-    pendingCommandCountRef.current += 1;
-    try {
-      await getDesktopApi().sendCommand(command);
-    } catch (error) {
-      setBootstrap((current) => ({
-        ...current,
-        deviceState: {
-          ...current.deviceState,
-          status: 'error',
-          message: (error as Error).message
-        }
-      }));
-    } finally {
-      pendingCommandCountRef.current = Math.max(0, pendingCommandCountRef.current - 1);
+    const lastBatch = commandQueueRef.current[commandQueueRef.current.length - 1];
+    if (
+      burstSensitiveCommands.has(request.command)
+      && lastBatch
+      && lastBatch.command === request.command
+      && lastBatch.source === request.source
+    ) {
+      lastBatch.requests.push(request);
+    } else {
+      commandQueueRef.current.push({
+        command: request.command,
+        source: request.source,
+        requests: [request]
+      });
     }
+
+    queuedCommandCountRef.current += 1;
+    void flushQueuedCommands();
+  }
+
+  async function flushQueuedCommands() {
+    if (isProcessingQueueRef.current) {
+      return;
+    }
+
+    isProcessingQueueRef.current = true;
+
+    try {
+      while (commandQueueRef.current.length > 0) {
+        const currentBatch = commandQueueRef.current[0];
+        const request = currentBatch.requests.shift();
+
+        if (!request) {
+          commandQueueRef.current.shift();
+          continue;
+        }
+
+        try {
+          await getDesktopApi().sendCommand(request);
+        } catch (error) {
+          setBootstrap((current) => ({
+            ...current,
+            deviceState: {
+              ...current.deviceState,
+              status: 'error',
+              message: (error as Error).message
+            }
+          }));
+        } finally {
+          queuedCommandCountRef.current = Math.max(0, queuedCommandCountRef.current - 1);
+          if (currentBatch.requests.length === 0) {
+            commandQueueRef.current.shift();
+          }
+        }
+      }
+    } finally {
+      isProcessingQueueRef.current = false;
+      if (commandQueueRef.current.length > 0) {
+        void flushQueuedCommands();
+      }
+    }
+  }
+
+  async function handleCommand(command: RemoteCommand, source: RemoteCommandSource = 'button') {
+    const request = createCommandRequest(command, source);
+
+    enqueueCommand(request);
   }
 
   async function handleSendText() {

@@ -5,16 +5,17 @@ import path from 'node:path';
 
 import type {
     BootstrapState,
+    CommandDispatchRequest,
     DeviceAdapter,
     DeviceCapabilities,
     DeviceDraft,
     DeviceState,
     DiscoveredDevice,
     PairingRequest,
-    RemoteCommand,
     SavedDevice
 } from '../../shared/types';
 import { getAppDataPath, logError, logInfo } from '../logger';
+import { commandMetricsStore } from '../metrics';
 import { androidTvRemoteBridge } from './androidTvRemote';
 import { discoverGoogleTvDevices } from './discovery';
 import { clearDeviceStore, readDevices, writeDevices } from './store';
@@ -253,12 +254,23 @@ export class GoogleTvAdapter implements DeviceAdapter {
     return this.deviceState;
   }
 
-  async sendCommand(command: RemoteCommand): Promise<void> {
+  async sendCommand(request: CommandDispatchRequest): Promise<void> {
+    commandMetricsStore.recordAdapterDispatchStart(request, {
+      deviceId: this.activeDevice?.id,
+      host: this.activeDevice?.host
+    });
+
     if (!this.activeDevice) {
-      throw new Error('No active device connected.');
+      const errorMessage = 'No active device connected.';
+      commandMetricsStore.recordCommandFailed(request, {
+        reason: 'no_active_device',
+        errorMessage
+      });
+      throw new Error(errorMessage);
     }
 
-    await androidTvRemoteBridge.sendCommand(this.activeDevice.host, command);
+    await androidTvRemoteBridge.sendCommand(this.activeDevice.host, request);
+    commandMetricsStore.recordAdapterDispatchCompleted(request.id);
   }
 
   async sendText(text: string): Promise<void> {

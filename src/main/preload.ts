@@ -1,6 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
-import type { DeviceDraft, PairingRequest, RemoteCommand } from '../shared/types';
+import type {
+    CommandDispatchRequest,
+    CommandDropReport,
+    DeviceDraft,
+    PairingRequest,
+} from '../shared/types';
 
 const api = {
   bootstrap: () => ipcRenderer.invoke('device:bootstrap'),
@@ -12,7 +17,9 @@ const api = {
   pair: (request: PairingRequest) => ipcRenderer.invoke('device:pair', request),
   connect: (deviceId: string) => ipcRenderer.invoke('device:connect', deviceId),
   disconnect: () => ipcRenderer.invoke('device:disconnect'),
-  sendCommand: (command: RemoteCommand) => ipcRenderer.invoke('device:command', command),
+  sendCommand: (request: CommandDispatchRequest) => ipcRenderer.invoke('device:command', request),
+  recordCommandDrop: (report: CommandDropReport) => ipcRenderer.invoke('metrics:rendererDrop', report),
+  getMetricsSnapshot: () => ipcRenderer.invoke('metrics:snapshot'),
   sendText: (text: string) => ipcRenderer.invoke('device:text', text),
   capabilities: () => ipcRenderer.invoke('device:capabilities')
 };

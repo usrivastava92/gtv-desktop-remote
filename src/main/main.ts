@@ -3,9 +3,10 @@ import path from 'node:path';
 
 import { app, BrowserWindow, globalShortcut, ipcMain, Menu, nativeImage, Tray } from 'electron';
 
-import type { DeviceDraft, PairingRequest, RemoteCommand } from '../shared/types';
+import type { CommandDispatchRequest, CommandDropReport, DeviceDraft, PairingRequest } from '../shared/types';
 import { GoogleTvAdapter } from './device/googleTvAdapter';
 import { getLoggerPath, logError, logInfo } from './logger';
+import { commandMetricsStore } from './metrics';
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 
@@ -174,7 +175,14 @@ function registerIpc() {
   ipcMain.handle('device:pair', async (_event, request: PairingRequest) => adapter.pair(request));
   ipcMain.handle('device:connect', async (_event, deviceId: string) => adapter.connect(deviceId));
   ipcMain.handle('device:disconnect', async () => adapter.disconnect());
-  ipcMain.handle('device:command', async (_event, command: RemoteCommand) => adapter.sendCommand(command));
+  ipcMain.handle('device:command', async (_event, request: CommandDispatchRequest) => {
+    commandMetricsStore.recordIpcReceived(request);
+    return adapter.sendCommand(request);
+  });
+  ipcMain.handle('metrics:rendererDrop', async (_event, report: CommandDropReport) => {
+    commandMetricsStore.recordRendererDrop(report);
+  });
+  ipcMain.handle('metrics:snapshot', async () => commandMetricsStore.getSnapshot());
   ipcMain.handle('device:text', async (_event, text: string) => adapter.sendText(text));
   ipcMain.handle('device:capabilities', async () => adapter.getCapabilities());
 }

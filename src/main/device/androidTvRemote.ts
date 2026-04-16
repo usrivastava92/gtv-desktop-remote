@@ -2,8 +2,9 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import tls, { TLSSocket } from 'node:tls';
 
-import type { RemoteCommand } from '../../shared/types';
+import type { CommandDispatchRequest } from '../../shared/types';
 import { getAppDataPath, logError, logInfo } from '../logger';
+import { commandMetricsStore } from '../metrics';
 import { generateCertificate, type PemPair } from './protocol/certificate';
 import {
     createImeBatchEditMessage,
@@ -119,13 +120,17 @@ class NativeRemoteClient {
     return Boolean(this.socket && !this.socket.destroyed);
   }
 
-  async connect(): Promise<void> {
+  async connect(commandId?: string): Promise<void> {
     if (this.isConnected) {
       return;
     }
 
     if (this.connectPromise) {
       return this.connectPromise;
+    }
+
+    if (commandId) {
+      commandMetricsStore.recordConnectStarted(this.host, commandId);
     }
 
     this.connectPromise = new Promise<void>((resolve, reject) => {
@@ -157,13 +162,19 @@ class NativeRemoteClient {
           settled = true;
           resolve();
         }
+
+        if (commandId) {
+          commandMetricsStore.recordConnectCompleted(this.host, commandId);
+        }
       });
       socket.on('data', (chunk) => {
+        commandMetricsStore.recordInboundMessage(this.host);
         this.buffer = Buffer.concat([this.buffer, Buffer.from(chunk)]);
         this.flushBuffer();
       });
       socket.on('error', fail);
       socket.on('close', () => {
+        commandMetricsStore.recordSocketClosed(this.host);
         this.socket = undefined;
         this.buffer = Buffer.alloc(0);
       });
@@ -173,7 +184,13 @@ class NativeRemoteClient {
       this.connectPromise = undefined;
     });
 
-    return this.connectPromise;
+    return this.connectPromise.catch((error) => {
+      if (commandId) {
+        commandMetricsStore.recordConnectFailed(this.host, commandId, toError(error, `Could not connect to ${this.host}.`).message);
+      }
+
+      throw error;
+    });
   }
 
   disconnect(): void {
@@ -183,13 +200,20 @@ class NativeRemoteClient {
 
     this.socket.removeAllListeners('close');
     this.socket.destroy();
+    commandMetricsStore.recordSocketClosed(this.host);
     this.socket = undefined;
     this.buffer = Buffer.alloc(0);
   }
 
-  sendCommand(command: RemoteCommand): void {
+  sendCommand(request: CommandDispatchRequest): void {
     const socket = this.getSocket();
-    socket.write(createRemoteKeyInject(command));
+    const wroteImmediately = socket.write(createRemoteKeyInject(request.command));
+    commandMetricsStore.recordSocketWrite(request, { host: this.host, buffered: !wroteImmediately });
+    if (!wroteImmediately) {
+      socket.once('drain', () => {
+        commandMetricsStore.recordSocketDrain(this.host, request.id);
+      });
+    }
   }
 
   sendText(text: string): void {
@@ -444,14 +468,32 @@ class AndroidTvRemoteBridge {
     await fs.rm(this.getStateDir(), { force: true, recursive: true });
   }
 
-  async sendCommand(host: string, command: RemoteCommand): Promise<void> {
+  async sendCommand(host: string, request: CommandDispatchRequest): Promise<void> {
     const session = await this.getSession(host);
     if (!session.remoteClient) {
       session.remoteClient = new NativeRemoteClient(host, session.certs);
     }
 
-    await session.remoteClient.connect();
-    session.remoteClient.sendCommand(command);
+    commandMetricsStore.recordBridgeSendStart(request, host);
+
+    try {
+      await session.remoteClient.connect(request.id);
+      session.remoteClient.sendCommand(request);
+      commandMetricsStore.recordCommandSucceeded(request.id);
+    } catch (error) {
+      const normalizedError = normalizeRemoteError(error, `Could not send ${request.command} to ${host}.`);
+      const reason = normalizedError.message.includes('Connection has been lost.')
+        ? 'socket_destroyed'
+        : normalizedError.message.includes('timed out')
+          ? 'connect_failed'
+          : 'send_failed';
+      commandMetricsStore.recordCommandFailed(request, {
+        reason,
+        errorMessage: normalizedError.message,
+        host
+      });
+      throw normalizedError;
+    }
   }
 
   async sendText(host: string, text: string): Promise<void> {
