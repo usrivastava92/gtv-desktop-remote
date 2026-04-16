@@ -21,6 +21,10 @@ function getAssetPath(...parts: string[]) {
   return path.join(app.getAppPath(), 'assets', 'icons', ...parts);
 }
 
+function getRendererEntryPath() {
+  return path.join(app.getAppPath(), 'dist', 'index.html');
+}
+
 function loadSvgIcon(size: number) {
   const svg = fs.readFileSync(getAssetPath('gtv-remote-icon.svg'), 'utf8');
   const image = nativeImage.createFromDataURL(`data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`);
@@ -61,6 +65,30 @@ function applyApplicationIcon() {
   return iconImage;
 }
 
+function attachWindowDiagnostics(window: BrowserWindow) {
+  window.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+    void logError('renderer', 'Window failed to load', {
+      errorCode,
+      errorDescription,
+      validatedURL,
+      isMainFrame
+    });
+  });
+
+  window.webContents.on('render-process-gone', (_event, details) => {
+    void logError('renderer', 'Render process exited unexpectedly', details);
+  });
+
+  window.webContents.on('unresponsive', () => {
+    void logError('renderer', 'Window became unresponsive');
+  });
+
+  window.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+    const logger = level >= 2 ? logError : logInfo;
+    void logger('renderer-console', message, { level, line, sourceId });
+  });
+}
+
 async function createWindow(): Promise<BrowserWindow> {
   const iconImage = applyApplicationIcon();
   const window = new BrowserWindow({
@@ -85,8 +113,10 @@ async function createWindow(): Promise<BrowserWindow> {
     window.setWindowButtonVisibility(false);
   }
 
+  attachWindowDiagnostics(window);
+
   if (app.isPackaged) {
-    await window.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
+    await window.loadFile(getRendererEntryPath());
   } else {
     await window.loadURL('http://localhost:5173');
   }
@@ -188,8 +218,13 @@ function registerIpc() {
 }
 
 app.whenReady().then(async () => {
-  registerIpc();
-  await bootstrapApp();
+  try {
+    registerIpc();
+    await bootstrapApp();
+  } catch (error) {
+    await logError('main', 'Application bootstrap failed', error);
+    throw error;
+  }
 });
 
 process.on('uncaughtException', (error) => {
