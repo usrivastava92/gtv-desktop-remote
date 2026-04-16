@@ -28,7 +28,7 @@ function loadSvgIcon(size: number) {
 }
 
 function loadPngIcon(size: number) {
-  const iconPath = getAssetPath('taskbar-icon-black.png');
+  const iconPath = getAssetPath('taskbar-icon.png');
   const image = nativeImage.createFromPath(iconPath);
 
   return image.resize({ width: size, height: size, quality: 'best' });

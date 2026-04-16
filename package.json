@@ -1,5 +1,6 @@
 {
   "name": "gtv-desktop-remote",
+  "productName": "GTV Remote",
   "version": "0.1.0",
   "description": "macOS-first desktop remote for Google TV and Android TV",
   "main": "dist-electron/main/main.js",

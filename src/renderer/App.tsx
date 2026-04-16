@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 
 import type {
-    BootstrapState,
-    DeviceCapabilities,
-    DeviceDraft,
-    DiscoveredDevice,
-    RemoteCommand,
-    SavedDevice
+  BootstrapState,
+  DeviceCapabilities,
+  DeviceDraft,
+  DiscoveredDevice,
+  RemoteCommand,
+  SavedDevice
 } from '../shared/types';
 
 const initialDraft: DeviceDraft = {
@@ -608,11 +608,15 @@ function App() {
         host: device.host,
         code: pairCode
       });
-      const nextBootstrap = await refreshState();
       setPairCode('');
       setPairingReady(false);
       setDevicePickerOpen(false);
       setSelectedDeviceKey(`saved:${device.id}`);
+
+      const connectingDeviceState = await getDesktopApi().connect(device.id);
+      setBootstrap((current) => ({ ...current, deviceState: connectingDeviceState }));
+
+      const nextBootstrap = await refreshState();
       await handleScanDevices(true, nextBootstrap.devices, nextBootstrap.deviceState.activeDeviceId);
     } catch (error) {
       const message = (error as Error).message;
