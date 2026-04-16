@@ -4,23 +4,31 @@
   "version": "0.1.0",
   "description": "macOS-first desktop remote for Google TV and Android TV",
   "main": "dist-electron/main/main.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/utkarsh/gtv-desktop-remote.git"
+  },
   "author": "",
   "license": "MIT",
   "scripts": {
     "dev": "concurrently -k \"vite\" \"tsc -p tsconfig.electron.json --watch --preserveWatchOutput\" \"wait-on tcp:5173 file:dist-electron/main/main.js file:dist-electron/main/preload.js && electron .\"",
     "build": "tsc -p tsconfig.electron.json && vite build",
+    "pack": "npm run build && electron-builder --dir --publish never",
+    "dist:mac": "npm run build && electron-builder --mac dmg zip --publish never",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.electron.json --noEmit",
     "reset:app": "node scripts/reset-app-state.mjs",
     "reset:app:dry-run": "node scripts/reset-app-state.mjs --dry-run"
   },
   "build": {
-    "appId": "com.example.gtvdesktopremote",
+    "appId": "com.utkarsh.gtvdesktopremote",
     "productName": "GTV Remote",
     "directories": {
-      "buildResources": "build"
+      "buildResources": "build",
+      "output": "release"
     },
     "icon": "build/icon.icns",
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
     "files": [
       "assets/**/*",
       "dist/**/*",
@@ -28,8 +36,17 @@
       "package.json"
     ],
     "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
       "category": "public.app-category.utilities",
       "icon": "build/icon.icns"
+    },
+    "publish": {
+      "provider": "github",
+      "releaseType": "draft",
+      "tagNamePrefix": "v"
     }
   },
   "dependencies": {
