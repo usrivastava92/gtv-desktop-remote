@@ -12,7 +12,7 @@ on:
   # Using workflow_run instead of push:tags because tag pushes made by a PAT
   # or GITHUB_TOKEN do not re-trigger other workflows (GitHub Actions limitation).
   workflow_run:
-    workflows: ["Version"]
+    workflows: ['Version']
     types:
       - completed
   workflow_dispatch:
