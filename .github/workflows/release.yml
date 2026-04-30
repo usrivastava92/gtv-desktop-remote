@@ -1,39 +1,25 @@
 name: Release
 
-# Two jobs in a single workflow triggered on push to main:
+# Triggered on every push to main and via workflow_dispatch.
 #
-# Job 1 (build-macos): determines the next semantic version via a dry-run,
-#   patches package.json with that version, builds the macOS DMG, and uploads
-#   it as a workflow artifact so Job 2 can consume it.
+# Job 1 (build-macos): runs semantic-release --dry-run to find out if this
+#   push warrants a new version. If yes, patches package.json with the next
+#   version, builds the macOS DMG, and uploads it as a workflow artifact.
 #
-# Job 2 (release): for normal releases runs semantic-release; for force-patch
-#   releases (workflow_dispatch with force=true) creates the GitHub Release and
-#   tags directly via the GitHub CLI, bypassing semantic-release's commit
-#   analyzer which would otherwise veto the release.
+# Job 2 (release): runs the real semantic-release, downloads the DMG artifact,
+#   and attaches it to the GitHub Release.
 #
-# The [skip ci] guard prevents this workflow from re-triggering on the
-# version-bump commit that semantic-release pushes back to main.
+# GITHUB_TOKEN is provided automatically by GitHub Actions — no secret needed.
 #
-# workflow_dispatch inputs:
-#   force  — "true"  → synthesise a patch bump and publish a real release
-#             "false" → build the DMG at the current version for inspection only
+# The [skip ci] guard stops this workflow re-triggering on the version-bump
+# commit that @semantic-release/git pushes back to main.
 
 on:
   push:
     branches:
       - main
   workflow_dispatch:
-    inputs:
-      force:
-        description: 'Force a patch release even if no releasable commits exist'
-        required: false
-        default: 'false'
-        type: choice
-        options:
-          - 'false'
-          - 'true'
 
-# Prevent concurrent release runs on the same branch
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
@@ -46,105 +32,62 @@ jobs:
   build-macos:
     name: Build macOS DMG
     runs-on: macos-latest
-    # Skip the version-bump commit semantic-release pushes back (contains [skip ci]).
-    # workflow_dispatch never sets head_commit so the condition is always false there — safe.
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
     outputs:
-      next-version: ${{ steps.next-version.outputs.version }}
-      will-release: ${{ steps.next-version.outputs.will_release }}
-      # "true" only when commits contain a releasable change OR force=true was selected.
-      # "false" for the inspect-only manual path (dispatch + force=false + no releasable commits).
-      should-publish: ${{ steps.next-version.outputs.should_publish }}
-      forced: ${{ steps.next-version.outputs.forced }}
+      next-version: ${{ steps.dry-run.outputs.version }}
+      will-release: ${{ steps.dry-run.outputs.will_release }}
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
+      - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
           cache: npm
 
-      - name: Install dependencies
-        run: npm ci
+      - run: npm ci
 
       - name: Determine next version (dry-run)
-        id: next-version
+        id: dry-run
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           OUTPUT=$(npx semantic-release --dry-run --no-ci 2>&1)
           echo "$OUTPUT"
           VERSION=$(echo "$OUTPUT" | grep -oP 'The next release version is \K[0-9]+\.[0-9]+\.[0-9]+' || true)
-
           if [ -n "$VERSION" ]; then
-            # Normal releasable commits exist
-            echo "version=$VERSION"       >> "$GITHUB_OUTPUT"
-            echo "will_release=true"      >> "$GITHUB_OUTPUT"
-            echo "should_publish=true"    >> "$GITHUB_OUTPUT"
-            echo "forced=false"           >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force }}" = "true" ]; then
-            # Force-patch: synthesise a patch bump from the latest tag.
-            # Fetch all tags explicitly (fetch-depth:0 fetches commits but tags
-            # may still be missing on some runners).
-            git fetch --tags --quiet
-            RAW=$(git describe --tags --abbrev=0 2>/dev/null || true)
-            # Strip leading 'v' and fall back to 0.0.0 if nothing was found
-            LATEST=$(echo "$RAW" | sed 's/^v//')
-            if [ -z "$LATEST" ]; then
-              LATEST="0.0.0"
-            fi
-            IFS='.' read -r MAJOR MINOR PATCH <<< "$LATEST"
-            VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
-            echo "Force-bumping to patch version $VERSION"
-            echo "version=$VERSION"       >> "$GITHUB_OUTPUT"
-            echo "will_release=true"      >> "$GITHUB_OUTPUT"
-            echo "should_publish=true"    >> "$GITHUB_OUTPUT"
-            echo "forced=true"            >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            # Manual trigger, force=false: build DMG for inspection but don't publish
-            CURRENT=$(node -p "require('./package.json').version")
-            echo "No new release — building DMG at current version $CURRENT for inspection"
-            echo "version=$CURRENT"       >> "$GITHUB_OUTPUT"
-            echo "will_release=true"      >> "$GITHUB_OUTPUT"
-            echo "should_publish=false"   >> "$GITHUB_OUTPUT"
-            echo "forced=false"           >> "$GITHUB_OUTPUT"
+            echo "version=$VERSION"   >> "$GITHUB_OUTPUT"
+            echo "will_release=true"  >> "$GITHUB_OUTPUT"
           else
-            echo "will_release=false"     >> "$GITHUB_OUTPUT"
-            echo "should_publish=false"   >> "$GITHUB_OUTPUT"
-            echo "forced=false"           >> "$GITHUB_OUTPUT"
+            echo "will_release=false" >> "$GITHUB_OUTPUT"
             echo "No releasable commits — skipping DMG build"
           fi
 
-      - name: Patch package.json version
-        if: steps.next-version.outputs.will_release == 'true'
+      - name: Patch package.json to next version
+        if: steps.dry-run.outputs.will_release == 'true'
         run: |
-          VERSION="${{ steps.next-version.outputs.version }}"
           node -e "
             const fs = require('fs');
             const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            pkg.version = '$VERSION';
+            pkg.version = '${{ steps.dry-run.outputs.version }}';
             fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
           "
-          echo "Patched package.json to version $VERSION"
 
       - name: Typecheck
-        if: steps.next-version.outputs.will_release == 'true'
+        if: steps.dry-run.outputs.will_release == 'true'
         run: npm run typecheck
 
-      - name: Build renderer and Electron bundles
-        if: steps.next-version.outputs.will_release == 'true'
+      - name: Build
+        if: steps.dry-run.outputs.will_release == 'true'
         run: npm run build
 
       - name: Package macOS DMG
-        if: steps.next-version.outputs.will_release == 'true'
+        if: steps.dry-run.outputs.will_release == 'true'
         run: npx electron-builder --mac dmg --publish never
 
-      - name: Upload DMG as workflow artifact
-        if: steps.next-version.outputs.will_release == 'true'
+      - name: Upload DMG artifact
+        if: steps.dry-run.outputs.will_release == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: macos-dmg
@@ -152,69 +95,30 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # ── Job 2: create GitHub Release and attach DMG ───────────────────────────
+  # ── Job 2: semantic-release ───────────────────────────────────────────────
   release:
     name: Release
     runs-on: ubuntu-latest
     needs: build-macos
-    # Only run when there is something to actually publish
-    if: needs.build-macos.outputs.should-publish == 'true'
+    if: needs.build-macos.outputs.will-release == 'true'
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
+      - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
           cache: npm
 
-      - name: Install dependencies
-        run: npm ci
+      - run: npm ci
 
-      - name: Download DMG artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: macos-dmg
           path: dmg-artifacts
 
-      # ── Path A: forced patch release — bypass semantic-release commit analyzer
-      - name: Force release via GitHub CLI
-        if: needs.build-macos.outputs.forced == 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ needs.build-macos.outputs.next-version }}
-        run: |
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git config user.name  "github-actions[bot]"
-
-          # Bump package.json and commit with [skip ci] so the workflow doesn't re-trigger
-          node -e "
-            const fs = require('fs');
-            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            pkg.version = process.env.VERSION;
-            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
-          "
-          git add package.json package-lock.json 2>/dev/null || git add package.json
-          git commit -m "chore(release): v${VERSION} [skip ci]"
-          git push
-
-          # Create the tag and push it
-          git tag "v${VERSION}"
-          git push origin "v${VERSION}"
-
-          # Create GitHub Release and attach DMG
-          DMG=$(ls dmg-artifacts/*.dmg | head -1)
-          gh release create "v${VERSION}" \
-            --title "v${VERSION}" \
-            --generate-notes \
-            "$DMG#macOS DMG"
-
-      # ── Path B: normal release via semantic-release
-      - name: Release via semantic-release
-        if: needs.build-macos.outputs.forced != 'true'
+      - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx semantic-release
