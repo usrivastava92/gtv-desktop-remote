@@ -59,7 +59,7 @@ jobs:
           # Match both message variants:
           #   "The next release version is X.Y.Z"
           #   "There is no previous release, the next release version is X.Y.Z"
-          VERSION=$(echo "$OUTPUT" | grep -oE 'next release version is [0-9]+\.[0-9]+\.[0-9]+' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)
+          VERSION=$(printf '%s\n' "$OUTPUT" | sed -nE 's/.*next release version is ([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' | head -n 1)
           if [ -n "$VERSION" ]; then
             echo "version=$VERSION"   >> "$GITHUB_OUTPUT"
             echo "will_release=true"  >> "$GITHUB_OUTPUT"
