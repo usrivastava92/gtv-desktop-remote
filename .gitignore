@@ -4,3 +4,8 @@ dist-electron
 release
 build
 .DS_Store
+
+# graphify - keep graph.json, GRAPH_REPORT.md, manifest.json; exclude machine-specific files
+graphify-out/cache/
+graphify-out/cost.json
+graphify-out/.graphify_*

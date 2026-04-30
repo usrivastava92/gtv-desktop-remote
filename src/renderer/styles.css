@@ -1,5 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;700;800&display=swap');
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
   color-scheme: dark;
@@ -176,7 +176,10 @@ p {
   justify-content: center;
   border-radius: 999px;
   color: var(--text-muted);
-  transition: background 120ms ease, color 120ms ease, transform 120ms ease;
+  transition:
+    background 120ms ease,
+    color 120ms ease,
+    transform 120ms ease;
 }
 
 .ui-icon-button:hover {
@@ -311,7 +314,9 @@ p {
   background: var(--surface-low);
   padding: 1.25rem;
   text-align: left;
-  transition: background 150ms ease, transform 150ms ease;
+  transition:
+    background 150ms ease,
+    transform 150ms ease;
 }
 
 .ui-card:hover {
@@ -393,7 +398,9 @@ p {
   background: var(--surface-lowest);
   padding: 1rem;
   text-align: left;
-  transition: background 150ms ease, transform 150ms ease;
+  transition:
+    background 150ms ease,
+    transform 150ms ease;
 }
 
 .ui-found-row:hover {
@@ -558,7 +565,9 @@ p {
   color: var(--text-muted);
   font-size: 0.875rem;
   font-weight: 500;
-  transition: background 120ms ease, transform 150ms ease;
+  transition:
+    background 120ms ease,
+    transform 150ms ease;
 }
 
 .ui-secondary-button:hover {
@@ -684,7 +693,9 @@ p {
   border-radius: 999px;
   background: var(--surface-high);
   color: var(--text);
-  transition: transform 150ms ease, background 120ms ease;
+  transition:
+    transform 150ms ease,
+    background 120ms ease;
 }
 
 .ui-nav-button-active {
@@ -786,7 +797,9 @@ p {
   border-radius: 1rem;
   background: var(--surface-high);
   color: var(--text);
-  transition: background 120ms ease, transform 150ms ease;
+  transition:
+    background 120ms ease,
+    transform 150ms ease;
 }
 
 .ui-media-button:hover {
@@ -830,7 +843,10 @@ p {
   border-radius: 1rem;
   background: rgba(42, 42, 42, 0.72);
   color: var(--text-muted);
-  transition: background 120ms ease, transform 150ms ease, color 120ms ease;
+  transition:
+    background 120ms ease,
+    transform 150ms ease,
+    color 120ms ease;
 }
 
 .ui-footer-item:hover {

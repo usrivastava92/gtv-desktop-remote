@@ -1,6 +1,7 @@
 import crypto, { X509Certificate } from 'node:crypto';
 import { EventEmitter } from 'node:events';
-import tls, { TLSSocket } from 'node:tls';
+import type { TLSSocket } from 'node:tls';
+import tls from 'node:tls';
 
 import protobuf from 'protobufjs';
 
@@ -91,7 +92,7 @@ interface PairingMessage {
   pairingSecretAck?: Record<string, unknown>;
 }
 
-function encodePairingMessage(payload: protobuf.Message<{}> | Record<string, unknown>): Buffer {
+function encodePairingMessage(payload: protobuf.Message | Record<string, unknown>): Buffer {
   const message = pairingMessageType.create(payload);
   return Buffer.from(pairingMessageType.encodeDelimited(message).finish());
 }
@@ -99,32 +100,34 @@ function encodePairingMessage(payload: protobuf.Message<{}> | Record<string, unk
 function parsePairingMessage(buffer: Buffer): PairingMessage {
   return pairingMessageType.toObject(pairingMessageType.decodeDelimited(buffer), {
     enums: Number,
-    longs: Number
-  }) as PairingMessage;
+    longs: Number,
+  });
 }
 
 function createPairingRequest(serviceName: string, clientName: string): Buffer {
   return encodePairingMessage({
     pairingRequest: {
       clientName,
-      serviceName
+      serviceName,
     },
     protocolVersion: 2,
-    status: pairingStatus.STATUS_OK
+    status: pairingStatus.STATUS_OK,
   });
 }
 
 function createPairingOption(): Buffer {
   return encodePairingMessage({
     pairingOption: {
-      inputEncodings: [{
-        symbolLength: 6,
-        type: pairingEncodingType.ENCODING_TYPE_HEXADECIMAL
-      }],
-      preferredRole: pairingRole.ROLE_TYPE_INPUT
+      inputEncodings: [
+        {
+          symbolLength: 6,
+          type: pairingEncodingType.ENCODING_TYPE_HEXADECIMAL,
+        },
+      ],
+      preferredRole: pairingRole.ROLE_TYPE_INPUT,
     },
     protocolVersion: 2,
-    status: pairingStatus.STATUS_OK
+    status: pairingStatus.STATUS_OK,
   });
 }
 
@@ -134,11 +137,11 @@ function createPairingConfiguration(): Buffer {
       clientRole: pairingRole.ROLE_TYPE_INPUT,
       encoding: {
         symbolLength: 6,
-        type: pairingEncodingType.ENCODING_TYPE_HEXADECIMAL
-      }
+        type: pairingEncodingType.ENCODING_TYPE_HEXADECIMAL,
+      },
     },
     protocolVersion: 2,
-    status: pairingStatus.STATUS_OK
+    status: pairingStatus.STATUS_OK,
   });
 }
 
@@ -146,7 +149,7 @@ function createPairingSecret(secret: Buffer): Buffer {
   return encodePairingMessage({
     pairingSecret: { secret },
     protocolVersion: 2,
-    status: pairingStatus.STATUS_OK
+    status: pairingStatus.STATUS_OK,
   });
 }
 
@@ -159,7 +162,10 @@ function base64UrlToHex(value: string | undefined): string {
     throw new Error('Missing certificate key material during pairing.');
   }
 
-  const padded = value.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(value.length / 4) * 4, '=');
+  const padded = value
+    .replace(/-/g, '+')
+    .replace(/_/g, '/')
+    .padEnd(Math.ceil(value.length / 4) * 4, '=');
   const hex = Buffer.from(padded, 'base64').toString('hex');
   if (!hex) {
     throw new Error('Missing certificate key material during pairing.');
@@ -169,7 +175,10 @@ function base64UrlToHex(value: string | undefined): string {
 }
 
 function normalizeHexForHash(value: string, prefixZero = false): string {
-  const normalized = value.toLowerCase().replace(/^0x/, '').replace(/[^0-9a-f]/g, '');
+  const normalized = value
+    .toLowerCase()
+    .replace(/^0x/, '')
+    .replace(/[^0-9a-f]/g, '');
   if (!normalized) {
     throw new Error('Missing certificate key material during pairing.');
   }
@@ -178,8 +187,15 @@ function normalizeHexForHash(value: string, prefixZero = false): string {
   return prefixZero ? `0${evenLength}` : evenLength;
 }
 
-function getCertificateKeyMaterialFromX509(certificate: X509Certificate): { exponent: string; modulus: string } {
-  const jwk = certificate.publicKey.export({ format: 'jwk' }) as { e?: string; kty?: string; n?: string };
+function getCertificateKeyMaterialFromX509(certificate: X509Certificate): {
+  exponent: string;
+  modulus: string;
+} {
+  const jwk = certificate.publicKey.export({ format: 'jwk' }) as {
+    e?: string;
+    kty?: string;
+    n?: string;
+  };
   if (jwk.kty !== 'RSA') {
     throw new Error('Unsupported certificate key type during pairing.');
   }
@@ -189,7 +205,7 @@ function getCertificateKeyMaterialFromX509(certificate: X509Certificate): { expo
 
   return {
     exponent,
-    modulus
+    modulus,
   };
 }
 
@@ -219,7 +235,7 @@ export class PairingManager extends EventEmitter<{
         host: this.host,
         key: this.certs.key,
         port: this.port,
-        rejectUnauthorized: false
+        rejectUnauthorized: false,
       });
 
       let settled = false;
@@ -260,7 +276,7 @@ export class PairingManager extends EventEmitter<{
         this.chunks = Buffer.alloc(0);
 
         if (message.status !== pairingStatus.STATUS_OK) {
-          client.destroy(new Error(`Pairing failed with status ${message.status ?? 'unknown'}.`));
+          client.destroy(new Error(`Pairing failed with status ${String(message.status)}.`));
           return;
         }
 
@@ -317,12 +333,17 @@ export class PairingManager extends EventEmitter<{
     }
 
     const peerCertificate = client.getPeerCertificate();
-    if (!peerCertificate || !peerCertificate.raw) {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (!peerCertificate.raw) {
       throw new Error('Missing server certificate during pairing.');
     }
 
-    const clientCertificate = getCertificateKeyMaterialFromX509(new X509Certificate(this.certs.cert));
-    const serverCertificate = getCertificateKeyMaterialFromX509(new X509Certificate(peerCertificate.raw));
+    const clientCertificate = getCertificateKeyMaterialFromX509(
+      new X509Certificate(this.certs.cert)
+    );
+    const serverCertificate = getCertificateKeyMaterialFromX509(
+      new X509Certificate(peerCertificate.raw)
+    );
     const hash = crypto.createHash('sha256');
 
     hash.update(decodeHex(clientCertificate.modulus));
