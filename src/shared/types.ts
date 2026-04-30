@@ -138,6 +138,7 @@ export interface PairingRequest {
   deviceId?: string;
   host: string;
   code: string;
+  macAddress?: string;
 }
 
 export interface DeviceDraft {

@@ -32,20 +32,20 @@ export default {
         danger: '#93000a',
         'danger-text': '#ffdad6',
         'error-container': '#93000a',
-        'on-error-container': '#ffdad6'
+        'on-error-container': '#ffdad6',
       },
       borderRadius: {
         DEFAULT: '1rem',
         lg: '2rem',
-        xl: '3rem'
+        xl: '3rem',
       },
       boxShadow: {
         frame: '0 30px 80px rgba(0, 0, 0, 0.55)',
-        'primary-glow': '0 10px 24px rgba(61, 90, 254, 0.3)'
+        'primary-glow': '0 10px 24px rgba(61, 90, 254, 0.3)',
       },
       fontFamily: {
-        sans: ['Be Vietnam Pro', 'Segoe UI', 'sans-serif']
-      }
-    }
-  }
+        sans: ['Be Vietnam Pro', 'Segoe UI', 'sans-serif'],
+      },
+    },
+  },
 } satisfies Config;

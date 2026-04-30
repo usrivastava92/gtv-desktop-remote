@@ -25,7 +25,7 @@ export function generateCertificate(commonName: string): PemPair {
     { shortName: 'ST', value: 'Remote' },
     { name: 'localityName', value: 'Desktop' },
     { name: 'organizationName', value: 'GTV Desktop Remote' },
-    { shortName: 'OU', value: 'Android TV' }
+    { shortName: 'OU', value: 'Android TV' },
   ]);
 
   cert.setIssuer(cert.subject.attributes);
@@ -33,6 +33,6 @@ export function generateCertificate(commonName: string): PemPair {
 
   return {
     cert: forge.pki.certificateToPem(cert),
-    key: forge.pki.privateKeyToPem(keys.privateKey)
+    key: forge.pki.privateKeyToPem(keys.privateKey),
   };
 }

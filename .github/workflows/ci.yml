@@ -12,6 +12,9 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    # Skip semantic-release's version-bump commit (contains [skip ci]) — the
+    # Release workflow already ran typecheck + build for that push.
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -24,6 +27,12 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
 
       - name: Typecheck
         run: npm run typecheck

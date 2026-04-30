@@ -1,83 +1,97 @@
-# GTV Desktop Remote
+<div align="center">
+  <img src="assets/icons/taskbar-icon.png" alt="GTV Desktop Remote" width="120" />
 
-![GTV Desktop Remote icon](assets/icons/taskbar-icon.png)
+  <h1>GTV Desktop Remote</h1>
 
-GTV Desktop Remote is a macOS desktop remote for Google TV and Android TV devices. It lets you discover a TV on your local network, pair it once, and then control it from your Mac using either on-screen buttons or your keyboard.
+  <p><strong>A macOS desktop remote for Google TV and Android TV devices.</strong><br/>
+  Discover, pair once, and control your TV from your Mac — with keyboard support.</p>
 
-## What It Does
+  <p>
+    <a href="https://github.com/usrivastava92/gtv-desktop-remote/actions/workflows/ci.yml">
+      <img src="https://github.com/usrivastava92/gtv-desktop-remote/actions/workflows/ci.yml/badge.svg" alt="CI" />
+    </a>
+    <a href="https://github.com/usrivastava92/gtv-desktop-remote/releases/latest">
+      <img src="https://img.shields.io/github/v/release/usrivastava92/gtv-desktop-remote?label=release" alt="Latest Release" />
+    </a>
+    <a href="https://github.com/usrivastava92/gtv-desktop-remote/releases/latest">
+      <img src="https://img.shields.io/github/downloads/usrivastava92/gtv-desktop-remote/total?label=downloads" alt="Total Downloads" />
+    </a>
+    <img src="https://img.shields.io/badge/platform-macOS-lightgrey?logo=apple" alt="macOS" />
+    <img src="https://img.shields.io/badge/built%20with-Electron-47848F?logo=electron" alt="Electron" />
+  </p>
+</div>
 
-- Scans your local network for compatible Google TV and Android TV devices
-- Saves and remembers paired devices
-- Sends navigation, home, back, media, volume, and power commands
-- Supports keyboard-based remote control
-- Sends text input to apps that expose Android TV text entry support
+---
 
-## Before You Start
+## Overview
 
-Make sure your TV or streaming device has Android TV Remote Service available and is on the same local network as your Mac.
+GTV Desktop Remote lets you control any Google TV or Android TV device from your Mac. It runs as a menubar app — always one keystroke away — and uses the same encrypted pairing protocol as the official Android TV Remote app.
+
+- **Network scan** — discovers compatible devices on your local network automatically
+- **One-time pairing** — enter a 6-digit code once; credentials are saved securely
+- **Full remote control** — navigation, select, home, back, play/pause, volume, power
+- **Keyboard control** — drive your TV from the keyboard without touching the mouse
+- **Text input** — send text directly to apps that support Android TV text entry
+- **IP-change resilient** — device identity is tracked by MAC address, not IP, so re-pairing is never needed when your TV's IP changes
+- **Global shortcut** — `CmdOrCtrl+Shift+G` shows or hides the remote from anywhere
+
+---
+
+## Installation
+
+Download the latest `.dmg` from the [Releases](https://github.com/usrivastava92/gtv-desktop-remote/releases/latest) page, open it, and drag the app to your Applications folder.
+
+> **Requirement:** macOS. Your TV must have Android TV Remote Service enabled and be on the same local network as your Mac.
+
+---
 
 ## Getting Started
 
-1. Launch the app.
-2. Let it scan for devices on your network.
+1. Launch the app — it appears in your menu bar.
+2. The app scans your network for compatible devices.
 3. Select your TV from the device list.
-4. Start pairing if the device is not already paired.
-5. Enter the 6-character pairing code shown on the TV.
-6. Once pairing completes, connect and start using the remote.
+4. If not yet paired, click **Start Pairing** and enter the 6-character code shown on your TV.
+5. Once paired, click **Connect** — you're ready to use the remote.
 
-After the first successful pairing, the app remembers the device so future reconnects are faster.
+The app remembers paired devices, so future connections are instant.
 
-## How To Use The Remote
-
-The remote view gives you direct access to:
-
-- Directional navigation
-- Select / OK
-- Home
-- Back
-- Play / pause
-- Volume up and volume down
-- Power
-- Text input, when the current app on the TV supports it
-
-If text input is available, open the keyboard panel in the app, type your message, and send it to the TV.
+---
 
 ## Keyboard Shortcuts
 
-You can drive the TV directly from your Mac keyboard when the remote is connected and the app is focused.
+When the remote is focused and connected, your keyboard controls the TV directly:
 
-- `ArrowUp`: Up
-- `ArrowDown`: Down
-- `ArrowLeft`: Left
-- `ArrowRight`: Right
-- `Enter`: Select / OK
-- `Escape`: Back
-- `Backspace`: Back
-- `H`: Home
-- `Space`: Play / pause
-- `K`: Play / pause
-- `+` or `=`: Volume up
-- `-` or `_`: Volume down
-- `P`: Power
+| Key                    | Action       |
+| ---------------------- | ------------ |
+| `↑` `↓` `←` `→`        | Navigate     |
+| `Enter`                | Select / OK  |
+| `Escape` / `Backspace` | Back         |
+| `H`                    | Home         |
+| `Space` / `K`          | Play / Pause |
+| `+` / `=`              | Volume Up    |
+| `-` / `_`              | Volume Down  |
+| `P`                    | Power        |
 
-Modifier shortcuts such as `Cmd`, `Ctrl`, and `Option` are ignored so they do not interfere with normal macOS shortcuts.
+> `Cmd`, `Ctrl`, and `Option` combinations are ignored so they don't interfere with normal macOS shortcuts.
 
-## Menu Bar Shortcut
+**Global shortcut:** `CmdOrCtrl+Shift+G` — show or hide the remote from any app.
 
-The app also registers a global shortcut so you can show or hide the remote quickly:
-
-- `CmdOrCtrl+Shift+G`
+---
 
 ## Troubleshooting
 
-If the TV does not appear or pairing does not complete:
+**TV not appearing in the scan?**
 
-1. Confirm the TV and Mac are on the same network.
-2. Confirm Android TV Remote Service is available on the TV.
-3. Retry the network scan.
-4. Start a fresh pairing session and enter the newest code shown on the TV.
+- Confirm the TV and Mac are on the same Wi-Fi network.
+- Confirm Android TV Remote Service is enabled on the TV.
+- Try re-running the network scan.
 
-If needed, you can remove a saved device in the app and pair it again.
+**Pairing not completing?**
+
+- Start a fresh pairing session and enter the latest code shown on the TV screen.
+- If the device was previously saved, remove it and pair again.
+
+---
 
 ## For Developers
 
