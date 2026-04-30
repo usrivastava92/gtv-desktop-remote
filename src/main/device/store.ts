@@ -1,15 +1,16 @@
-import { app } from 'electron';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+
+import { app } from 'electron';
 
 import type { SavedDevice } from '../../shared/types';
 
 interface PersistedData {
-  devices: SavedDevice[];
+  devices?: SavedDevice[];
 }
 
 const DEFAULT_DATA: PersistedData = {
-  devices: []
+  devices: [],
 };
 
 function getStorePath(): string {

@@ -12,6 +12,9 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    # Skip the automated version-bump commit — the Version workflow already
+    # ran typecheck + build for those commits.
+    if: "!startsWith(github.event.head_commit.message, 'chore(release):')"
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -24,6 +27,12 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
 
       - name: Typecheck
         run: npm run typecheck

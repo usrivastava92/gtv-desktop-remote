@@ -1,18 +1,20 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import tls, { TLSSocket } from 'node:tls';
+import type { TLSSocket } from 'node:tls';
+import tls from 'node:tls';
 
 import type { CommandDispatchRequest } from '../../shared/types';
 import { getAppDataPath, logError, logInfo } from '../logger';
 import { commandMetricsStore } from '../metrics';
+
 import { generateCertificate, type PemPair } from './protocol/certificate';
 import {
-    createImeBatchEditMessage,
-    createRemoteConfigure,
-    createRemoteKeyInject,
-    createRemotePingResponse,
-    createRemoteSetActive,
-    parseRemoteMessage
+  createImeBatchEditMessage,
+  createRemoteConfigure,
+  createRemoteKeyInject,
+  createRemotePingResponse,
+  createRemoteSetActive,
+  parseRemoteMessage,
 } from './protocol/remoteProtocol';
 
 interface PairingManagerInstance {
@@ -48,7 +50,7 @@ const { PairingManager } = require('androidtv-remote/dist/pairing/PairingManager
     host: string,
     port: number,
     certs: PemPair,
-    serviceName: string,
+    serviceName: string
   ) => PairingManagerInstance;
 };
 
@@ -104,7 +106,7 @@ class NativeRemoteClient {
 
   private state: RemoteState = {
     imeCounter: 0,
-    imeFieldCounter: 0
+    imeFieldCounter: 0,
   };
 
   constructor(
@@ -139,7 +141,7 @@ class NativeRemoteClient {
         host: this.host,
         key: this.certs.key,
         port: 6466,
-        rejectUnauthorized: false
+        rejectUnauthorized: false,
       });
       let settled = false;
 
@@ -184,9 +186,13 @@ class NativeRemoteClient {
       this.connectPromise = undefined;
     });
 
-    return this.connectPromise.catch((error) => {
+    return this.connectPromise.catch((error: unknown) => {
       if (commandId) {
-        commandMetricsStore.recordConnectFailed(this.host, commandId, toError(error, `Could not connect to ${this.host}.`).message);
+        commandMetricsStore.recordConnectFailed(
+          this.host,
+          commandId,
+          toError(error, `Could not connect to ${this.host}.`).message
+        );
       }
 
       throw error;
@@ -208,7 +214,10 @@ class NativeRemoteClient {
   sendCommand(request: CommandDispatchRequest): void {
     const socket = this.getSocket();
     const wroteImmediately = socket.write(createRemoteKeyInject(request.command));
-    commandMetricsStore.recordSocketWrite(request, { host: this.host, buffered: !wroteImmediately });
+    commandMetricsStore.recordSocketWrite(request, {
+      host: this.host,
+      buffered: !wroteImmediately,
+    });
     if (!wroteImmediately) {
       socket.once('drain', () => {
         commandMetricsStore.recordSocketDrain(this.host, request.id);
@@ -223,7 +232,9 @@ class NativeRemoteClient {
     }
 
     const socket = this.getSocket();
-    socket.write(createImeBatchEditMessage(this.state.imeCounter, this.state.imeFieldCounter, value));
+    socket.write(
+      createImeBatchEditMessage(this.state.imeCounter, this.state.imeFieldCounter, value)
+    );
   }
 
   private getSocket(): TLSSocket {
@@ -243,7 +254,10 @@ class NativeRemoteClient {
   }
 
   private handleMessage(message: {
-    remoteConfigure?: { code1?: number; deviceInfo?: { appVersion?: string; model?: string; vendor?: string } };
+    remoteConfigure?: {
+      code1?: number;
+      deviceInfo?: { appVersion?: string; model?: string; vendor?: string };
+    };
     remoteSetActive?: Record<string, unknown>;
     remotePingRequest?: { val1?: number };
     remoteImeKeyInject?: { appInfo?: { appPackage?: string } };
@@ -254,7 +268,7 @@ class NativeRemoteClient {
       this.state.deviceInfo = {
         appVersion: message.remoteConfigure.deviceInfo?.appVersion,
         model: message.remoteConfigure.deviceInfo?.model,
-        vendor: message.remoteConfigure.deviceInfo?.vendor
+        vendor: message.remoteConfigure.deviceInfo?.vendor,
       };
       this.getSocket().write(createRemoteConfigure(REMOTE_FEATURES));
       return;
@@ -277,7 +291,8 @@ class NativeRemoteClient {
 
     if (message.remoteImeBatchEdit) {
       this.state.imeCounter = message.remoteImeBatchEdit.imeCounter ?? this.state.imeCounter;
-      this.state.imeFieldCounter = message.remoteImeBatchEdit.fieldCounter ?? this.state.imeFieldCounter;
+      this.state.imeFieldCounter =
+        message.remoteImeBatchEdit.fieldCounter ?? this.state.imeFieldCounter;
       return;
     }
 
@@ -294,23 +309,66 @@ class AndroidTvRemoteBridge {
     return getAppDataPath('androidtvremote');
   }
 
-  private getFilesForHost(host: string): { certPath: string; keyPath: string } {
-    const hostKey = host.replaceAll(':', '_').replaceAll('/', '_');
+  private getFilesForCertKey(certKey: string): { certPath: string; keyPath: string } {
+    const safeKey = certKey.replaceAll(':', '_').replaceAll('/', '_');
     const stateDir = this.getStateDir();
 
     return {
-      certPath: path.join(stateDir, `${hostKey}.cert.pem`),
-      keyPath: path.join(stateDir, `${hostKey}.key.pem`)
+      certPath: path.join(stateDir, `${safeKey}.cert.pem`),
+      keyPath: path.join(stateDir, `${safeKey}.key.pem`),
     };
   }
 
-  private async loadOrCreateCerts(host: string): Promise<PemPair> {
-    const { certPath, keyPath } = this.getFilesForHost(host);
+  /** @deprecated Use getFilesForCertKey with a macAddress-based key */
+  private getFilesForHost(host: string): { certPath: string; keyPath: string } {
+    return this.getFilesForCertKey(host);
+  }
+
+  /**
+   * Migrate certs from old IP-based filename to MAC-based filename.
+   * Safe to call even if the old file doesn't exist.
+   */
+  async migrateCerts(oldHost: string, macAddress: string): Promise<void> {
+    const oldFiles = this.getFilesForCertKey(oldHost);
+    const newFiles = this.getFilesForCertKey(macAddress);
+
+    // Nothing to migrate if they are the same key or new file already exists
+    if (oldFiles.certPath === newFiles.certPath) {
+      return;
+    }
+
+    try {
+      await fs.access(newFiles.certPath);
+      // New cert already exists — remove the old IP-keyed file if present
+      await Promise.all([
+        fs.rm(oldFiles.certPath, { force: true }),
+        fs.rm(oldFiles.keyPath, { force: true }),
+      ]);
+    } catch {
+      // New cert does not exist — try to rename old one
+      try {
+        await fs.mkdir(this.getStateDir(), { recursive: true });
+        await Promise.all([
+          fs.rename(oldFiles.certPath, newFiles.certPath),
+          fs.rename(oldFiles.keyPath, newFiles.keyPath),
+        ]);
+        await logInfo('androidtvremote', 'Migrated cert from IP key to MAC key', {
+          oldHost,
+          macAddress,
+        });
+      } catch {
+        // Old cert did not exist either — nothing to migrate
+      }
+    }
+  }
+
+  private async loadOrCreateCerts(certKey: string): Promise<PemPair> {
+    const { certPath, keyPath } = this.getFilesForCertKey(certKey);
 
     try {
       const [cert, key] = await Promise.all([
         fs.readFile(certPath, 'utf8'),
-        fs.readFile(keyPath, 'utf8')
+        fs.readFile(keyPath, 'utf8'),
       ]);
 
       return { cert, key };
@@ -319,22 +377,23 @@ class AndroidTvRemoteBridge {
       await fs.mkdir(this.getStateDir(), { recursive: true });
       await Promise.all([
         fs.writeFile(certPath, certs.cert, 'utf8'),
-        fs.writeFile(keyPath, certs.key, 'utf8')
+        fs.writeFile(keyPath, certs.key, 'utf8'),
       ]);
-      await logInfo('androidtvremote', 'Generated new client certificate', { host });
+      await logInfo('androidtvremote', 'Generated new client certificate', { certKey });
       return certs;
     }
   }
 
-  private async clearPersistedHostState(host: string): Promise<void> {
-    const { certPath, keyPath } = this.getFilesForHost(host);
-    await Promise.all([
-      fs.rm(certPath, { force: true }),
-      fs.rm(keyPath, { force: true })
-    ]);
+  private async clearPersistedHostState(certKey: string): Promise<void> {
+    const { certPath, keyPath } = this.getFilesForCertKey(certKey);
+    await Promise.all([fs.rm(certPath, { force: true }), fs.rm(keyPath, { force: true })]);
   }
 
-  private async clearHostSession(host: string, removeCerts = false): Promise<void> {
+  private async clearHostSession(
+    host: string,
+    removeCerts = false,
+    certKey?: string
+  ): Promise<void> {
     const normalizedHost = host.trim();
     const session = this.sessions.get(normalizedHost);
 
@@ -342,11 +401,11 @@ class AndroidTvRemoteBridge {
     this.sessions.delete(normalizedHost);
 
     if (removeCerts) {
-      await this.clearPersistedHostState(normalizedHost);
+      await this.clearPersistedHostState(certKey ?? normalizedHost);
     }
   }
 
-  private async getSession(host: string): Promise<DeviceSession> {
+  private async getSession(host: string, certKey?: string): Promise<DeviceSession> {
     const normalizedHost = host.trim();
     if (!normalizedHost) {
       throw new Error('Missing host');
@@ -358,14 +417,14 @@ class AndroidTvRemoteBridge {
     }
 
     const session: DeviceSession = {
-      certs: await this.loadOrCreateCerts(normalizedHost)
+      certs: await this.loadOrCreateCerts(certKey ?? normalizedHost),
     };
     this.sessions.set(normalizedHost, session);
     return session;
   }
 
-  async startPairing(host: string): Promise<Record<string, unknown> | undefined> {
-    const session = await this.getSession(host);
+  async startPairing(host: string, certKey?: string): Promise<Record<string, unknown> | undefined> {
+    const session = await this.getSession(host, certKey);
 
     if (session.pairingReady) {
       await session.pairingReady;
@@ -382,27 +441,31 @@ class AndroidTvRemoteBridge {
     session.pairingManager = pairingManager;
     session.pairingReady = new Promise<void>((resolve, reject) => {
       pairingManager.on('secret', resolve);
-      session.pairingComplete = pairingManager.start().then((success) => {
-        if (!success) {
-          throw new Error('Pairing failed.');
-        }
-      }).catch((error) => {
-        const normalized = toError(error, 'Pairing failed.');
-        reject(normalized);
-        throw normalized;
-      }).finally(() => {
-        session.pairingReady = undefined;
-        session.pairingComplete = undefined;
-        session.pairingManager = undefined;
-      });
+      session.pairingComplete = pairingManager
+        .start()
+        .then((success) => {
+          if (!success) {
+            throw new Error('Pairing failed.');
+          }
+        })
+        .catch((error: unknown) => {
+          const normalized = toError(error, 'Pairing failed.');
+          reject(normalized);
+          throw normalized;
+        })
+        .finally(() => {
+          session.pairingReady = undefined;
+          session.pairingComplete = undefined;
+          session.pairingManager = undefined;
+        });
     });
 
     await session.pairingReady;
     return {};
   }
 
-  async finishPairing(host: string, code: string): Promise<void> {
-    const session = await this.getSession(host);
+  async finishPairing(host: string, code: string, certKey?: string): Promise<void> {
+    const session = await this.getSession(host, certKey);
     if (!session.pairingManager || !session.pairingComplete) {
       throw new Error('No pairing session is active for this device.');
     }
@@ -421,18 +484,16 @@ class AndroidTvRemoteBridge {
     }
   }
 
-  async connect(host: string): Promise<Record<string, unknown> | undefined> {
-    const session = await this.getSession(host);
-    if (!session.remoteClient) {
-      session.remoteClient = new NativeRemoteClient(host, session.certs);
-    }
+  async connect(host: string, certKey?: string): Promise<Record<string, unknown> | undefined> {
+    const session = await this.getSession(host, certKey);
+    session.remoteClient ??= new NativeRemoteClient(host, session.certs);
 
     try {
       await session.remoteClient.connect();
     } catch (error) {
       const normalized = normalizeRemoteError(error, `Could not connect to ${host}.`);
       if (isCertificateRejectedError(error)) {
-        await this.clearHostSession(host, true);
+        await this.clearHostSession(host, true, certKey);
       }
       throw normalized;
     }
@@ -443,11 +504,11 @@ class AndroidTvRemoteBridge {
       current_app: snapshot.currentApp,
       is_on: snapshot.isOn,
       mac: undefined,
-      name: snapshot.deviceInfo?.model ?? host
+      name: snapshot.deviceInfo?.model ?? host,
     };
   }
 
-  async disconnect(host: string): Promise<void> {
+  disconnect(host: string): void {
     const session = this.sessions.get(host.trim());
     session?.remoteClient?.disconnect();
     if (session) {
@@ -468,11 +529,13 @@ class AndroidTvRemoteBridge {
     await fs.rm(this.getStateDir(), { force: true, recursive: true });
   }
 
-  async sendCommand(host: string, request: CommandDispatchRequest): Promise<void> {
-    const session = await this.getSession(host);
-    if (!session.remoteClient) {
-      session.remoteClient = new NativeRemoteClient(host, session.certs);
-    }
+  async sendCommand(
+    host: string,
+    request: CommandDispatchRequest,
+    certKey?: string
+  ): Promise<void> {
+    const session = await this.getSession(host, certKey);
+    session.remoteClient ??= new NativeRemoteClient(host, session.certs);
 
     commandMetricsStore.recordBridgeSendStart(request, host);
 
@@ -481,7 +544,10 @@ class AndroidTvRemoteBridge {
       session.remoteClient.sendCommand(request);
       commandMetricsStore.recordCommandSucceeded(request.id);
     } catch (error) {
-      const normalizedError = normalizeRemoteError(error, `Could not send ${request.command} to ${host}.`);
+      const normalizedError = normalizeRemoteError(
+        error,
+        `Could not send ${request.command} to ${host}.`
+      );
       const reason = normalizedError.message.includes('Connection has been lost.')
         ? 'socket_destroyed'
         : normalizedError.message.includes('timed out')
@@ -490,17 +556,15 @@ class AndroidTvRemoteBridge {
       commandMetricsStore.recordCommandFailed(request, {
         reason,
         errorMessage: normalizedError.message,
-        host
+        host,
       });
       throw normalizedError;
     }
   }
 
-  async sendText(host: string, text: string): Promise<void> {
-    const session = await this.getSession(host);
-    if (!session.remoteClient) {
-      session.remoteClient = new NativeRemoteClient(host, session.certs);
-    }
+  async sendText(host: string, text: string, certKey?: string): Promise<void> {
+    const session = await this.getSession(host, certKey);
+    session.remoteClient ??= new NativeRemoteClient(host, session.certs);
 
     await session.remoteClient.connect();
     session.remoteClient.sendText(text);

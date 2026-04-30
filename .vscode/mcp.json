@@ -1,12 +1,10 @@
 {
-	"servers": {
-		"playwright-electron": {
-			"type": "stdio",
-			"command": "npx",
-			"args": [
-				"@robertn702/playwright-mcp-electron@latest"
-			]
-		}
-	},
-	"inputs": []
+  "servers": {
+    "playwright-electron": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["@robertn702/playwright-mcp-electron@latest"]
+    }
+  },
+  "inputs": []
 }

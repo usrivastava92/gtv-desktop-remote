@@ -3,12 +3,18 @@ import path from 'node:path';
 
 import { app, BrowserWindow, globalShortcut, ipcMain, Menu, nativeImage, Tray } from 'electron';
 
-import type { CommandDispatchRequest, CommandDropReport, DeviceDraft, PairingRequest } from '../shared/types';
+import type {
+  CommandDispatchRequest,
+  CommandDropReport,
+  DeviceDraft,
+  PairingRequest,
+} from '../shared/types';
+
 import { GoogleTvAdapter } from './device/googleTvAdapter';
 import { getLoggerPath, logError, logInfo } from './logger';
 import { commandMetricsStore } from './metrics';
 
-declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
+declare const _MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 
 let tray: Tray | undefined;
 let windowRef: BrowserWindow | undefined;
@@ -25,9 +31,11 @@ function getRendererEntryPath() {
   return path.join(app.getAppPath(), 'dist', 'index.html');
 }
 
-function loadSvgIcon(size: number) {
+function _loadSvgIcon(size: number) {
   const svg = fs.readFileSync(getAssetPath('gtv-remote-icon.svg'), 'utf8');
-  const image = nativeImage.createFromDataURL(`data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`);
+  const image = nativeImage.createFromDataURL(
+    `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`
+  );
 
   return image.resize({ width: size, height: size });
 }
@@ -66,14 +74,17 @@ function applyApplicationIcon() {
 }
 
 function attachWindowDiagnostics(window: BrowserWindow) {
-  window.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
-    void logError('renderer', 'Window failed to load', {
-      errorCode,
-      errorDescription,
-      validatedURL,
-      isMainFrame
-    });
-  });
+  window.webContents.on(
+    'did-fail-load',
+    (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+      void logError('renderer', 'Window failed to load', {
+        errorCode,
+        errorDescription,
+        validatedURL,
+        isMainFrame,
+      });
+    }
+  );
 
   window.webContents.on('render-process-gone', (_event, details) => {
     void logError('renderer', 'Render process exited unexpectedly', details);
@@ -105,8 +116,8 @@ async function createWindow(): Promise<BrowserWindow> {
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
-      nodeIntegration: false
-    }
+      nodeIntegration: false,
+    },
   });
 
   if (process.platform === 'darwin') {
@@ -151,7 +162,7 @@ async function showWindow() {
   window.focus();
 }
 
-async function hideWindow() {
+function hideWindow() {
   if (!windowRef || windowRef.isDestroyed()) {
     return;
   }
@@ -173,10 +184,25 @@ async function toggleWindow() {
 
 function buildContextMenu() {
   return Menu.buildFromTemplate([
-    { label: 'Show Remote', click: () => void showWindow() },
-    { label: 'Hide Remote', click: () => void hideWindow() },
+    {
+      label: 'Show Remote',
+      click: () => {
+        void showWindow();
+      },
+    },
+    {
+      label: 'Hide Remote',
+      click: () => {
+        hideWindow();
+      },
+    },
     { type: 'separator' },
-    { label: 'Quit', click: () => app.quit() }
+    {
+      label: 'Quit',
+      click: () => {
+        app.quit();
+      },
+    },
   ]);
 }
 
@@ -186,9 +212,13 @@ async function bootstrapApp() {
   tray = new Tray(createTrayImage());
   tray.setToolTip(appName);
   tray.setContextMenu(buildContextMenu());
-  tray.on('click', () => void toggleWindow());
+  tray.on('click', () => {
+    void toggleWindow();
+  });
 
-  globalShortcut.register(shortcut, toggleWindow);
+  globalShortcut.register(shortcut, () => {
+    void toggleWindow();
+  });
   await logInfo('main', 'Application bootstrap complete', { shortcut, logPath: getLoggerPath() });
 }
 
@@ -199,9 +229,13 @@ function registerIpc() {
   ipcMain.handle('device:bootstrap', async () => adapter.getBootstrapState());
   ipcMain.handle('device:scan', async () => adapter.scanForDevices());
   ipcMain.handle('device:save', async (_event, draft: DeviceDraft) => adapter.saveDevice(draft));
-  ipcMain.handle('device:remove', async (_event, deviceId: string) => adapter.removeDevice(deviceId));
+  ipcMain.handle('device:remove', async (_event, deviceId: string) =>
+    adapter.removeDevice(deviceId)
+  );
   ipcMain.handle('device:reset', async () => adapter.resetState());
-  ipcMain.handle('device:startPairing', async (_event, deviceId: string) => adapter.startPairing(deviceId));
+  ipcMain.handle('device:startPairing', async (_event, deviceId: string) =>
+    adapter.startPairing(deviceId)
+  );
   ipcMain.handle('device:pair', async (_event, request: PairingRequest) => adapter.pair(request));
   ipcMain.handle('device:connect', async (_event, deviceId: string) => adapter.connect(deviceId));
   ipcMain.handle('device:disconnect', async () => adapter.disconnect());
@@ -209,15 +243,15 @@ function registerIpc() {
     commandMetricsStore.recordIpcReceived(request);
     return adapter.sendCommand(request);
   });
-  ipcMain.handle('metrics:rendererDrop', async (_event, report: CommandDropReport) => {
+  ipcMain.handle('metrics:rendererDrop', (_event, report: CommandDropReport) => {
     commandMetricsStore.recordRendererDrop(report);
   });
-  ipcMain.handle('metrics:snapshot', async () => commandMetricsStore.getSnapshot());
+  ipcMain.handle('metrics:snapshot', () => commandMetricsStore.getSnapshot());
   ipcMain.handle('device:text', async (_event, text: string) => adapter.sendText(text));
   ipcMain.handle('device:capabilities', async () => adapter.getCapabilities());
 }
 
-app.whenReady().then(async () => {
+void app.whenReady().then(async () => {
   try {
     registerIpc();
     await bootstrapApp();

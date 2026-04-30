@@ -7,9 +7,9 @@ export default defineConfig(({ command }) => ({
   plugins: [react(), tailwindcss()],
   server: {
     port: 5173,
-    strictPort: true
+    strictPort: true,
   },
   build: {
-    outDir: 'dist'
-  }
+    outDir: 'dist',
+  },
 }));

@@ -1,13 +1,14 @@
 import type {
-    CommandDispatchRequest,
-    CommandDropReason,
-    CommandDropReport,
-    CommandMetricsCounters,
-    CommandMetricsRecord,
-    CommandMetricsSnapshot,
-    CommandMetricsTransportSnapshot,
-    MetricsWarning,
+  CommandDispatchRequest,
+  CommandDropReason,
+  CommandDropReport,
+  CommandMetricsCounters,
+  CommandMetricsRecord,
+  CommandMetricsSnapshot,
+  CommandMetricsTransportSnapshot,
+  MetricsWarning,
 } from '../shared/types';
+
 import { isDebugTelemetryEnabled } from './debug';
 import { logInfo } from './logger';
 
@@ -101,7 +102,7 @@ class CommandMetricsStore {
 
   recordAdapterDispatchStart(
     request: CommandDispatchRequest,
-    details?: { deviceId?: string; host?: string },
+    details?: { deviceId?: string; host?: string }
   ): void {
     const now = Date.now();
     const record = this.ensureCommand(request);
@@ -207,7 +208,7 @@ class CommandMetricsStore {
 
   recordSocketWrite(
     request: CommandDispatchRequest,
-    details: { host: string; buffered: boolean },
+    details: { host: string; buffered: boolean }
   ): void {
     const now = Date.now();
     const record = this.ensureCommand(request);
@@ -282,7 +283,7 @@ class CommandMetricsStore {
       errorMessage: string;
       host?: string;
       deviceId?: string;
-    },
+    }
   ): void {
     const now = Date.now();
     const record = this.ensureCommand(request);
@@ -368,7 +369,9 @@ class CommandMetricsStore {
       return;
     }
 
-    const records = Array.from(this.commands.values()).sort((left, right) => left.updatedAt - right.updatedAt);
+    const records = Array.from(this.commands.values()).sort(
+      (left, right) => left.updatedAt - right.updatedAt
+    );
     while (records.length > MAX_RECENT_COMMANDS) {
       const stale = records.shift();
       if (!stale) {
@@ -382,13 +385,13 @@ class CommandMetricsStore {
   private detectStalls(): void {
     const now = Date.now();
     if (
-      this.transport.socketState === 'connecting'
-      && this.transport.lastConnectStartedAt
-      && now - this.transport.lastConnectStartedAt >= CONNECT_STALL_MS
+      this.transport.socketState === 'connecting' &&
+      this.transport.lastConnectStartedAt &&
+      now - this.transport.lastConnectStartedAt >= CONNECT_STALL_MS
     ) {
       this.pushWarning({
         code: 'connect_stalled',
-        message: `Connection attempt to ${this.transport.pendingConnectHost ?? 'device'} has been pending for ${now - this.transport.lastConnectStartedAt} ms.`,
+        message: `Connection attempt to ${this.transport.pendingConnectHost ?? 'device'} has been pending for ${String(now - this.transport.lastConnectStartedAt)} ms.`,
         createdAt: now,
         host: this.transport.pendingConnectHost,
         commandId: this.transport.pendingCommandId,
@@ -396,14 +399,15 @@ class CommandMetricsStore {
     }
 
     if (
-      this.transport.pendingCommandId
-      && this.transport.lastCommandIssuedAt
-      && (!this.transport.lastSuccessfulSendAt || this.transport.lastSuccessfulSendAt < this.transport.lastCommandIssuedAt)
-      && now - this.transport.lastCommandIssuedAt >= SEND_STALL_MS
+      this.transport.pendingCommandId &&
+      this.transport.lastCommandIssuedAt &&
+      (!this.transport.lastSuccessfulSendAt ||
+        this.transport.lastSuccessfulSendAt < this.transport.lastCommandIssuedAt) &&
+      now - this.transport.lastCommandIssuedAt >= SEND_STALL_MS
     ) {
       this.pushWarning({
         code: 'send_stalled',
-        message: `Command ${this.transport.pendingCommandId} has not reached a successful socket write for ${now - this.transport.lastCommandIssuedAt} ms.`,
+        message: `Command ${this.transport.pendingCommandId} has not reached a successful socket write for ${String(now - this.transport.lastCommandIssuedAt)} ms.`,
         createdAt: now,
         host: this.transport.currentHost,
         commandId: this.transport.pendingCommandId,
@@ -411,14 +415,14 @@ class CommandMetricsStore {
     }
 
     if (
-      this.transport.socketState === 'connected'
-      && this.transport.currentHost
-      && this.transport.lastInboundMessageAt
-      && now - this.transport.lastInboundMessageAt >= INBOUND_STALL_MS
+      this.transport.socketState === 'connected' &&
+      this.transport.currentHost &&
+      this.transport.lastInboundMessageAt &&
+      now - this.transport.lastInboundMessageAt >= INBOUND_STALL_MS
     ) {
       this.pushWarning({
         code: 'no_inbound_activity',
-        message: `No inbound protocol activity from ${this.transport.currentHost} for ${now - this.transport.lastInboundMessageAt} ms while connected.`,
+        message: `No inbound protocol activity from ${this.transport.currentHost} for ${String(now - this.transport.lastInboundMessageAt)} ms while connected.`,
         createdAt: now,
         host: this.transport.currentHost,
       });
@@ -443,6 +447,7 @@ class CommandMetricsStore {
   }
 }
 
+/* eslint-disable @typescript-eslint/no-empty-function */
 class NoopCommandMetricsStore {
   recordRendererDrop(_report: CommandDropReport): void {}
 
@@ -450,7 +455,7 @@ class NoopCommandMetricsStore {
 
   recordAdapterDispatchStart(
     _request: CommandDispatchRequest,
-    _details?: { deviceId?: string; host?: string },
+    _details?: { deviceId?: string; host?: string }
   ): void {}
 
   recordAdapterDispatchCompleted(_requestId: string): void {}
@@ -465,7 +470,7 @@ class NoopCommandMetricsStore {
 
   recordSocketWrite(
     _request: CommandDispatchRequest,
-    _details: { host: string; buffered: boolean },
+    _details: { host: string; buffered: boolean }
   ): void {}
 
   recordSocketDrain(_host: string, _commandId: string): void {}
@@ -479,7 +484,7 @@ class NoopCommandMetricsStore {
       errorMessage: string;
       host?: string;
       deviceId?: string;
-    },
+    }
   ): void {}
 
   recordInboundMessage(_host: string): void {}
@@ -490,6 +495,7 @@ class NoopCommandMetricsStore {
     return createEmptySnapshot();
   }
 }
+/* eslint-enable @typescript-eslint/no-empty-function */
 
 export const commandMetricsStore = isDebugTelemetryEnabled()
   ? new CommandMetricsStore()

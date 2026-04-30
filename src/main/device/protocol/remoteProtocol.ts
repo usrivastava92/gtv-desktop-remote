@@ -132,7 +132,7 @@ const keyMap: Record<RemoteCommand, keyof typeof remoteKeyCode> = {
   play_pause: 'KEYCODE_MEDIA_PLAY_PAUSE',
   volume_up: 'KEYCODE_VOLUME_UP',
   volume_down: 'KEYCODE_VOLUME_DOWN',
-  power: 'KEYCODE_POWER'
+  power: 'KEYCODE_POWER',
 };
 
 function createRemoteMessage(payload: Record<string, unknown>): Buffer {
@@ -142,7 +142,10 @@ function createRemoteMessage(payload: Record<string, unknown>): Buffer {
 
 function decodeRemoteMessage(buffer: Buffer) {
   return remoteMessageType.decodeDelimited(buffer).toJSON() as {
-    remoteConfigure?: { code1?: number; deviceInfo?: { appVersion?: string; model?: string; vendor?: string } };
+    remoteConfigure?: {
+      code1?: number;
+      deviceInfo?: { appVersion?: string; model?: string; vendor?: string };
+    };
     remoteSetActive?: Record<string, unknown>;
     remotePingRequest?: { val1?: number };
     remoteImeKeyInject?: { appInfo?: { appPackage?: string } };
@@ -159,7 +162,7 @@ function getClientDeviceInfo() {
     packageName: 'gtv-desktop-remote',
     unknown1: 1,
     unknown2: '1',
-    vendor: `${os.type()} ${os.release()}`
+    vendor: `${os.type()} ${os.release()}`,
   };
 }
 
@@ -171,20 +174,20 @@ export function createRemoteConfigure(features: number): Buffer {
   return createRemoteMessage({
     remoteConfigure: {
       code1: features,
-      deviceInfo: getClientDeviceInfo()
-    }
+      deviceInfo: getClientDeviceInfo(),
+    },
   });
 }
 
 export function createRemoteSetActive(active: number): Buffer {
   return createRemoteMessage({
-    remoteSetActive: { active }
+    remoteSetActive: { active },
   });
 }
 
 export function createRemotePingResponse(val1: number): Buffer {
   return createRemoteMessage({
-    remotePingResponse: { val1 }
+    remotePingResponse: { val1 },
   });
 }
 
@@ -192,8 +195,8 @@ export function createRemoteKeyInject(command: RemoteCommand): Buffer {
   return createRemoteMessage({
     remoteKeyInject: {
       direction: remoteDirection.SHORT,
-      keyCode: remoteKeyCode[keyMap[command]]
-    }
+      keyCode: remoteKeyCode[keyMap[command]],
+    },
   });
 }
 
@@ -224,21 +227,27 @@ message RemoteMessage {
 const imeRoot = protobuf.parse(REMOTE_IME_PROTO).root;
 const imeRemoteMessageType = imeRoot.lookupType('remote.RemoteMessage');
 
-export function createImeBatchEditMessage(imeCounter: number, fieldCounter: number, text: string): Buffer {
+export function createImeBatchEditMessage(
+  imeCounter: number,
+  fieldCounter: number,
+  text: string
+): Buffer {
   const cursorIndex = text.length - 1;
   const message = imeRemoteMessageType.create({
     remoteImeBatchEdit: {
-      editInfo: [{
-        insert: 1,
-        textFieldStatus: {
-          end: cursorIndex,
-          start: cursorIndex,
-          value: text
-        }
-      }],
+      editInfo: [
+        {
+          insert: 1,
+          textFieldStatus: {
+            end: cursorIndex,
+            start: cursorIndex,
+            value: text,
+          },
+        },
+      ],
       fieldCounter,
-      imeCounter
-    }
+      imeCounter,
+    },
   });
 
   return Buffer.from(imeRemoteMessageType.encodeDelimited(message).finish());

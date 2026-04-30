@@ -21,10 +21,7 @@ function getResetTargets() {
 
   return appNames.flatMap((appName) => {
     const baseDir = path.join(appDataRoot, appName);
-    return [
-      path.join(baseDir, 'devices.json'),
-      path.join(baseDir, 'androidtvremote')
-    ];
+    return [path.join(baseDir, 'devices.json'), path.join(baseDir, 'androidtvremote')];
   });
 }
 
@@ -38,7 +35,7 @@ async function removeTarget(targetPath) {
 
     await fs.rm(targetPath, {
       force: true,
-      recursive: stats.isDirectory()
+      recursive: stats.isDirectory(),
     });
     console.log(`removed ${targetPath}`);
   } catch (error) {

@@ -1,6 +1,7 @@
-import { app } from 'electron';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+
+import { app } from 'electron';
 
 type LogLevel = 'INFO' | 'ERROR';
 
@@ -24,7 +25,12 @@ function serializeErrorDetails(details: unknown): string {
   return JSON.stringify(details);
 }
 
-async function write(level: LogLevel, scope: string, message: string, details?: unknown): Promise<void> {
+async function write(
+  level: LogLevel,
+  scope: string,
+  message: string,
+  details?: unknown
+): Promise<void> {
   const logPath = getLogPath();
   const timestamp = new Date().toISOString();
   const body = details === undefined ? '' : ` ${serializeErrorDetails(details)}`;
