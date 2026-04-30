@@ -1,76 +1,128 @@
 name: Release
 
-# Triggered when the Version workflow pushes a vX.Y.Z tag to main.
-# Builds the macOS DMG and ZIP, creates a GitHub Release with auto-generated
-# release notes, and uploads the artifacts.
+# Triggered on every push to main and via workflow_dispatch.
 #
-# Manual workflow_dispatch runs build the artifacts locally for inspection
-# without creating a release.
+# Job 1 (build-macos): runs semantic-release --dry-run to find out if this
+#   push warrants a new version. If yes, patches package.json with the next
+#   version, builds the macOS DMG, and uploads it as a workflow artifact.
+#
+# Job 2 (release): runs the real semantic-release, downloads the DMG artifact,
+#   and attaches it to the GitHub Release.
+#
+# GITHUB_TOKEN is provided automatically by GitHub Actions — no secret needed.
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
+    branches:
+      - main
   workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: write
 
 jobs:
+  # ── Job 1: build macOS DMG ────────────────────────────────────────────────
   build-macos:
+    name: Build macOS DMG
     runs-on: macos-latest
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    outputs:
+      next-version: ${{ steps.dry-run.outputs.version }}
+      will-release: ${{ steps.dry-run.outputs.will_release }}
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
           cache: npm
 
-      - name: Install dependencies
-        run: npm ci
+      - run: npm ci
 
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Build renderer and Electron bundles
-        run: npm run build
-
-      - name: Package macOS artifacts
-        run: npx electron-builder --mac dmg zip --publish never
-
-      - name: Upload artifacts (manual runs)
-        if: github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@v4
-        with:
-          name: gtv-remote-macos
-          path: release/*.dmg
-          if-no-files-found: error
-
-      - name: Publish GitHub Release with DMG
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Determine next version (dry-run)
+        id: dry-run
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="${GITHUB_REF_NAME}"
-          VERSION="${TAG#v}"
+          # Fetch all tags so semantic-release can find the last release tag.
+          # actions/checkout with fetch-depth:0 fetches commits but tags may
+          # still be missing on some runners.
+          git fetch --tags --quiet
 
-          # Collect only the DMG artifacts (one per arch on Apple Silicon / Intel)
-          DMG_FILES=$(find release -name "*.dmg" | tr '\n' ' ')
-
-          if [ -z "$DMG_FILES" ]; then
-            echo "No DMG files found in release/. Aborting."
-            exit 1
+          OUTPUT=$(npx semantic-release --dry-run --no-ci 2>&1)
+          echo "$OUTPUT"
+          # Match both message variants:
+          #   "The next release version is X.Y.Z"
+          #   "There is no previous release, the next release version is X.Y.Z"
+          VERSION=$(printf '%s\n' "$OUTPUT" | sed -nE 's/.*next release version is ([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' | head -n 1)
+          if [ -n "$VERSION" ]; then
+            echo "version=$VERSION"   >> "$GITHUB_OUTPUT"
+            echo "will_release=true"  >> "$GITHUB_OUTPUT"
+          else
+            echo "will_release=false" >> "$GITHUB_OUTPUT"
+            echo "No releasable commits — skipping DMG build"
           fi
 
-          echo "Creating release $TAG with artifacts: $DMG_FILES"
+      - name: Patch package.json to next version
+        if: steps.dry-run.outputs.will_release == 'true'
+        run: |
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.version = '${{ steps.dry-run.outputs.version }}';
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
 
-          gh release create "$TAG" \
-            --title "GTV Remote v${VERSION}" \
-            --generate-notes \
-            --verify-tag \
-            $DMG_FILES
+      - name: Typecheck
+        if: steps.dry-run.outputs.will_release == 'true'
+        run: npm run typecheck
+
+      - name: Build
+        if: steps.dry-run.outputs.will_release == 'true'
+        run: npm run build
+
+      - name: Package macOS DMG
+        if: steps.dry-run.outputs.will_release == 'true'
+        run: npx electron-builder --mac dmg --publish never
+
+      - name: Upload DMG artifact
+        if: steps.dry-run.outputs.will_release == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg
+          path: release/*.dmg
+          if-no-files-found: error
+          retention-days: 1
+
+  # ── Job 2: semantic-release ───────────────────────────────────────────────
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: build-macos
+    if: needs.build-macos.outputs.will-release == 'true'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: macos-dmg
+          path: dmg-artifacts
+
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
