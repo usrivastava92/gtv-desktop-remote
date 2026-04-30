@@ -33,9 +33,10 @@ jobs:
         with:
           # Full history so we can find the previous tag.
           fetch-depth: 0
-          # Use a PAT or the default token. A PAT is required if branch
-          # protection rules block the GITHUB_TOKEN from pushing to main.
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # A fine-grained PAT (stored as RELEASE_TOKEN) with Contents: write
+          # is required to bypass branch protection rules that block
+          # GITHUB_TOKEN from pushing directly to main.
+          token: ${{ secrets.RELEASE_TOKEN }}
 
       - name: Configure git identity
         run: |
