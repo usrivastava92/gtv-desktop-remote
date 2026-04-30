@@ -130,4 +130,5 @@ jobs:
           git add package.json
           git commit -m "chore(release): v${NEXT}"
           git tag "v${NEXT}"
-          git push origin main --follow-tags
+          git push origin main
+          git push origin "v${NEXT}"
