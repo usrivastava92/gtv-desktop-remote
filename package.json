@@ -43,10 +43,10 @@
     "appId": "com.utkarsh.gtvdesktopremote",
     "productName": "GTV Remote",
     "directories": {
-      "buildResources": "build",
+      "buildResources": "assets/icons",
       "output": "release"
     },
-    "icon": "build/icon.icns",
+    "icon": "taskbar-icon.icns",
     "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
     "files": [
       "assets/**/*",
@@ -60,7 +60,10 @@
         "zip"
       ],
       "category": "public.app-category.utilities",
-      "icon": "build/icon.icns"
+      "icon": "taskbar-icon.icns"
+    },
+    "dmg": {
+      "icon": "taskbar-icon.icns"
     }
   },
   "dependencies": {
