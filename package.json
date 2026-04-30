@@ -69,7 +69,7 @@
   "dependencies": {
     "androidtv-remote": "^1.0.10",
     "node-forge": "^1.3.1",
-    "protobufjs": "^7.5.4",
+    "protobufjs": "^8.0.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
