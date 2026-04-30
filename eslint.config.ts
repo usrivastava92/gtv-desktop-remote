@@ -2,7 +2,6 @@
 import js from '@eslint/js';
 import prettierConfig from 'eslint-config-prettier';
 import importPlugin from 'eslint-plugin-import-x';
-import reactPlugin from 'eslint-plugin-react';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
 import tseslint from 'typescript-eslint';
 
@@ -28,18 +27,10 @@ export default tseslint.config(
   // ── React ─────────────────────────────────────────────────────────────────
   {
     plugins: {
-      react: reactPlugin,
       'react-hooks': reactHooksPlugin,
     },
-    settings: {
-      react: { version: 'detect' },
-    },
     rules: {
-      ...reactPlugin.configs.recommended.rules,
       ...reactHooksPlugin.configs.recommended.rules,
-      // JSX transform (React 17+) — no need to import React in scope
-      'react/react-in-jsx-scope': 'off',
-      'react/prop-types': 'off',
     },
   },
 
