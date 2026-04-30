@@ -53,9 +53,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Fetch all tags so semantic-release can find the last release tag.
+          # actions/checkout with fetch-depth:0 fetches commits but tags may
+          # still be missing on some runners.
+          git fetch --tags --quiet
+
           OUTPUT=$(npx semantic-release --dry-run --no-ci 2>&1)
           echo "$OUTPUT"
-          VERSION=$(echo "$OUTPUT" | grep -oP 'The next release version is \K[0-9]+\.[0-9]+\.[0-9]+' || true)
+          # Match both message variants:
+          #   "The next release version is X.Y.Z"
+          #   "There is no previous release, the next release version is X.Y.Z"
+          VERSION=$(echo "$OUTPUT" | grep -oP 'next release version is \K[0-9]+\.[0-9]+\.[0-9]+' || true)
           if [ -n "$VERSION" ]; then
             echo "version=$VERSION"   >> "$GITHUB_OUTPUT"
             echo "will_release=true"  >> "$GITHUB_OUTPUT"
