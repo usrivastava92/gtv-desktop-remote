@@ -6,6 +6,12 @@
     [
       "@semantic-release/github",
       {
+        "assets": [
+          {
+            "path": "dmg-artifacts/*.dmg",
+            "label": "macOS DMG"
+          }
+        ],
         "successComment": false,
         "failComment": false
       }
