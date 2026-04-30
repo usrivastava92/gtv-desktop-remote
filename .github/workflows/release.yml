@@ -8,9 +8,13 @@ name: Release
 # without creating a release.
 
 on:
-  push:
-    tags:
-      - 'v*.*.*'
+  # Triggered when the Version workflow successfully pushes a vX.Y.Z tag.
+  # Using workflow_run instead of push:tags because tag pushes made by a PAT
+  # or GITHUB_TOKEN do not re-trigger other workflows (GitHub Actions limitation).
+  workflow_run:
+    workflows: ["Version"]
+    types:
+      - completed
   workflow_dispatch:
 
 permissions:
@@ -19,8 +23,10 @@ permissions:
 jobs:
   build-macos:
     runs-on: macos-latest
+    # For workflow_run: only proceed if Version succeeded.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -54,9 +60,13 @@ jobs:
           if-no-files-found: error
 
       - name: Publish GitHub Release with DMG
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: github.event_name != 'workflow_dispatch'
         run: |
-          TAG="${GITHUB_REF_NAME}"
+          # Fetch tags pushed by the Version workflow (PAT-pushed tags aren't
+          # available in the checkout context by default).
+          git fetch --tags
+
+          TAG=$(git describe --tags --match "v[0-9]*.[0-9]*.[0-9]*" --abbrev=0)
           VERSION="${TAG#v}"
 
           # Collect only the DMG artifacts (one per arch on Apple Silicon / Intel)
@@ -72,5 +82,4 @@ jobs:
           gh release create "$TAG" \
             --title "GTV Remote v${VERSION}" \
             --generate-notes \
-            --verify-tag \
             $DMG_FILES
