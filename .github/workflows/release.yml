@@ -10,9 +10,6 @@ name: Release
 #   and attaches it to the GitHub Release.
 #
 # GITHUB_TOKEN is provided automatically by GitHub Actions — no secret needed.
-#
-# The [skip ci] guard stops this workflow re-triggering on the version-bump
-# commit that @semantic-release/git pushes back to main.
 
 on:
   push:
@@ -32,7 +29,6 @@ jobs:
   build-macos:
     name: Build macOS DMG
     runs-on: macos-latest
-    if: "!contains(github.event.head_commit.message, '[skip ci]')"
     outputs:
       next-version: ${{ steps.dry-run.outputs.version }}
       will-release: ${{ steps.dry-run.outputs.will_release }}
@@ -53,9 +49,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Fetch all tags so semantic-release can find the last release tag.
+          # actions/checkout with fetch-depth:0 fetches commits but tags may
+          # still be missing on some runners.
+          git fetch --tags --quiet
+
           OUTPUT=$(npx semantic-release --dry-run --no-ci 2>&1)
           echo "$OUTPUT"
-          VERSION=$(echo "$OUTPUT" | grep -oP 'The next release version is \K[0-9]+\.[0-9]+\.[0-9]+' || true)
+          # Match both message variants:
+          #   "The next release version is X.Y.Z"
+          #   "There is no previous release, the next release version is X.Y.Z"
+          VERSION=$(printf '%s\n' "$OUTPUT" | sed -nE 's/.*next release version is ([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' | head -n 1)
           if [ -n "$VERSION" ]; then
             echo "version=$VERSION"   >> "$GITHUB_OUTPUT"
             echo "will_release=true"  >> "$GITHUB_OUTPUT"
