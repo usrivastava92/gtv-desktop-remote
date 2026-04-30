@@ -10,9 +10,6 @@ name: Release
 #   and attaches it to the GitHub Release.
 #
 # GITHUB_TOKEN is provided automatically by GitHub Actions — no secret needed.
-#
-# The [skip ci] guard stops this workflow re-triggering on the version-bump
-# commit that @semantic-release/git pushes back to main.
 
 on:
   push:
@@ -32,7 +29,6 @@ jobs:
   build-macos:
     name: Build macOS DMG
     runs-on: macos-latest
-    if: "!contains(github.event.head_commit.message, '[skip ci]')"
     outputs:
       next-version: ${{ steps.dry-run.outputs.version }}
       will-release: ${{ steps.dry-run.outputs.will_release }}
@@ -63,7 +59,7 @@ jobs:
           # Match both message variants:
           #   "The next release version is X.Y.Z"
           #   "There is no previous release, the next release version is X.Y.Z"
-          VERSION=$(echo "$OUTPUT" | grep -oP 'next release version is \K[0-9]+\.[0-9]+\.[0-9]+' || true)
+          VERSION=$(echo "$OUTPUT" | grep -oE 'next release version is [0-9]+\.[0-9]+\.[0-9]+' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)
           if [ -n "$VERSION" ]; then
             echo "version=$VERSION"   >> "$GITHUB_OUTPUT"
             echo "will_release=true"  >> "$GITHUB_OUTPUT"
