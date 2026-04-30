@@ -1,31 +1,61 @@
 name: Release
 
-# Runs on every push to main. semantic-release analyzes commits since the
-# last vX.Y.Z tag, determines the semver bump, updates package.json, creates
-# a git tag, builds the macOS DMG, and publishes a GitHub Release — all in
-# one job. The release commit includes [skip ci] so this workflow does not
-# re-trigger itself.
+# Job 1 (release): runs on every push to main on ubuntu. semantic-release
+# analyzes commits, creates a git tag, and publishes a GitHub Release.
+# No package.json commit is pushed back — avoids the PAT-push loop problem.
+#
+# Job 2 (build-macos): triggered by the vX.Y.Z tag that Job 1 creates.
+# Builds the macOS DMG and uploads it to the GitHub Release as an asset.
 
 on:
   push:
     branches:
       - main
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
+  # ── Job 1: version bump + GitHub Release (ubuntu, fast) ──────────────────
   release:
-    runs-on: macos-latest
+    name: Release
+    runs-on: ubuntu-latest
+    # Only run on branch pushes, not on the tag push that Job 1 itself creates.
+    if: github.ref == 'refs/heads/main'
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          # persist-credentials must be false so the RELEASE_TOKEN (passed via
-          # GITHUB_TOKEN env below) is used for git operations instead of the
-          # default GITHUB_TOKEN, which cannot push to a branch-protected main.
-          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
+
+  # ── Job 2: macOS DMG build + upload to the release ───────────────────────
+  build-macos:
+    name: Build macOS DMG
+    runs-on: macos-latest
+    # Only run when a vX.Y.Z tag is pushed (by Job 1 above or manually).
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -45,7 +75,17 @@ jobs:
       - name: Package macOS DMG
         run: npx electron-builder --mac dmg --publish never
 
-      - name: Release
+      - name: Upload DMG to GitHub Release
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-        run: npx semantic-release
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          DMG_FILES=$(find release -name "*.dmg" | tr '\n' ' ')
+
+          if [ -z "$DMG_FILES" ]; then
+            echo "No DMG files found. Aborting."
+            exit 1
+          fi
+
+          echo "Uploading $DMG_FILES to release $TAG"
+          gh release upload "$TAG" $DMG_FILES --clobber
