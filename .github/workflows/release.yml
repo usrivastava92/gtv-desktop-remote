@@ -87,8 +87,16 @@ jobs:
             echo "should_publish=true"    >> "$GITHUB_OUTPUT"
             echo "forced=false"           >> "$GITHUB_OUTPUT"
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force }}" = "true" ]; then
-            # Force-patch: synthesise a patch bump from the latest tag
-            LATEST=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+            # Force-patch: synthesise a patch bump from the latest tag.
+            # Fetch all tags explicitly (fetch-depth:0 fetches commits but tags
+            # may still be missing on some runners).
+            git fetch --tags --quiet
+            RAW=$(git describe --tags --abbrev=0 2>/dev/null || true)
+            # Strip leading 'v' and fall back to 0.0.0 if nothing was found
+            LATEST=$(echo "$RAW" | sed 's/^v//')
+            if [ -z "$LATEST" ]; then
+              LATEST="0.0.0"
+            fi
             IFS='.' read -r MAJOR MINOR PATCH <<< "$LATEST"
             VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
             echo "Force-bumping to patch version $VERSION"
