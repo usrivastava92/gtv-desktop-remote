@@ -6,16 +6,17 @@ name: Release
 #   patches package.json with that version, builds the macOS DMG, and uploads
 #   it as a workflow artifact so Job 2 can consume it.
 #
-# Job 2 (release): runs the real semantic-release on ubuntu. It downloads the
-#   DMG artifact and attaches it to the GitHub Release via @semantic-release/github.
+# Job 2 (release): for normal releases runs semantic-release; for force-patch
+#   releases (workflow_dispatch with force=true) creates the GitHub Release and
+#   tags directly via the GitHub CLI, bypassing semantic-release's commit
+#   analyzer which would otherwise veto the release.
 #
 # The [skip ci] guard prevents this workflow from re-triggering on the
 # version-bump commit that semantic-release pushes back to main.
 #
-# workflow_dispatch allows manually triggering a release at any time.
-# When triggered manually, the dry-run check is bypassed — semantic-release
-# itself decides whether there is anything to release (it will still no-op if
-# the latest commit is already tagged).
+# workflow_dispatch inputs:
+#   force  — "true"  → synthesise a patch bump and publish a real release
+#             "false" → build the DMG at the current version for inspection only
 
 on:
   push:
@@ -51,6 +52,10 @@ jobs:
     outputs:
       next-version: ${{ steps.next-version.outputs.version }}
       will-release: ${{ steps.next-version.outputs.will_release }}
+      # "true" only when commits contain a releasable change OR force=true was selected.
+      # "false" for the inspect-only manual path (dispatch + force=false + no releasable commits).
+      should-publish: ${{ steps.next-version.outputs.should_publish }}
+      forced: ${{ steps.next-version.outputs.forced }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -71,45 +76,39 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # On workflow_dispatch we always proceed so the user can test the pipeline.
-          # semantic-release will still no-op in Job 2 if there is nothing new to release
-          # unless force=true, in which case we synthesise a patch bump.
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            OUTPUT=$(npx semantic-release --dry-run --no-ci 2>&1)
-            echo "$OUTPUT"
-            VERSION=$(echo "$OUTPUT" | grep -oP 'The next release version is \K[0-9]+\.[0-9]+\.[0-9]+' || true)
+          OUTPUT=$(npx semantic-release --dry-run --no-ci 2>&1)
+          echo "$OUTPUT"
+          VERSION=$(echo "$OUTPUT" | grep -oP 'The next release version is \K[0-9]+\.[0-9]+\.[0-9]+' || true)
 
-            if [ -z "$VERSION" ] && [ "${{ inputs.force }}" = "true" ]; then
-              # Derive a patch bump from the latest tag
-              LATEST=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
-              IFS='.' read -r MAJOR MINOR PATCH <<< "$LATEST"
-              VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
-              echo "Force-bumping to patch version $VERSION"
-            fi
-
-            if [ -n "$VERSION" ]; then
-              echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-              echo "will_release=true" >> "$GITHUB_OUTPUT"
-            else
-              # Manual trigger with no releasable commits and force=false: still
-              # build/upload the DMG at the current version so the artifact is available.
-              CURRENT=$(node -p "require('./package.json').version")
-              echo "version=$CURRENT" >> "$GITHUB_OUTPUT"
-              echo "will_release=true" >> "$GITHUB_OUTPUT"
-              echo "No new release — building DMG at current version $CURRENT for inspection"
-            fi
+          if [ -n "$VERSION" ]; then
+            # Normal releasable commits exist
+            echo "version=$VERSION"       >> "$GITHUB_OUTPUT"
+            echo "will_release=true"      >> "$GITHUB_OUTPUT"
+            echo "should_publish=true"    >> "$GITHUB_OUTPUT"
+            echo "forced=false"           >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force }}" = "true" ]; then
+            # Force-patch: synthesise a patch bump from the latest tag
+            LATEST=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$LATEST"
+            VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
+            echo "Force-bumping to patch version $VERSION"
+            echo "version=$VERSION"       >> "$GITHUB_OUTPUT"
+            echo "will_release=true"      >> "$GITHUB_OUTPUT"
+            echo "should_publish=true"    >> "$GITHUB_OUTPUT"
+            echo "forced=true"            >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # Manual trigger, force=false: build DMG for inspection but don't publish
+            CURRENT=$(node -p "require('./package.json').version")
+            echo "No new release — building DMG at current version $CURRENT for inspection"
+            echo "version=$CURRENT"       >> "$GITHUB_OUTPUT"
+            echo "will_release=true"      >> "$GITHUB_OUTPUT"
+            echo "should_publish=false"   >> "$GITHUB_OUTPUT"
+            echo "forced=false"           >> "$GITHUB_OUTPUT"
           else
-            OUTPUT=$(npx semantic-release --dry-run --no-ci 2>&1)
-            echo "$OUTPUT"
-            VERSION=$(echo "$OUTPUT" | grep -oP 'The next release version is \K[0-9]+\.[0-9]+\.[0-9]+' || true)
-            if [ -n "$VERSION" ]; then
-              echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-              echo "will_release=true" >> "$GITHUB_OUTPUT"
-              echo "Next version: $VERSION"
-            else
-              echo "will_release=false" >> "$GITHUB_OUTPUT"
-              echo "No releasable commits — skipping DMG build"
-            fi
+            echo "will_release=false"     >> "$GITHUB_OUTPUT"
+            echo "should_publish=false"   >> "$GITHUB_OUTPUT"
+            echo "forced=false"           >> "$GITHUB_OUTPUT"
+            echo "No releasable commits — skipping DMG build"
           fi
 
       - name: Patch package.json version
@@ -145,12 +144,13 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # ── Job 2: semantic-release (creates tag + GitHub Release + attaches DMG) ─
+  # ── Job 2: create GitHub Release and attach DMG ───────────────────────────
   release:
     name: Release
     runs-on: ubuntu-latest
     needs: build-macos
-    if: needs.build-macos.outputs.will-release == 'true'
+    # Only run when there is something to actually publish
+    if: needs.build-macos.outputs.should-publish == 'true'
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -172,7 +172,41 @@ jobs:
           name: macos-dmg
           path: dmg-artifacts
 
-      - name: Release
+      # ── Path A: forced patch release — bypass semantic-release commit analyzer
+      - name: Force release via GitHub CLI
+        if: needs.build-macos.outputs.forced == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.build-macos.outputs.next-version }}
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name  "github-actions[bot]"
+
+          # Bump package.json and commit with [skip ci] so the workflow doesn't re-trigger
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.version = process.env.VERSION;
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+          git add package.json package-lock.json 2>/dev/null || git add package.json
+          git commit -m "chore(release): v${VERSION} [skip ci]"
+          git push
+
+          # Create the tag and push it
+          git tag "v${VERSION}"
+          git push origin "v${VERSION}"
+
+          # Create GitHub Release and attach DMG
+          DMG=$(ls dmg-artifacts/*.dmg | head -1)
+          gh release create "v${VERSION}" \
+            --title "v${VERSION}" \
+            --generate-notes \
+            "$DMG#macOS DMG"
+
+      # ── Path B: normal release via semantic-release
+      - name: Release via semantic-release
+        if: needs.build-macos.outputs.forced != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx semantic-release
