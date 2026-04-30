@@ -66,14 +66,18 @@ jobs:
       - name: Publish GitHub Release with DMG
         if: github.event_name != 'workflow_dispatch'
         run: |
-          # Fetch tags pushed by the Version workflow (PAT-pushed tags aren't
-          # available in the checkout context by default).
-          git fetch --tags
+          # Get the latest semver tag via the GitHub API — avoids depending on
+          # which commit is checked out or whether --follow-tags propagated.
+          TAG=$(gh api repos/${{ github.repository }}/git/refs/tags \
+            --jq '[.[].ref | ltrimstr("refs/tags/") | select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))] | last')
 
-          TAG=$(git describe --tags --match "v[0-9]*.[0-9]*.[0-9]*" --abbrev=0)
+          if [ -z "$TAG" ]; then
+            echo "No semver tag found via API. Aborting."
+            exit 1
+          fi
+
           VERSION="${TAG#v}"
 
-          # Collect only the DMG artifacts (one per arch on Apple Silicon / Intel)
           DMG_FILES=$(find release -name "*.dmg" | tr '\n' ' ')
 
           if [ -z "$DMG_FILES" ]; then
