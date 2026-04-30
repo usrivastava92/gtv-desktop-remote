@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assets/icons/gtv-remote-icon-512.png" alt="GTV Desktop Remote" width="120" />
+  <img src="assets/icons/taskbar-icon.png" alt="GTV Desktop Remote" width="120" />
 
   <h1>GTV Desktop Remote</h1>
 
