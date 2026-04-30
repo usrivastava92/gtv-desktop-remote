@@ -88,7 +88,7 @@ jobs:
 
       - name: Upload DMG artifact
         if: steps.dry-run.outputs.will_release == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: macos-dmg
           path: release/*.dmg
@@ -113,7 +113,7 @@ jobs:
 
       - run: npm ci
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: macos-dmg
           path: dmg-artifacts
