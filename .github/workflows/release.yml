@@ -1,41 +1,31 @@
 name: Release
 
-# Triggered when the Version workflow pushes a vX.Y.Z tag to main.
-# Builds the macOS DMG and ZIP, creates a GitHub Release with auto-generated
-# release notes, and uploads the artifacts.
-#
-# Manual workflow_dispatch runs build the artifacts locally for inspection
-# without creating a release.
+# Runs on every push to main. semantic-release analyzes commits since the
+# last vX.Y.Z tag, determines the semver bump, updates package.json, creates
+# a git tag, builds the macOS DMG, and publishes a GitHub Release — all in
+# one job. The release commit includes [skip ci] so this workflow does not
+# re-trigger itself.
 
 on:
-  # Triggered when the Version workflow successfully pushes a vX.Y.Z tag.
-  # Using workflow_run instead of push:tags because tag pushes made by a PAT
-  # or GITHUB_TOKEN do not re-trigger other workflows (GitHub Actions limitation).
-  workflow_run:
-    workflows: ['Version']
-    types:
-      - completed
-  workflow_dispatch:
+  push:
+    branches:
+      - main
 
 permissions:
   contents: write
 
 jobs:
-  build-macos:
+  release:
     runs-on: macos-latest
-    # For workflow_run: only proceed if Version succeeded.
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
-    env:
-      GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          # For workflow_run events, check out the commit that Version ran on
-          # (the chore(release) commit that carries the vX.Y.Z tag).
-          # Falls back to default HEAD for manual workflow_dispatch runs.
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          # persist-credentials must be false so the RELEASE_TOKEN (passed via
+          # GITHUB_TOKEN env below) is used for git operations instead of the
+          # default GITHUB_TOKEN, which cannot push to a branch-protected main.
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -52,42 +42,10 @@ jobs:
       - name: Build renderer and Electron bundles
         run: npm run build
 
-      - name: Package macOS artifacts
-        run: npx electron-builder --mac dmg zip --publish never
+      - name: Package macOS DMG
+        run: npx electron-builder --mac dmg --publish never
 
-      - name: Upload artifacts (manual runs)
-        if: github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@v4
-        with:
-          name: gtv-remote-macos
-          path: release/*.dmg
-          if-no-files-found: error
-
-      - name: Publish GitHub Release with DMG
-        if: github.event_name != 'workflow_dispatch'
-        run: |
-          # Get the latest semver tag via the GitHub API — avoids depending on
-          # which commit is checked out or whether --follow-tags propagated.
-          TAG=$(gh api repos/${{ github.repository }}/git/refs/tags \
-            --jq '[.[].ref | ltrimstr("refs/tags/") | select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))] | last')
-
-          if [ -z "$TAG" ]; then
-            echo "No semver tag found via API. Aborting."
-            exit 1
-          fi
-
-          VERSION="${TAG#v}"
-
-          DMG_FILES=$(find release -name "*.dmg" | tr '\n' ' ')
-
-          if [ -z "$DMG_FILES" ]; then
-            echo "No DMG files found in release/. Aborting."
-            exit 1
-          fi
-
-          echo "Creating release $TAG with artifacts: $DMG_FILES"
-
-          gh release create "$TAG" \
-            --title "GTV Remote v${VERSION}" \
-            --generate-notes \
-            $DMG_FILES
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: npx semantic-release

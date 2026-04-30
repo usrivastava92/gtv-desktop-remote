@@ -12,9 +12,9 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    # Skip the automated version-bump commit — the Version workflow already
-    # ran typecheck + build for those commits.
-    if: "!startsWith(github.event.head_commit.message, 'chore(release):')"
+    # Skip semantic-release's version-bump commit (contains [skip ci]) — the
+    # Release workflow already ran typecheck + build for that push.
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
