@@ -11,12 +11,26 @@ name: Release
 #
 # The [skip ci] guard prevents this workflow from re-triggering on the
 # version-bump commit that semantic-release pushes back to main.
+#
+# workflow_dispatch allows manually triggering a release at any time.
+# When triggered manually, the dry-run check is bypassed — semantic-release
+# itself decides whether there is anything to release (it will still no-op if
+# the latest commit is already tagged).
 
 on:
   push:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      force:
+        description: 'Force a patch release even if no releasable commits exist'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
 
 # Prevent concurrent release runs on the same branch
 concurrency:
@@ -31,18 +45,20 @@ jobs:
   build-macos:
     name: Build macOS DMG
     runs-on: macos-latest
+    # Skip the version-bump commit semantic-release pushes back (contains [skip ci]).
+    # workflow_dispatch never sets head_commit so the condition is always false there — safe.
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
     outputs:
       next-version: ${{ steps.next-version.outputs.version }}
       will-release: ${{ steps.next-version.outputs.will_release }}
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -55,23 +71,51 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          OUTPUT=$(npx semantic-release --dry-run --no-ci 2>&1)
-          echo "$OUTPUT"
-          VERSION=$(echo "$OUTPUT" | grep -oP 'The next release version is \K[0-9]+\.[0-9]+\.[0-9]+' || true)
-          if [ -n "$VERSION" ]; then
-            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-            echo "will_release=true" >> "$GITHUB_OUTPUT"
-            echo "Next version: $VERSION"
+          # On workflow_dispatch we always proceed so the user can test the pipeline.
+          # semantic-release will still no-op in Job 2 if there is nothing new to release
+          # unless force=true, in which case we synthesise a patch bump.
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            OUTPUT=$(npx semantic-release --dry-run --no-ci 2>&1)
+            echo "$OUTPUT"
+            VERSION=$(echo "$OUTPUT" | grep -oP 'The next release version is \K[0-9]+\.[0-9]+\.[0-9]+' || true)
+
+            if [ -z "$VERSION" ] && [ "${{ inputs.force }}" = "true" ]; then
+              # Derive a patch bump from the latest tag
+              LATEST=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+              IFS='.' read -r MAJOR MINOR PATCH <<< "$LATEST"
+              VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
+              echo "Force-bumping to patch version $VERSION"
+            fi
+
+            if [ -n "$VERSION" ]; then
+              echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+              echo "will_release=true" >> "$GITHUB_OUTPUT"
+            else
+              # Manual trigger with no releasable commits and force=false: still
+              # build/upload the DMG at the current version so the artifact is available.
+              CURRENT=$(node -p "require('./package.json').version")
+              echo "version=$CURRENT" >> "$GITHUB_OUTPUT"
+              echo "will_release=true" >> "$GITHUB_OUTPUT"
+              echo "No new release — building DMG at current version $CURRENT for inspection"
+            fi
           else
-            echo "will_release=false" >> "$GITHUB_OUTPUT"
-            echo "No release will be created — skipping DMG build"
+            OUTPUT=$(npx semantic-release --dry-run --no-ci 2>&1)
+            echo "$OUTPUT"
+            VERSION=$(echo "$OUTPUT" | grep -oP 'The next release version is \K[0-9]+\.[0-9]+\.[0-9]+' || true)
+            if [ -n "$VERSION" ]; then
+              echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+              echo "will_release=true" >> "$GITHUB_OUTPUT"
+              echo "Next version: $VERSION"
+            else
+              echo "will_release=false" >> "$GITHUB_OUTPUT"
+              echo "No releasable commits — skipping DMG build"
+            fi
           fi
 
       - name: Patch package.json version
         if: steps.next-version.outputs.will_release == 'true'
         run: |
           VERSION="${{ steps.next-version.outputs.version }}"
-          # Use Node to safely update package.json
           node -e "
             const fs = require('fs');
             const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
@@ -109,12 +153,12 @@ jobs:
     if: needs.build-macos.outputs.will-release == 'true'
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
           cache: npm
