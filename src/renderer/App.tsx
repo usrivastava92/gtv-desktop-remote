@@ -685,13 +685,6 @@ function App() {
 
       const connectingDeviceState = await getDesktopApi().connect(device.id);
       setBootstrap((current) => ({ ...current, deviceState: connectingDeviceState }));
-
-      const nextBootstrap = await refreshState();
-      await handleScanDevices(
-        true,
-        nextBootstrap.devices,
-        nextBootstrap.deviceState.activeDeviceId
-      );
     } catch (error) {
       const message = (error as Error).message;
       if (shouldRestartPairingFlow(message)) {
@@ -717,12 +710,6 @@ function App() {
     try {
       const deviceState = await getDesktopApi().connect(deviceId);
       setBootstrap((current) => ({ ...current, deviceState }));
-      const nextBootstrap = await refreshState();
-      await handleScanDevices(
-        true,
-        nextBootstrap.devices,
-        nextBootstrap.deviceState.activeDeviceId
-      );
     } catch (error) {
       setBootstrap((current) => ({
         ...current,
@@ -1173,6 +1160,11 @@ function App() {
               value={pairCode}
               onChange={(event) => {
                 setPairCode(sanitizePairCode(event.target.value));
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && pairCode.length === 6 && !busy) {
+                  void handlePair();
+                }
               }}
               maxLength={6}
               autoComplete="one-time-code"

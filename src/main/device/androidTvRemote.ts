@@ -35,6 +35,7 @@ interface RemoteState {
   deviceInfo?: RemoteDeviceInfo;
   imeCounter: number;
   imeFieldCounter: number;
+  lastActivityAt: number;
 }
 
 interface DeviceSession {
@@ -107,6 +108,9 @@ class NativeRemoteClient {
   private state: RemoteState = {
     imeCounter: 0,
     imeFieldCounter: 0,
+    // Timestamp of the last inbound data received from the TV.
+    // Used to detect half-open sockets that survive macOS app suspension.
+    lastActivityAt: 0,
   };
 
   constructor(
@@ -123,6 +127,22 @@ class NativeRemoteClient {
   }
 
   async connect(commandId?: string): Promise<void> {
+    // After macOS suspends the app (e.g. 10 min in the background), the TLS socket
+    // may become half-open: `this.socket` is still alive locally but the TV has already
+    // closed its end. `socket.write()` silently buffers into the void and no `close`
+    // event fires until we attempt to read. Detect this by checking how long it has
+    // been since the last inbound message and force a reconnect if the connection
+    // appears stale.
+    const staleThresholdMs = 30_000;
+    const isStale =
+      this.isConnected &&
+      this.state.lastActivityAt > 0 &&
+      Date.now() - this.state.lastActivityAt > staleThresholdMs;
+
+    if (isStale) {
+      this.disconnect();
+    }
+
     if (this.isConnected) {
       return;
     }
@@ -160,6 +180,7 @@ class NativeRemoteClient {
         socket.destroy(new Error('Remote connection timed out.'));
       });
       socket.on('secureConnect', () => {
+        this.state.lastActivityAt = Date.now();
         if (!settled) {
           settled = true;
           resolve();
@@ -171,6 +192,7 @@ class NativeRemoteClient {
       });
       socket.on('data', (chunk) => {
         commandMetricsStore.recordInboundMessage(this.host);
+        this.state.lastActivityAt = Date.now();
         this.buffer = Buffer.concat([this.buffer, Buffer.from(chunk)]);
         this.flushBuffer();
       });
