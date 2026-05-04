@@ -57,6 +57,8 @@ const { PairingManager } = require('androidtv-remote/dist/pairing/PairingManager
 
 const DEFAULT_PAIRING_PORT = 6467;
 const REMOTE_FEATURES = 622;
+const REMOTE_STALE_AFTER_MS = 30_000;
+const REMOTE_CONNECT_TIMEOUT_MS = 10_000;
 const SERVICE_NAME = 'GTV Desktop Remote';
 
 function toError(error: unknown, fallback: string): Error {
@@ -105,6 +107,8 @@ class NativeRemoteClient {
 
   private buffer = Buffer.alloc(0);
 
+  private protocolReady = false;
+
   private state: RemoteState = {
     imeCounter: 0,
     imeFieldCounter: 0,
@@ -123,7 +127,7 @@ class NativeRemoteClient {
   }
 
   get isConnected(): boolean {
-    return Boolean(this.socket && !this.socket.destroyed);
+    return Boolean(this.socket && !this.socket.destroyed && this.protocolReady);
   }
 
   async connect(commandId?: string): Promise<void> {
@@ -133,11 +137,11 @@ class NativeRemoteClient {
     // event fires until we attempt to read. Detect this by checking how long it has
     // been since the last inbound message and force a reconnect if the connection
     // appears stale.
-    const staleThresholdMs = 30_000;
     const isStale =
-      this.isConnected &&
+      this.socket &&
+      !this.socket.destroyed &&
       this.state.lastActivityAt > 0 &&
-      Date.now() - this.state.lastActivityAt > staleThresholdMs;
+      Date.now() - this.state.lastActivityAt > REMOTE_STALE_AFTER_MS;
 
     if (isStale) {
       this.disconnect();
@@ -175,20 +179,12 @@ class NativeRemoteClient {
         void logError('androidtvremote', 'Remote socket error', normalized);
       };
 
-      socket.setTimeout(10000);
+      socket.setTimeout(REMOTE_CONNECT_TIMEOUT_MS);
       socket.on('timeout', () => {
         socket.destroy(new Error('Remote connection timed out.'));
       });
       socket.on('secureConnect', () => {
         this.state.lastActivityAt = Date.now();
-        if (!settled) {
-          settled = true;
-          resolve();
-        }
-
-        if (commandId) {
-          commandMetricsStore.recordConnectCompleted(this.host, commandId);
-        }
       });
       socket.on('data', (chunk) => {
         commandMetricsStore.recordInboundMessage(this.host);
@@ -200,9 +196,28 @@ class NativeRemoteClient {
       socket.on('close', () => {
         commandMetricsStore.recordSocketClosed(this.host);
         this.socket = undefined;
+        this.protocolReady = false;
         this.buffer = Buffer.alloc(0);
+        if (!settled) {
+          settled = true;
+          reject(new Error(`Could not connect to ${this.host}.`));
+        }
       });
 
+      const finishProtocolHandshake = () => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        resolve();
+
+        if (commandId) {
+          commandMetricsStore.recordConnectCompleted(this.host, commandId);
+        }
+      };
+
+      socket.once('remote-protocol-ready', finishProtocolHandshake);
       this.socket = socket;
     }).finally(() => {
       this.connectPromise = undefined;
@@ -230,6 +245,7 @@ class NativeRemoteClient {
     this.socket.destroy();
     commandMetricsStore.recordSocketClosed(this.host);
     this.socket = undefined;
+    this.protocolReady = false;
     this.buffer = Buffer.alloc(0);
   }
 
@@ -268,11 +284,47 @@ class NativeRemoteClient {
   }
 
   private flushBuffer(): void {
-    while (this.buffer.length > 0 && this.buffer.readInt8(0) === this.buffer.length - 1) {
-      const message = parseRemoteMessage(this.buffer);
+    while (this.buffer.length > 0) {
+      const frame = this.readNextFrame();
+      if (!frame) {
+        return;
+      }
+
+      const message = parseRemoteMessage(frame);
       this.handleMessage(message);
-      this.buffer = Buffer.alloc(0);
     }
+  }
+
+  private readNextFrame(): Buffer | undefined {
+    let length = 0;
+    let shift = 0;
+
+    for (let index = 0; index < this.buffer.length; index++) {
+      const byte = this.buffer[index];
+      length |= (byte & 0x7f) << shift;
+
+      if ((byte & 0x80) === 0) {
+        const headerLength = index + 1;
+        const frameLength = headerLength + length;
+
+        if (this.buffer.length < frameLength) {
+          return undefined;
+        }
+
+        const frame = this.buffer.subarray(0, frameLength);
+        this.buffer = this.buffer.subarray(frameLength);
+        return frame;
+      }
+
+      shift += 7;
+      if (shift > 28) {
+        this.buffer = Buffer.alloc(0);
+        this.socket?.destroy(new Error('Received an invalid remote protocol frame.'));
+        return undefined;
+      }
+    }
+
+    return undefined;
   }
 
   private handleMessage(message: {
@@ -293,6 +345,8 @@ class NativeRemoteClient {
         vendor: message.remoteConfigure.deviceInfo?.vendor,
       };
       this.getSocket().write(createRemoteConfigure(REMOTE_FEATURES));
+      this.protocolReady = true;
+      this.getSocket().emit('remote-protocol-ready');
       return;
     }
 

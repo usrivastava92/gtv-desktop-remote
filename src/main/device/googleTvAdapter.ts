@@ -37,11 +37,26 @@ export class GoogleTvAdapter implements DeviceAdapter {
 
   private deviceState: DeviceState = DEFAULT_STATE;
 
+  private scanPromise: Promise<DiscoveredDevice[]> | undefined;
+
   async listDevices(): Promise<SavedDevice[]> {
     return readDevices();
   }
 
   async scanForDevices(): Promise<DiscoveredDevice[]> {
+    if (this.scanPromise) {
+      await logInfo('adapter', 'Joining in-flight Google TV device scan');
+      return this.scanPromise;
+    }
+
+    this.scanPromise = this.runDeviceScan().finally(() => {
+      this.scanPromise = undefined;
+    });
+
+    return this.scanPromise;
+  }
+
+  private async runDeviceScan(): Promise<DiscoveredDevice[]> {
     await logInfo('adapter', 'Scanning local network for Google TV devices');
     const discovered = await discoverGoogleTvDevices();
     await logInfo('adapter', 'Scan complete', { count: discovered.length, devices: discovered });
