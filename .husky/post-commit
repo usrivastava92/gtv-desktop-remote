@@ -1,5 +1,7 @@
 # Auto-rebuilds the Graphify knowledge graph after each commit (code files only, no LLM needed).
 
+[ "${GRAPHIFY_POST_COMMIT_REFRESH:-}" = "1" ] && exit 0
+
 # Skip during rebase/merge/cherry-pick to avoid blocking --continue with unstaged changes.
 GIT_DIR=$(git rev-parse --git-dir 2>/dev/null)
 [ -d "$GIT_DIR/rebase-merge" ] && exit 0
@@ -20,3 +22,8 @@ export GRAPHIFY_CHANGED="$CHANGED"
 }
 
 rm -f graphify-out/graph.html
+
+if ! git diff --quiet -- graphify-out/GRAPH_REPORT.md graphify-out/graph.json; then
+  git add graphify-out/GRAPH_REPORT.md graphify-out/graph.json
+  GRAPHIFY_POST_COMMIT_REFRESH=1 git commit --no-verify -m "chore(graphify): refresh generated graph"
+fi
