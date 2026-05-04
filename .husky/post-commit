@@ -1,0 +1,22 @@
+# Auto-rebuilds the Graphify knowledge graph after each commit (code files only, no LLM needed).
+
+# Skip during rebase/merge/cherry-pick to avoid blocking --continue with unstaged changes.
+GIT_DIR=$(git rev-parse --git-dir 2>/dev/null)
+[ -d "$GIT_DIR/rebase-merge" ] && exit 0
+[ -d "$GIT_DIR/rebase-apply" ] && exit 0
+[ -f "$GIT_DIR/MERGE_HEAD" ] && exit 0
+[ -f "$GIT_DIR/CHERRY_PICK_HEAD" ] && exit 0
+
+CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || git diff --name-only HEAD 2>/dev/null)
+[ -z "$CHANGED" ] && exit 0
+
+GRAPHIFY_BIN=$(command -v graphify 2>/dev/null)
+[ -z "$GRAPHIFY_BIN" ] && exit 0
+
+export GRAPHIFY_CHANGED="$CHANGED"
+"$GRAPHIFY_BIN" update . || {
+  echo "[graphify hook] Rebuild failed; run 'graphify update .' manually."
+  exit 1
+}
+
+rm -f graphify-out/graph.html

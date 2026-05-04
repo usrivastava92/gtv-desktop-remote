@@ -1,0 +1,26 @@
+# Auto-rebuilds the Graphify knowledge graph when switching branches (code files only, no LLM needed).
+
+BRANCH_SWITCH=$3
+
+# Only run on branch switches, not file checkouts.
+[ "$BRANCH_SWITCH" != "1" ] && exit 0
+
+# Only run if graphify-out/ exists.
+[ ! -d "graphify-out" ] && exit 0
+
+# Skip during rebase/merge/cherry-pick.
+GIT_DIR=$(git rev-parse --git-dir 2>/dev/null)
+[ -d "$GIT_DIR/rebase-merge" ] && exit 0
+[ -d "$GIT_DIR/rebase-apply" ] && exit 0
+[ -f "$GIT_DIR/MERGE_HEAD" ] && exit 0
+[ -f "$GIT_DIR/CHERRY_PICK_HEAD" ] && exit 0
+
+GRAPHIFY_BIN=$(command -v graphify 2>/dev/null)
+[ -z "$GRAPHIFY_BIN" ] && exit 0
+
+"$GRAPHIFY_BIN" update . || {
+  echo "[graphify hook] Rebuild failed; run 'graphify update .' manually."
+  exit 1
+}
+
+rm -f graphify-out/graph.html

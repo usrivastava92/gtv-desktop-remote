@@ -98,7 +98,7 @@
       "source_file": "dist-electron/main/logger.js",
       "source_location": "L1",
       "id": "dist_electron_main_logger_js",
-      "community": 1,
+      "community": 0,
       "norm_label": "logger.js"
     },
     {
@@ -107,7 +107,7 @@
       "source_file": "src/main/logger.ts",
       "source_location": "L8",
       "id": "main_logger_getlogpath",
-      "community": 1,
+      "community": 0,
       "norm_label": "getlogpath()"
     },
     {
@@ -116,7 +116,7 @@
       "source_file": "src/main/logger.ts",
       "source_location": "L12",
       "id": "main_logger_getappdatapath",
-      "community": 1,
+      "community": 0,
       "norm_label": "getappdatapath()"
     },
     {
@@ -125,7 +125,7 @@
       "source_file": "src/main/logger.ts",
       "source_location": "L16",
       "id": "main_logger_serializeerrordetails",
-      "community": 1,
+      "community": 0,
       "norm_label": "serializeerrordetails()"
     },
     {
@@ -134,7 +134,7 @@
       "source_file": "src/main/logger.ts",
       "source_location": "L28",
       "id": "main_logger_write",
-      "community": 1,
+      "community": 0,
       "norm_label": "write()"
     },
     {
@@ -143,7 +143,7 @@
       "source_file": "src/main/logger.ts",
       "source_location": "L50",
       "id": "main_logger_loginfo",
-      "community": 1,
+      "community": 0,
       "norm_label": "loginfo()"
     },
     {
@@ -152,7 +152,7 @@
       "source_file": "src/main/logger.ts",
       "source_location": "L54",
       "id": "main_logger_logerror",
-      "community": 1,
+      "community": 0,
       "norm_label": "logerror()"
     },
     {
@@ -161,7 +161,7 @@
       "source_file": "src/main/logger.ts",
       "source_location": "L58",
       "id": "main_logger_getloggerpath",
-      "community": 1,
+      "community": 0,
       "norm_label": "getloggerpath()"
     },
     {
@@ -170,7 +170,7 @@
       "source_file": "dist-electron/main/metrics.js",
       "source_location": "L1",
       "id": "dist_electron_main_metrics_js",
-      "community": 6,
+      "community": 5,
       "norm_label": "metrics.js"
     },
     {
@@ -179,7 +179,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L22",
       "id": "main_metrics_createcounters",
-      "community": 6,
+      "community": 5,
       "norm_label": "createcounters()"
     },
     {
@@ -188,7 +188,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L36",
       "id": "main_metrics_createtransportsnapshot",
-      "community": 6,
+      "community": 5,
       "norm_label": "createtransportsnapshot()"
     },
     {
@@ -197,7 +197,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L44",
       "id": "main_metrics_createemptysnapshot",
-      "community": 6,
+      "community": 5,
       "norm_label": "createemptysnapshot()"
     },
     {
@@ -206,7 +206,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L54",
       "id": "main_metrics_commandmetricsstore",
-      "community": 5,
+      "community": 4,
       "norm_label": "commandmetricsstore"
     },
     {
@@ -215,7 +215,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L65",
       "id": "main_metrics_commandmetricsstore_recordrendererdrop",
-      "community": 5,
+      "community": 4,
       "norm_label": ".recordrendererdrop()"
     },
     {
@@ -224,7 +224,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L87",
       "id": "main_metrics_commandmetricsstore_recordipcreceived",
-      "community": 5,
+      "community": 4,
       "norm_label": ".recordipcreceived()"
     },
     {
@@ -233,7 +233,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L103",
       "id": "main_metrics_commandmetricsstore_recordadapterdispatchstart",
-      "community": 5,
+      "community": 4,
       "norm_label": ".recordadapterdispatchstart()"
     },
     {
@@ -242,7 +242,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L123",
       "id": "main_metrics_commandmetricsstore_recordadapterdispatchcompleted",
-      "community": 5,
+      "community": 4,
       "norm_label": ".recordadapterdispatchcompleted()"
     },
     {
@@ -251,7 +251,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L141",
       "id": "main_metrics_commandmetricsstore_recordbridgesendstart",
-      "community": 5,
+      "community": 4,
       "norm_label": ".recordbridgesendstart()"
     },
     {
@@ -260,7 +260,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L158",
       "id": "main_metrics_commandmetricsstore_recordconnectstarted",
-      "community": 5,
+      "community": 4,
       "norm_label": ".recordconnectstarted()"
     },
     {
@@ -269,7 +269,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L176",
       "id": "main_metrics_commandmetricsstore_recordconnectcompleted",
-      "community": 5,
+      "community": 4,
       "norm_label": ".recordconnectcompleted()"
     },
     {
@@ -278,7 +278,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L193",
       "id": "main_metrics_commandmetricsstore_recordconnectfailed",
-      "community": 5,
+      "community": 4,
       "norm_label": ".recordconnectfailed()"
     },
     {
@@ -287,7 +287,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L209",
       "id": "main_metrics_commandmetricsstore_recordsocketwrite",
-      "community": 5,
+      "community": 4,
       "norm_label": ".recordsocketwrite()"
     },
     {
@@ -296,7 +296,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L241",
       "id": "main_metrics_commandmetricsstore_recordsocketdrain",
-      "community": 5,
+      "community": 4,
       "norm_label": ".recordsocketdrain()"
     },
     {
@@ -305,7 +305,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L254",
       "id": "main_metrics_commandmetricsstore_recordcommandsucceeded",
-      "community": 5,
+      "community": 4,
       "norm_label": ".recordcommandsucceeded()"
     },
     {
@@ -314,7 +314,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L279",
       "id": "main_metrics_commandmetricsstore_recordcommandfailed",
-      "community": 5,
+      "community": 4,
       "norm_label": ".recordcommandfailed()"
     },
     {
@@ -323,7 +323,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L315",
       "id": "main_metrics_commandmetricsstore_recordinboundmessage",
-      "community": 5,
+      "community": 4,
       "norm_label": ".recordinboundmessage()"
     },
     {
@@ -332,7 +332,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L324",
       "id": "main_metrics_commandmetricsstore_recordsocketclosed",
-      "community": 5,
+      "community": 4,
       "norm_label": ".recordsocketclosed()"
     },
     {
@@ -341,7 +341,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L335",
       "id": "main_metrics_commandmetricsstore_getsnapshot",
-      "community": 5,
+      "community": 4,
       "norm_label": ".getsnapshot()"
     },
     {
@@ -350,7 +350,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L349",
       "id": "main_metrics_commandmetricsstore_ensurecommand",
-      "community": 5,
+      "community": 4,
       "norm_label": ".ensurecommand()"
     },
     {
@@ -359,7 +359,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L367",
       "id": "main_metrics_commandmetricsstore_trimcommands",
-      "community": 5,
+      "community": 4,
       "norm_label": ".trimcommands()"
     },
     {
@@ -368,7 +368,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L385",
       "id": "main_metrics_commandmetricsstore_detectstalls",
-      "community": 5,
+      "community": 4,
       "norm_label": ".detectstalls()"
     },
     {
@@ -377,7 +377,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L432",
       "id": "main_metrics_commandmetricsstore_pushwarning",
-      "community": 5,
+      "community": 4,
       "norm_label": ".pushwarning()"
     },
     {
@@ -386,7 +386,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L445",
       "id": "main_metrics_commandmetricsstore_logmetric",
-      "community": 5,
+      "community": 4,
       "norm_label": ".logmetric()"
     },
     {
@@ -395,7 +395,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L451",
       "id": "main_metrics_noopcommandmetricsstore",
-      "community": 6,
+      "community": 5,
       "norm_label": "noopcommandmetricsstore"
     },
     {
@@ -404,7 +404,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L452",
       "id": "main_metrics_noopcommandmetricsstore_recordrendererdrop",
-      "community": 6,
+      "community": 5,
       "norm_label": ".recordrendererdrop()"
     },
     {
@@ -413,7 +413,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L454",
       "id": "main_metrics_noopcommandmetricsstore_recordipcreceived",
-      "community": 6,
+      "community": 5,
       "norm_label": ".recordipcreceived()"
     },
     {
@@ -422,7 +422,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L456",
       "id": "main_metrics_noopcommandmetricsstore_recordadapterdispatchstart",
-      "community": 6,
+      "community": 5,
       "norm_label": ".recordadapterdispatchstart()"
     },
     {
@@ -431,7 +431,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L461",
       "id": "main_metrics_noopcommandmetricsstore_recordadapterdispatchcompleted",
-      "community": 6,
+      "community": 5,
       "norm_label": ".recordadapterdispatchcompleted()"
     },
     {
@@ -440,7 +440,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L463",
       "id": "main_metrics_noopcommandmetricsstore_recordbridgesendstart",
-      "community": 6,
+      "community": 5,
       "norm_label": ".recordbridgesendstart()"
     },
     {
@@ -449,7 +449,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L465",
       "id": "main_metrics_noopcommandmetricsstore_recordconnectstarted",
-      "community": 6,
+      "community": 5,
       "norm_label": ".recordconnectstarted()"
     },
     {
@@ -458,7 +458,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L467",
       "id": "main_metrics_noopcommandmetricsstore_recordconnectcompleted",
-      "community": 6,
+      "community": 5,
       "norm_label": ".recordconnectcompleted()"
     },
     {
@@ -467,7 +467,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L469",
       "id": "main_metrics_noopcommandmetricsstore_recordconnectfailed",
-      "community": 6,
+      "community": 5,
       "norm_label": ".recordconnectfailed()"
     },
     {
@@ -476,7 +476,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L471",
       "id": "main_metrics_noopcommandmetricsstore_recordsocketwrite",
-      "community": 6,
+      "community": 5,
       "norm_label": ".recordsocketwrite()"
     },
     {
@@ -485,7 +485,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L476",
       "id": "main_metrics_noopcommandmetricsstore_recordsocketdrain",
-      "community": 6,
+      "community": 5,
       "norm_label": ".recordsocketdrain()"
     },
     {
@@ -494,7 +494,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L478",
       "id": "main_metrics_noopcommandmetricsstore_recordcommandsucceeded",
-      "community": 6,
+      "community": 5,
       "norm_label": ".recordcommandsucceeded()"
     },
     {
@@ -503,7 +503,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L480",
       "id": "main_metrics_noopcommandmetricsstore_recordcommandfailed",
-      "community": 6,
+      "community": 5,
       "norm_label": ".recordcommandfailed()"
     },
     {
@@ -512,7 +512,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L490",
       "id": "main_metrics_noopcommandmetricsstore_recordinboundmessage",
-      "community": 6,
+      "community": 5,
       "norm_label": ".recordinboundmessage()"
     },
     {
@@ -521,7 +521,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L492",
       "id": "main_metrics_noopcommandmetricsstore_recordsocketclosed",
-      "community": 6,
+      "community": 5,
       "norm_label": ".recordsocketclosed()"
     },
     {
@@ -530,7 +530,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L494",
       "id": "main_metrics_noopcommandmetricsstore_getsnapshot",
-      "community": 6,
+      "community": 5,
       "norm_label": ".getsnapshot()"
     },
     {
@@ -539,7 +539,7 @@
       "source_file": "dist-electron/main/main.js",
       "source_location": "L1",
       "id": "dist_electron_main_main_js",
-      "community": 7,
+      "community": 6,
       "norm_label": "main.js"
     },
     {
@@ -548,7 +548,7 @@
       "source_file": "src/main/main.ts",
       "source_location": "L26",
       "id": "main_main_getassetpath",
-      "community": 7,
+      "community": 6,
       "norm_label": "getassetpath()"
     },
     {
@@ -557,7 +557,7 @@
       "source_file": "src/main/main.ts",
       "source_location": "L30",
       "id": "main_main_getrendererentrypath",
-      "community": 7,
+      "community": 6,
       "norm_label": "getrendererentrypath()"
     },
     {
@@ -566,7 +566,7 @@
       "source_file": "src/main/main.ts",
       "source_location": "L34",
       "id": "main_main_loadsvgicon",
-      "community": 7,
+      "community": 6,
       "norm_label": "_loadsvgicon()"
     },
     {
@@ -575,7 +575,7 @@
       "source_file": "src/main/main.ts",
       "source_location": "L43",
       "id": "main_main_loadpngicon",
-      "community": 7,
+      "community": 6,
       "norm_label": "loadpngicon()"
     },
     {
@@ -584,7 +584,7 @@
       "source_file": "src/main/main.ts",
       "source_location": "L50",
       "id": "main_main_loadmenubaricon",
-      "community": 7,
+      "community": 6,
       "norm_label": "loadmenubaricon()"
     },
     {
@@ -593,7 +593,7 @@
       "source_file": "src/main/main.ts",
       "source_location": "L56",
       "id": "main_main_createtrayimage",
-      "community": 7,
+      "community": 6,
       "norm_label": "createtrayimage()"
     },
     {
@@ -602,7 +602,7 @@
       "source_file": "src/main/main.ts",
       "source_location": "L66",
       "id": "main_main_applyapplicationicon",
-      "community": 7,
+      "community": 6,
       "norm_label": "applyapplicationicon()"
     },
     {
@@ -611,7 +611,7 @@
       "source_file": "src/main/main.ts",
       "source_location": "L76",
       "id": "main_main_attachwindowdiagnostics",
-      "community": 7,
+      "community": 6,
       "norm_label": "attachwindowdiagnostics()"
     },
     {
@@ -620,7 +620,7 @@
       "source_file": "src/main/main.ts",
       "source_location": "L103",
       "id": "main_main_createwindow",
-      "community": 7,
+      "community": 6,
       "norm_label": "createwindow()"
     },
     {
@@ -629,7 +629,7 @@
       "source_file": "src/main/main.ts",
       "source_location": "L150",
       "id": "main_main_ensurewindow",
-      "community": 7,
+      "community": 6,
       "norm_label": "ensurewindow()"
     },
     {
@@ -638,7 +638,7 @@
       "source_file": "src/main/main.ts",
       "source_location": "L159",
       "id": "main_main_showwindow",
-      "community": 7,
+      "community": 6,
       "norm_label": "showwindow()"
     },
     {
@@ -647,7 +647,7 @@
       "source_file": "src/main/main.ts",
       "source_location": "L165",
       "id": "main_main_hidewindow",
-      "community": 7,
+      "community": 6,
       "norm_label": "hidewindow()"
     },
     {
@@ -656,7 +656,7 @@
       "source_file": "src/main/main.ts",
       "source_location": "L173",
       "id": "main_main_togglewindow",
-      "community": 7,
+      "community": 6,
       "norm_label": "togglewindow()"
     },
     {
@@ -665,7 +665,7 @@
       "source_file": "src/main/main.ts",
       "source_location": "L185",
       "id": "main_main_buildcontextmenu",
-      "community": 7,
+      "community": 6,
       "norm_label": "buildcontextmenu()"
     },
     {
@@ -674,7 +674,7 @@
       "source_file": "src/main/main.ts",
       "source_location": "L209",
       "id": "main_main_bootstrapapp",
-      "community": 7,
+      "community": 6,
       "norm_label": "bootstrapapp()"
     },
     {
@@ -683,7 +683,7 @@
       "source_file": "src/main/main.ts",
       "source_location": "L228",
       "id": "main_main_registeripc",
-      "community": 7,
+      "community": 6,
       "norm_label": "registeripc()"
     },
     {
@@ -692,7 +692,7 @@
       "source_file": "dist-electron/main/debug.js",
       "source_location": "L1",
       "id": "dist_electron_main_debug_js",
-      "community": 12,
+      "community": 11,
       "norm_label": "debug.js"
     },
     {
@@ -701,7 +701,7 @@
       "source_file": "src/main/debug.ts",
       "source_location": "L6",
       "id": "main_debug_readdebugenvflag",
-      "community": 12,
+      "community": 11,
       "norm_label": "readdebugenvflag()"
     },
     {
@@ -710,7 +710,7 @@
       "source_file": "src/main/debug.ts",
       "source_location": "L15",
       "id": "main_debug_hasdebugflag",
-      "community": 12,
+      "community": 11,
       "norm_label": "hasdebugflag()"
     },
     {
@@ -719,7 +719,7 @@
       "source_file": "src/main/debug.ts",
       "source_location": "L19",
       "id": "main_debug_isdebugtelemetryenabled",
-      "community": 12,
+      "community": 11,
       "norm_label": "isdebugtelemetryenabled()"
     },
     {
@@ -728,7 +728,7 @@
       "source_file": "dist-electron/main/device/googleTvAdapter.js",
       "source_location": "L1",
       "id": "dist_electron_main_device_googletvadapter_js",
-      "community": 1,
+      "community": 0,
       "norm_label": "googletvadapter.js"
     },
     {
@@ -737,7 +737,7 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L30",
       "id": "device_googletvadapter_getlegacyuserdatapaths",
-      "community": 1,
+      "community": 0,
       "norm_label": "getlegacyuserdatapaths()"
     },
     {
@@ -746,124 +746,133 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L35",
       "id": "device_googletvadapter_googletvadapter",
-      "community": 1,
+      "community": 0,
       "norm_label": "googletvadapter"
     },
     {
       "label": ".listDevices()",
       "file_type": "code",
       "source_file": "src/main/device/googleTvAdapter.ts",
-      "source_location": "L40",
+      "source_location": "L42",
       "id": "device_googletvadapter_googletvadapter_listdevices",
-      "community": 1,
+      "community": 0,
       "norm_label": ".listdevices()"
     },
     {
       "label": ".scanForDevices()",
       "file_type": "code",
       "source_file": "src/main/device/googleTvAdapter.ts",
-      "source_location": "L44",
+      "source_location": "L46",
       "id": "device_googletvadapter_googletvadapter_scanfordevices",
-      "community": 1,
+      "community": 0,
       "norm_label": ".scanfordevices()"
+    },
+    {
+      "label": ".runDeviceScan()",
+      "file_type": "code",
+      "source_file": "src/main/device/googleTvAdapter.ts",
+      "source_location": "L59",
+      "id": "device_googletvadapter_googletvadapter_rundevicescan",
+      "community": 0,
+      "norm_label": ".rundevicescan()"
     },
     {
       "label": ".saveDevice()",
       "file_type": "code",
       "source_file": "src/main/device/googleTvAdapter.ts",
-      "source_location": "L83",
+      "source_location": "L98",
       "id": "device_googletvadapter_googletvadapter_savedevice",
-      "community": 1,
+      "community": 0,
       "norm_label": ".savedevice()"
     },
     {
       "label": ".removeDevice()",
       "file_type": "code",
       "source_file": "src/main/device/googleTvAdapter.ts",
-      "source_location": "L106",
+      "source_location": "L121",
       "id": "device_googletvadapter_googletvadapter_removedevice",
-      "community": 1,
+      "community": 0,
       "norm_label": ".removedevice()"
     },
     {
       "label": ".resetState()",
       "file_type": "code",
       "source_file": "src/main/device/googleTvAdapter.ts",
-      "source_location": "L120",
+      "source_location": "L135",
       "id": "device_googletvadapter_googletvadapter_resetstate",
-      "community": 1,
+      "community": 0,
       "norm_label": ".resetstate()"
     },
     {
       "label": ".pair()",
       "file_type": "code",
       "source_file": "src/main/device/googleTvAdapter.ts",
-      "source_location": "L140",
+      "source_location": "L155",
       "id": "device_googletvadapter_googletvadapter_pair",
-      "community": 1,
+      "community": 0,
       "norm_label": ".pair()"
     },
     {
       "label": ".startPairing()",
       "file_type": "code",
       "source_file": "src/main/device/googleTvAdapter.ts",
-      "source_location": "L178",
+      "source_location": "L193",
       "id": "device_googletvadapter_googletvadapter_startpairing",
-      "community": 1,
+      "community": 0,
       "norm_label": ".startpairing()"
     },
     {
       "label": ".connect()",
       "file_type": "code",
       "source_file": "src/main/device/googleTvAdapter.ts",
-      "source_location": "L225",
+      "source_location": "L240",
       "id": "device_googletvadapter_googletvadapter_connect",
-      "community": 1,
+      "community": 0,
       "norm_label": ".connect()"
     },
     {
       "label": ".disconnect()",
       "file_type": "code",
       "source_file": "src/main/device/googleTvAdapter.ts",
-      "source_location": "L271",
+      "source_location": "L286",
       "id": "device_googletvadapter_googletvadapter_disconnect",
-      "community": 1,
+      "community": 0,
       "norm_label": ".disconnect()"
     },
     {
       "label": ".sendCommand()",
       "file_type": "code",
       "source_file": "src/main/device/googleTvAdapter.ts",
-      "source_location": "L292",
+      "source_location": "L307",
       "id": "device_googletvadapter_googletvadapter_sendcommand",
-      "community": 1,
+      "community": 0,
       "norm_label": ".sendcommand()"
     },
     {
       "label": ".sendText()",
       "file_type": "code",
       "source_file": "src/main/device/googleTvAdapter.ts",
-      "source_location": "L315",
+      "source_location": "L330",
       "id": "device_googletvadapter_googletvadapter_sendtext",
-      "community": 1,
+      "community": 0,
       "norm_label": ".sendtext()"
     },
     {
       "label": ".getCapabilities()",
       "file_type": "code",
       "source_file": "src/main/device/googleTvAdapter.ts",
-      "source_location": "L327",
+      "source_location": "L342",
       "id": "device_googletvadapter_googletvadapter_getcapabilities",
-      "community": 1,
+      "community": 0,
       "norm_label": ".getcapabilities()"
     },
     {
       "label": ".getBootstrapState()",
       "file_type": "code",
       "source_file": "src/main/device/googleTvAdapter.ts",
-      "source_location": "L334",
+      "source_location": "L349",
       "id": "device_googletvadapter_googletvadapter_getbootstrapstate",
-      "community": 1,
+      "community": 0,
       "norm_label": ".getbootstrapstate()"
     },
     {
@@ -872,277 +881,286 @@
       "source_file": "dist-electron/main/device/androidTvRemote.js",
       "source_location": "L1",
       "id": "dist_electron_main_device_androidtvremote_js",
-      "community": 3,
+      "community": 2,
       "norm_label": "androidtvremote.js"
     },
     {
       "label": "toError()",
       "file_type": "code",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L61",
+      "source_location": "L64",
       "id": "device_androidtvremote_toerror",
-      "community": 3,
+      "community": 2,
       "norm_label": "toerror()"
     },
     {
       "label": "isCertificateRejectedError()",
       "file_type": "code",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L77",
+      "source_location": "L80",
       "id": "device_androidtvremote_iscertificaterejectederror",
-      "community": 3,
+      "community": 2,
       "norm_label": "iscertificaterejectederror()"
     },
     {
       "label": "normalizeRemoteError()",
       "file_type": "code",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L82",
+      "source_location": "L85",
       "id": "device_androidtvremote_normalizeremoteerror",
-      "community": 3,
+      "community": 2,
       "norm_label": "normalizeremoteerror()"
     },
     {
       "label": "NativeRemoteClient",
       "file_type": "code",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L100",
+      "source_location": "L103",
       "id": "device_androidtvremote_nativeremoteclient",
-      "community": 4,
+      "community": 3,
       "norm_label": "nativeremoteclient"
     },
     {
       "label": ".constructor()",
       "file_type": "code",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L112",
+      "source_location": "L120",
       "id": "device_androidtvremote_nativeremoteclient_constructor",
-      "community": 4,
+      "community": 3,
       "norm_label": ".constructor()"
     },
     {
       "label": ".snapshot()",
       "file_type": "code",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L117",
+      "source_location": "L125",
       "id": "device_androidtvremote_nativeremoteclient_snapshot",
-      "community": 4,
+      "community": 3,
       "norm_label": ".snapshot()"
     },
     {
       "label": ".isConnected()",
       "file_type": "code",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L121",
+      "source_location": "L129",
       "id": "device_androidtvremote_nativeremoteclient_isconnected",
-      "community": 4,
+      "community": 3,
       "norm_label": ".isconnected()"
     },
     {
       "label": ".connect()",
       "file_type": "code",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L125",
+      "source_location": "L133",
       "id": "device_androidtvremote_nativeremoteclient_connect",
-      "community": 4,
+      "community": 3,
       "norm_label": ".connect()"
     },
     {
       "label": ".disconnect()",
       "file_type": "code",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L202",
+      "source_location": "L239",
       "id": "device_androidtvremote_nativeremoteclient_disconnect",
-      "community": 4,
+      "community": 3,
       "norm_label": ".disconnect()"
     },
     {
       "label": ".sendCommand()",
       "file_type": "code",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L214",
+      "source_location": "L252",
       "id": "device_androidtvremote_nativeremoteclient_sendcommand",
-      "community": 4,
+      "community": 3,
       "norm_label": ".sendcommand()"
     },
     {
       "label": ".sendText()",
       "file_type": "code",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L228",
+      "source_location": "L266",
       "id": "device_androidtvremote_nativeremoteclient_sendtext",
-      "community": 4,
+      "community": 3,
       "norm_label": ".sendtext()"
     },
     {
       "label": ".getSocket()",
       "file_type": "code",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L240",
+      "source_location": "L278",
       "id": "device_androidtvremote_nativeremoteclient_getsocket",
-      "community": 4,
+      "community": 3,
       "norm_label": ".getsocket()"
     },
     {
       "label": ".flushBuffer()",
       "file_type": "code",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L248",
+      "source_location": "L286",
       "id": "device_androidtvremote_nativeremoteclient_flushbuffer",
-      "community": 4,
+      "community": 3,
       "norm_label": ".flushbuffer()"
+    },
+    {
+      "label": ".readNextFrame()",
+      "file_type": "code",
+      "source_file": "src/main/device/androidTvRemote.ts",
+      "source_location": "L298",
+      "id": "device_androidtvremote_nativeremoteclient_readnextframe",
+      "community": 3,
+      "norm_label": ".readnextframe()"
     },
     {
       "label": ".handleMessage()",
       "file_type": "code",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L256",
+      "source_location": "L330",
       "id": "device_androidtvremote_nativeremoteclient_handlemessage",
-      "community": 4,
+      "community": 3,
       "norm_label": ".handlemessage()"
     },
     {
       "label": "AndroidTvRemoteBridge",
       "file_type": "code",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L305",
+      "source_location": "L381",
       "id": "device_androidtvremote_androidtvremotebridge",
-      "community": 3,
+      "community": 2,
       "norm_label": "androidtvremotebridge"
     },
     {
       "label": ".getStateDir()",
       "file_type": "code",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L308",
+      "source_location": "L384",
       "id": "device_androidtvremote_androidtvremotebridge_getstatedir",
-      "community": 3,
+      "community": 2,
       "norm_label": ".getstatedir()"
     },
     {
       "label": ".getFilesForCertKey()",
       "file_type": "code",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L312",
+      "source_location": "L388",
       "id": "device_androidtvremote_androidtvremotebridge_getfilesforcertkey",
-      "community": 3,
+      "community": 2,
       "norm_label": ".getfilesforcertkey()"
     },
     {
       "label": ".getFilesForHost()",
       "file_type": "code",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L323",
+      "source_location": "L399",
       "id": "device_androidtvremote_androidtvremotebridge_getfilesforhost",
-      "community": 3,
+      "community": 2,
       "norm_label": ".getfilesforhost()"
     },
     {
       "label": ".migrateCerts()",
       "file_type": "code",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L331",
+      "source_location": "L407",
       "id": "device_androidtvremote_androidtvremotebridge_migratecerts",
-      "community": 3,
+      "community": 2,
       "norm_label": ".migratecerts()"
     },
     {
       "label": ".loadOrCreateCerts()",
       "file_type": "code",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L365",
+      "source_location": "L441",
       "id": "device_androidtvremote_androidtvremotebridge_loadorcreatecerts",
-      "community": 3,
+      "community": 2,
       "norm_label": ".loadorcreatecerts()"
     },
     {
       "label": ".clearPersistedHostState()",
       "file_type": "code",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L387",
+      "source_location": "L463",
       "id": "device_androidtvremote_androidtvremotebridge_clearpersistedhoststate",
-      "community": 3,
+      "community": 2,
       "norm_label": ".clearpersistedhoststate()"
     },
     {
       "label": ".clearHostSession()",
       "file_type": "code",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L392",
+      "source_location": "L468",
       "id": "device_androidtvremote_androidtvremotebridge_clearhostsession",
-      "community": 3,
+      "community": 2,
       "norm_label": ".clearhostsession()"
     },
     {
       "label": ".getSession()",
       "file_type": "code",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L408",
+      "source_location": "L484",
       "id": "device_androidtvremote_androidtvremotebridge_getsession",
-      "community": 3,
+      "community": 2,
       "norm_label": ".getsession()"
     },
     {
       "label": ".startPairing()",
       "file_type": "code",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L426",
+      "source_location": "L502",
       "id": "device_androidtvremote_androidtvremotebridge_startpairing",
-      "community": 3,
+      "community": 2,
       "norm_label": ".startpairing()"
     },
     {
       "label": ".finishPairing()",
       "file_type": "code",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L467",
+      "source_location": "L543",
       "id": "device_androidtvremote_androidtvremotebridge_finishpairing",
-      "community": 3,
+      "community": 2,
       "norm_label": ".finishpairing()"
     },
     {
       "label": ".connect()",
       "file_type": "code",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L487",
+      "source_location": "L563",
       "id": "device_androidtvremote_androidtvremotebridge_connect",
-      "community": 3,
+      "community": 2,
       "norm_label": ".connect()"
     },
     {
       "label": ".disconnect()",
       "file_type": "code",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L511",
+      "source_location": "L587",
       "id": "device_androidtvremote_androidtvremotebridge_disconnect",
-      "community": 3,
+      "community": 2,
       "norm_label": ".disconnect()"
     },
     {
       "label": ".reset()",
       "file_type": "code",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L519",
+      "source_location": "L595",
       "id": "device_androidtvremote_androidtvremotebridge_reset",
-      "community": 3,
+      "community": 2,
       "norm_label": ".reset()"
     },
     {
       "label": ".sendCommand()",
       "file_type": "code",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L532",
+      "source_location": "L608",
       "id": "device_androidtvremote_androidtvremotebridge_sendcommand",
-      "community": 3,
+      "community": 2,
       "norm_label": ".sendcommand()"
     },
     {
       "label": ".sendText()",
       "file_type": "code",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L565",
+      "source_location": "L641",
       "id": "device_androidtvremote_androidtvremotebridge_sendtext",
-      "community": 3,
+      "community": 2,
       "norm_label": ".sendtext()"
     },
     {
@@ -1151,7 +1169,7 @@
       "source_file": "dist-electron/main/device/store.js",
       "source_location": "L1",
       "id": "dist_electron_main_device_store_js",
-      "community": 1,
+      "community": 0,
       "norm_label": "store.js"
     },
     {
@@ -1160,7 +1178,7 @@
       "source_file": "src/main/device/store.ts",
       "source_location": "L16",
       "id": "device_store_getstorepath",
-      "community": 1,
+      "community": 0,
       "norm_label": "getstorepath()"
     },
     {
@@ -1169,7 +1187,7 @@
       "source_file": "src/main/device/store.ts",
       "source_location": "L20",
       "id": "device_store_getdevicestorepath",
-      "community": 1,
+      "community": 0,
       "norm_label": "getdevicestorepath()"
     },
     {
@@ -1178,7 +1196,7 @@
       "source_file": "src/main/device/store.ts",
       "source_location": "L24",
       "id": "device_store_readdevices",
-      "community": 1,
+      "community": 0,
       "norm_label": "readdevices()"
     },
     {
@@ -1187,7 +1205,7 @@
       "source_file": "src/main/device/store.ts",
       "source_location": "L38",
       "id": "device_store_writedevices",
-      "community": 1,
+      "community": 0,
       "norm_label": "writedevices()"
     },
     {
@@ -1196,7 +1214,7 @@
       "source_file": "src/main/device/store.ts",
       "source_location": "L44",
       "id": "device_store_cleardevicestore",
-      "community": 1,
+      "community": 0,
       "norm_label": "cleardevicestore()"
     },
     {
@@ -1205,7 +1223,7 @@
       "source_file": "dist-electron/main/device/discovery.js",
       "source_location": "L1",
       "id": "dist_electron_main_device_discovery_js",
-      "community": 9,
+      "community": 8,
       "norm_label": "discovery.js"
     },
     {
@@ -1214,7 +1232,7 @@
       "source_file": "src/main/device/discovery.ts",
       "source_location": "L14",
       "id": "device_discovery_decodednssdvalue",
-      "community": 9,
+      "community": 8,
       "norm_label": "decodednssdvalue()"
     },
     {
@@ -1223,7 +1241,7 @@
       "source_file": "src/main/device/discovery.ts",
       "source_location": "L18",
       "id": "device_discovery_builddiscoveredid",
-      "community": 9,
+      "community": 8,
       "norm_label": "builddiscoveredid()"
     },
     {
@@ -1232,7 +1250,7 @@
       "source_file": "src/main/device/discovery.ts",
       "source_location": "L22",
       "id": "device_discovery_rundnssd",
-      "community": 9,
+      "community": 8,
       "norm_label": "rundnssd()"
     },
     {
@@ -1241,7 +1259,7 @@
       "source_file": "src/main/device/discovery.ts",
       "source_location": "L78",
       "id": "device_discovery_browseserviceinstances",
-      "community": 9,
+      "community": 8,
       "norm_label": "browseserviceinstances()"
     },
     {
@@ -1250,7 +1268,7 @@
       "source_file": "src/main/device/discovery.ts",
       "source_location": "L98",
       "id": "device_discovery_parsetxtrecord",
-      "community": 9,
+      "community": 8,
       "norm_label": "parsetxtrecord()"
     },
     {
@@ -1259,7 +1277,7 @@
       "source_file": "src/main/device/discovery.ts",
       "source_location": "L117",
       "id": "device_discovery_resolveservice",
-      "community": 9,
+      "community": 8,
       "norm_label": "resolveservice()"
     },
     {
@@ -1268,7 +1286,7 @@
       "source_file": "src/main/device/discovery.ts",
       "source_location": "L158",
       "id": "device_discovery_resolvehosttoip",
-      "community": 9,
+      "community": 8,
       "norm_label": "resolvehosttoip()"
     },
     {
@@ -1277,7 +1295,7 @@
       "source_file": "src/main/device/discovery.ts",
       "source_location": "L172",
       "id": "device_discovery_discovergoogletvdevices",
-      "community": 9,
+      "community": 8,
       "norm_label": "discovergoogletvdevices()"
     },
     {
@@ -1286,7 +1304,7 @@
       "source_file": "dist-electron/main/device/adb.js",
       "source_location": "L1",
       "id": "dist_electron_main_device_adb_js",
-      "community": 10,
+      "community": 9,
       "norm_label": "adb.js"
     },
     {
@@ -1295,7 +1313,7 @@
       "source_file": "dist-electron/main/device/adb.js",
       "source_location": "L23",
       "id": "device_adb_getserial",
-      "community": 10,
+      "community": 9,
       "norm_label": "getserial()"
     },
     {
@@ -1304,7 +1322,7 @@
       "source_file": "dist-electron/main/device/adb.js",
       "source_location": "L26",
       "id": "device_adb_escapeadbtext",
-      "community": 10,
+      "community": 9,
       "norm_label": "escapeadbtext()"
     },
     {
@@ -1313,7 +1331,7 @@
       "source_file": "dist-electron/main/device/adb.js",
       "source_location": "L31",
       "id": "device_adb_runadb",
-      "community": 10,
+      "community": 9,
       "norm_label": "runadb()"
     },
     {
@@ -1322,7 +1340,7 @@
       "source_file": "dist-electron/main/device/adb.js",
       "source_location": "L66",
       "id": "device_adb_pairdevice",
-      "community": 10,
+      "community": 9,
       "norm_label": "pairdevice()"
     },
     {
@@ -1331,7 +1349,7 @@
       "source_file": "dist-electron/main/device/adb.js",
       "source_location": "L69",
       "id": "device_adb_connectdevice",
-      "community": 10,
+      "community": 9,
       "norm_label": "connectdevice()"
     },
     {
@@ -1340,7 +1358,7 @@
       "source_file": "dist-electron/main/device/adb.js",
       "source_location": "L72",
       "id": "device_adb_disconnectdevice",
-      "community": 10,
+      "community": 9,
       "norm_label": "disconnectdevice()"
     },
     {
@@ -1349,7 +1367,7 @@
       "source_file": "dist-electron/main/device/adb.js",
       "source_location": "L75",
       "id": "device_adb_sendremotecommand",
-      "community": 10,
+      "community": 9,
       "norm_label": "sendremotecommand()"
     },
     {
@@ -1358,7 +1376,7 @@
       "source_file": "dist-electron/main/device/adb.js",
       "source_location": "L82",
       "id": "device_adb_sendremotetext",
-      "community": 10,
+      "community": 9,
       "norm_label": "sendremotetext()"
     },
     {
@@ -1367,7 +1385,7 @@
       "source_file": "dist-electron/main/device/protocol/remoteProtocol.js",
       "source_location": "L1",
       "id": "dist_electron_main_device_protocol_remoteprotocol_js",
-      "community": 4,
+      "community": 3,
       "norm_label": "remoteprotocol.js"
     },
     {
@@ -1376,7 +1394,7 @@
       "source_file": "src/main/device/protocol/remoteProtocol.ts",
       "source_location": "L138",
       "id": "protocol_remoteprotocol_createremotemessage",
-      "community": 4,
+      "community": 3,
       "norm_label": "createremotemessage()"
     },
     {
@@ -1385,7 +1403,7 @@
       "source_file": "src/main/device/protocol/remoteProtocol.ts",
       "source_location": "L143",
       "id": "protocol_remoteprotocol_decoderemotemessage",
-      "community": 4,
+      "community": 3,
       "norm_label": "decoderemotemessage()"
     },
     {
@@ -1394,7 +1412,7 @@
       "source_file": "src/main/device/protocol/remoteProtocol.ts",
       "source_location": "L158",
       "id": "protocol_remoteprotocol_getclientdeviceinfo",
-      "community": 4,
+      "community": 3,
       "norm_label": "getclientdeviceinfo()"
     },
     {
@@ -1403,7 +1421,7 @@
       "source_file": "src/main/device/protocol/remoteProtocol.ts",
       "source_location": "L169",
       "id": "protocol_remoteprotocol_parseremotemessage",
-      "community": 4,
+      "community": 3,
       "norm_label": "parseremotemessage()"
     },
     {
@@ -1412,7 +1430,7 @@
       "source_file": "src/main/device/protocol/remoteProtocol.ts",
       "source_location": "L173",
       "id": "protocol_remoteprotocol_createremoteconfigure",
-      "community": 4,
+      "community": 3,
       "norm_label": "createremoteconfigure()"
     },
     {
@@ -1421,7 +1439,7 @@
       "source_file": "src/main/device/protocol/remoteProtocol.ts",
       "source_location": "L182",
       "id": "protocol_remoteprotocol_createremotesetactive",
-      "community": 4,
+      "community": 3,
       "norm_label": "createremotesetactive()"
     },
     {
@@ -1430,7 +1448,7 @@
       "source_file": "src/main/device/protocol/remoteProtocol.ts",
       "source_location": "L188",
       "id": "protocol_remoteprotocol_createremotepingresponse",
-      "community": 4,
+      "community": 3,
       "norm_label": "createremotepingresponse()"
     },
     {
@@ -1439,7 +1457,7 @@
       "source_file": "src/main/device/protocol/remoteProtocol.ts",
       "source_location": "L194",
       "id": "protocol_remoteprotocol_createremotekeyinject",
-      "community": 4,
+      "community": 3,
       "norm_label": "createremotekeyinject()"
     },
     {
@@ -1448,7 +1466,7 @@
       "source_file": "src/main/device/protocol/remoteProtocol.ts",
       "source_location": "L230",
       "id": "protocol_remoteprotocol_createimebatcheditmessage",
-      "community": 4,
+      "community": 3,
       "norm_label": "createimebatcheditmessage()"
     },
     {
@@ -1457,7 +1475,7 @@
       "source_file": "dist-electron/main/device/protocol/certificate.js",
       "source_location": "L1",
       "id": "dist_electron_main_device_protocol_certificate_js",
-      "community": 3,
+      "community": 2,
       "norm_label": "certificate.js"
     },
     {
@@ -1466,7 +1484,7 @@
       "source_file": "src/main/device/protocol/certificate.ts",
       "source_location": "L10",
       "id": "protocol_certificate_generatecertificate",
-      "community": 3,
+      "community": 2,
       "norm_label": "generatecertificate()"
     },
     {
@@ -1475,7 +1493,7 @@
       "source_file": "dist-electron/main/device/protocol/pairingProtocol.js",
       "source_location": "L1",
       "id": "dist_electron_main_device_protocol_pairingprotocol_js",
-      "community": 8,
+      "community": 7,
       "norm_label": "pairingprotocol.js"
     },
     {
@@ -1484,7 +1502,7 @@
       "source_file": "src/main/device/protocol/pairingProtocol.ts",
       "source_location": "L95",
       "id": "protocol_pairingprotocol_encodepairingmessage",
-      "community": 8,
+      "community": 7,
       "norm_label": "encodepairingmessage()"
     },
     {
@@ -1493,7 +1511,7 @@
       "source_file": "src/main/device/protocol/pairingProtocol.ts",
       "source_location": "L100",
       "id": "protocol_pairingprotocol_parsepairingmessage",
-      "community": 8,
+      "community": 7,
       "norm_label": "parsepairingmessage()"
     },
     {
@@ -1502,7 +1520,7 @@
       "source_file": "src/main/device/protocol/pairingProtocol.ts",
       "source_location": "L107",
       "id": "protocol_pairingprotocol_createpairingrequest",
-      "community": 8,
+      "community": 7,
       "norm_label": "createpairingrequest()"
     },
     {
@@ -1511,7 +1529,7 @@
       "source_file": "src/main/device/protocol/pairingProtocol.ts",
       "source_location": "L118",
       "id": "protocol_pairingprotocol_createpairingoption",
-      "community": 8,
+      "community": 7,
       "norm_label": "createpairingoption()"
     },
     {
@@ -1520,7 +1538,7 @@
       "source_file": "src/main/device/protocol/pairingProtocol.ts",
       "source_location": "L134",
       "id": "protocol_pairingprotocol_createpairingconfiguration",
-      "community": 8,
+      "community": 7,
       "norm_label": "createpairingconfiguration()"
     },
     {
@@ -1529,7 +1547,7 @@
       "source_file": "src/main/device/protocol/pairingProtocol.ts",
       "source_location": "L148",
       "id": "protocol_pairingprotocol_createpairingsecret",
-      "community": 8,
+      "community": 7,
       "norm_label": "createpairingsecret()"
     },
     {
@@ -1538,7 +1556,7 @@
       "source_file": "src/main/device/protocol/pairingProtocol.ts",
       "source_location": "L156",
       "id": "protocol_pairingprotocol_decodehex",
-      "community": 8,
+      "community": 7,
       "norm_label": "decodehex()"
     },
     {
@@ -1547,7 +1565,7 @@
       "source_file": "src/main/device/protocol/pairingProtocol.ts",
       "source_location": "L160",
       "id": "protocol_pairingprotocol_base64urltohex",
-      "community": 8,
+      "community": 7,
       "norm_label": "base64urltohex()"
     },
     {
@@ -1556,7 +1574,7 @@
       "source_file": "src/main/device/protocol/pairingProtocol.ts",
       "source_location": "L177",
       "id": "protocol_pairingprotocol_normalizehexforhash",
-      "community": 8,
+      "community": 7,
       "norm_label": "normalizehexforhash()"
     },
     {
@@ -1565,7 +1583,7 @@
       "source_file": "src/main/device/protocol/pairingProtocol.ts",
       "source_location": "L190",
       "id": "protocol_pairingprotocol_getcertificatekeymaterialfromx509",
-      "community": 8,
+      "community": 7,
       "norm_label": "getcertificatekeymaterialfromx509()"
     },
     {
@@ -1574,7 +1592,7 @@
       "source_file": "src/main/device/protocol/pairingProtocol.ts",
       "source_location": "L212",
       "id": "protocol_pairingprotocol_pairingmanager",
-      "community": 8,
+      "community": 7,
       "norm_label": "pairingmanager"
     },
     {
@@ -1583,7 +1601,7 @@
       "source_file": "src/main/device/protocol/pairingProtocol.ts",
       "source_location": "L221",
       "id": "protocol_pairingprotocol_pairingmanager_constructor",
-      "community": 8,
+      "community": 7,
       "norm_label": ".constructor()"
     },
     {
@@ -1592,7 +1610,7 @@
       "source_file": "src/main/device/protocol/pairingProtocol.ts",
       "source_location": "L231",
       "id": "protocol_pairingprotocol_pairingmanager_start",
-      "community": 8,
+      "community": 7,
       "norm_label": ".start()"
     },
     {
@@ -1601,7 +1619,7 @@
       "source_file": "src/main/device/protocol/pairingProtocol.ts",
       "source_location": "L324",
       "id": "protocol_pairingprotocol_pairingmanager_sendcode",
-      "community": 8,
+      "community": 7,
       "norm_label": ".sendcode()"
     },
     {
@@ -1610,7 +1628,7 @@
       "source_file": "scripts/reset-app-state.mjs",
       "source_location": "L1",
       "id": "scripts_reset_app_state_mjs",
-      "community": 13,
+      "community": 12,
       "norm_label": "reset-app-state.mjs"
     },
     {
@@ -1619,7 +1637,7 @@
       "source_file": "scripts/reset-app-state.mjs",
       "source_location": "L7",
       "id": "scripts_reset_app_state_getappdataroot",
-      "community": 13,
+      "community": 12,
       "norm_label": "getappdataroot()"
     },
     {
@@ -1628,7 +1646,7 @@
       "source_file": "scripts/reset-app-state.mjs",
       "source_location": "L18",
       "id": "scripts_reset_app_state_getresettargets",
-      "community": 13,
+      "community": 12,
       "norm_label": "getresettargets()"
     },
     {
@@ -1637,7 +1655,7 @@
       "source_file": "scripts/reset-app-state.mjs",
       "source_location": "L28",
       "id": "scripts_reset_app_state_removetarget",
-      "community": 13,
+      "community": 12,
       "norm_label": "removetarget()"
     },
     {
@@ -1646,7 +1664,7 @@
       "source_file": "scripts/reset-app-state.mjs",
       "source_location": "L51",
       "id": "scripts_reset_app_state_main",
-      "community": 13,
+      "community": 12,
       "norm_label": "main()"
     },
     {
@@ -1655,7 +1673,7 @@
       "source_file": "src/renderer/App.tsx",
       "source_location": "L1",
       "id": "src_renderer_app_tsx",
-      "community": 2,
+      "community": 1,
       "norm_label": "app.tsx"
     },
     {
@@ -1664,7 +1682,7 @@
       "source_file": "src/renderer/App.tsx",
       "source_location": "L79",
       "id": "renderer_app_getdesktopapi",
-      "community": 2,
+      "community": 1,
       "norm_label": "getdesktopapi()"
     },
     {
@@ -1673,7 +1691,7 @@
       "source_file": "src/renderer/App.tsx",
       "source_location": "L91",
       "id": "renderer_app_iseditabletarget",
-      "community": 2,
+      "community": 1,
       "norm_label": "iseditabletarget()"
     },
     {
@@ -1682,7 +1700,7 @@
       "source_file": "src/renderer/App.tsx",
       "source_location": "L105",
       "id": "renderer_app_sanitizepaircode",
-      "community": 2,
+      "community": 1,
       "norm_label": "sanitizepaircode()"
     },
     {
@@ -1691,7 +1709,7 @@
       "source_file": "src/renderer/App.tsx",
       "source_location": "L112",
       "id": "renderer_app_classes",
-      "community": 2,
+      "community": 1,
       "norm_label": "classes()"
     },
     {
@@ -1700,7 +1718,7 @@
       "source_file": "src/renderer/App.tsx",
       "source_location": "L116",
       "id": "renderer_app_shouldrestartpairingflow",
-      "community": 2,
+      "community": 1,
       "norm_label": "shouldrestartpairingflow()"
     },
     {
@@ -1709,7 +1727,7 @@
       "source_file": "src/renderer/App.tsx",
       "source_location": "L122",
       "id": "renderer_app_icon",
-      "community": 2,
+      "community": 1,
       "norm_label": "icon()"
     },
     {
@@ -1718,7 +1736,7 @@
       "source_file": "src/renderer/App.tsx",
       "source_location": "L351",
       "id": "renderer_app_finddiscoveredforsaved",
-      "community": 2,
+      "community": 1,
       "norm_label": "finddiscoveredforsaved()"
     },
     {
@@ -1727,7 +1745,7 @@
       "source_file": "src/renderer/App.tsx",
       "source_location": "L435",
       "id": "renderer_app_refreshstate",
-      "community": 2,
+      "community": 1,
       "norm_label": "refreshstate()"
     },
     {
@@ -1736,7 +1754,7 @@
       "source_file": "src/renderer/App.tsx",
       "source_location": "L441",
       "id": "renderer_app_handlescandevices",
-      "community": 2,
+      "community": 1,
       "norm_label": "handlescandevices()"
     },
     {
@@ -1745,7 +1763,7 @@
       "source_file": "src/renderer/App.tsx",
       "source_location": "L497",
       "id": "renderer_app_initialize",
-      "community": 2,
+      "community": 1,
       "norm_label": "initialize()"
     },
     {
@@ -1754,7 +1772,7 @@
       "source_file": "src/renderer/App.tsx",
       "source_location": "L539",
       "id": "renderer_app_onkeydown",
-      "community": 2,
+      "community": 1,
       "norm_label": "onkeydown()"
     },
     {
@@ -1763,7 +1781,7 @@
       "source_file": "src/renderer/App.tsx",
       "source_location": "L567",
       "id": "renderer_app_savediscovereddevice",
-      "community": 2,
+      "community": 1,
       "norm_label": "savediscovereddevice()"
     },
     {
@@ -1772,7 +1790,7 @@
       "source_file": "src/renderer/App.tsx",
       "source_location": "L594",
       "id": "renderer_app_startpairingflow",
-      "community": 2,
+      "community": 1,
       "norm_label": "startpairingflow()"
     },
     {
@@ -1781,7 +1799,7 @@
       "source_file": "src/renderer/App.tsx",
       "source_location": "L602",
       "id": "renderer_app_handlestartpairing",
-      "community": 2,
+      "community": 1,
       "norm_label": "handlestartpairing()"
     },
     {
@@ -1790,7 +1808,7 @@
       "source_file": "src/renderer/App.tsx",
       "source_location": "L625",
       "id": "renderer_app_handleselectsaveddevice",
-      "community": 2,
+      "community": 1,
       "norm_label": "handleselectsaveddevice()"
     },
     {
@@ -1799,7 +1817,7 @@
       "source_file": "src/renderer/App.tsx",
       "source_location": "L640",
       "id": "renderer_app_handleselectdiscovereddevice",
-      "community": 2,
+      "community": 1,
       "norm_label": "handleselectdiscovereddevice()"
     },
     {
@@ -1808,115 +1826,115 @@
       "source_file": "src/renderer/App.tsx",
       "source_location": "L663",
       "id": "renderer_app_handlepair",
-      "community": 2,
+      "community": 1,
       "norm_label": "handlepair()"
     },
     {
       "label": "handleConnect()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L715",
+      "source_location": "L708",
       "id": "renderer_app_handleconnect",
-      "community": 2,
+      "community": 1,
       "norm_label": "handleconnect()"
     },
     {
       "label": "handleDisconnect()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L740",
+      "source_location": "L727",
       "id": "renderer_app_handledisconnect",
-      "community": 2,
+      "community": 1,
       "norm_label": "handledisconnect()"
     },
     {
       "label": "createCommandRequest()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L760",
+      "source_location": "L747",
       "id": "renderer_app_createcommandrequest",
-      "community": 2,
+      "community": 1,
       "norm_label": "createcommandrequest()"
     },
     {
       "label": "recordQueuedCommandDrop()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L772",
+      "source_location": "L759",
       "id": "renderer_app_recordqueuedcommanddrop",
-      "community": 2,
+      "community": 1,
       "norm_label": "recordqueuedcommanddrop()"
     },
     {
       "label": "enqueueCommand()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L781",
+      "source_location": "L768",
       "id": "renderer_app_enqueuecommand",
-      "community": 2,
+      "community": 1,
       "norm_label": "enqueuecommand()"
     },
     {
       "label": "flushQueuedCommands()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L809",
+      "source_location": "L796",
       "id": "renderer_app_flushqueuedcommands",
-      "community": 2,
+      "community": 1,
       "norm_label": "flushqueuedcommands()"
     },
     {
       "label": "handleCommand()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L852",
+      "source_location": "L839",
       "id": "renderer_app_handlecommand",
-      "community": 2,
+      "community": 1,
       "norm_label": "handlecommand()"
     },
     {
       "label": "handleSendText()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L858",
+      "source_location": "L845",
       "id": "renderer_app_handlesendtext",
-      "community": 2,
+      "community": 1,
       "norm_label": "handlesendtext()"
     },
     {
       "label": "handleRemove()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L889",
+      "source_location": "L876",
       "id": "renderer_app_handleremove",
-      "community": 2,
+      "community": 1,
       "norm_label": "handleremove()"
     },
     {
       "label": "handleResetState()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L911",
+      "source_location": "L898",
       "id": "renderer_app_handleresetstate",
-      "community": 2,
+      "community": 1,
       "norm_label": "handleresetstate()"
     },
     {
       "label": "openDevicePicker()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L947",
+      "source_location": "L934",
       "id": "renderer_app_opendevicepicker",
-      "community": 2,
+      "community": 1,
       "norm_label": "opendevicepicker()"
     },
     {
       "label": "renderStatusLabel()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L954",
+      "source_location": "L941",
       "id": "renderer_app_renderstatuslabel",
-      "community": 2,
+      "community": 1,
       "norm_label": "renderstatuslabel()"
     },
     {
@@ -1952,7 +1970,7 @@
       "source_file": "src/main/main.ts",
       "source_location": "L1",
       "id": "src_main_main_ts",
-      "community": 7,
+      "community": 6,
       "norm_label": "main.ts"
     },
     {
@@ -1961,7 +1979,7 @@
       "source_file": "src/main/debug.ts",
       "source_location": "L1",
       "id": "src_main_debug_ts",
-      "community": 12,
+      "community": 11,
       "norm_label": "debug.ts"
     },
     {
@@ -1970,7 +1988,7 @@
       "source_file": "src/main/logger.ts",
       "source_location": "L1",
       "id": "src_main_logger_ts",
-      "community": 1,
+      "community": 0,
       "norm_label": "logger.ts"
     },
     {
@@ -1988,7 +2006,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L1",
       "id": "src_main_metrics_ts",
-      "community": 6,
+      "community": 5,
       "norm_label": "metrics.ts"
     },
     {
@@ -1997,7 +2015,7 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L1",
       "id": "src_main_device_googletvadapter_ts",
-      "community": 1,
+      "community": 0,
       "norm_label": "googletvadapter.ts"
     },
     {
@@ -2006,7 +2024,7 @@
       "source_file": "src/main/device/androidTvRemote.ts",
       "source_location": "L1",
       "id": "src_main_device_androidtvremote_ts",
-      "community": 3,
+      "community": 2,
       "norm_label": "androidtvremote.ts"
     },
     {
@@ -2015,7 +2033,7 @@
       "source_file": "src/main/device/discovery.ts",
       "source_location": "L1",
       "id": "src_main_device_discovery_ts",
-      "community": 9,
+      "community": 8,
       "norm_label": "discovery.ts"
     },
     {
@@ -2024,7 +2042,7 @@
       "source_file": "src/main/device/store.ts",
       "source_location": "L1",
       "id": "src_main_device_store_ts",
-      "community": 1,
+      "community": 0,
       "norm_label": "store.ts"
     },
     {
@@ -2033,7 +2051,7 @@
       "source_file": "src/main/device/protocol/pairingProtocol.ts",
       "source_location": "L1",
       "id": "src_main_device_protocol_pairingprotocol_ts",
-      "community": 8,
+      "community": 7,
       "norm_label": "pairingprotocol.ts"
     },
     {
@@ -2042,7 +2060,7 @@
       "source_file": "src/main/device/protocol/remoteProtocol.ts",
       "source_location": "L1",
       "id": "src_main_device_protocol_remoteprotocol_ts",
-      "community": 4,
+      "community": 3,
       "norm_label": "remoteprotocol.ts"
     },
     {
@@ -2051,7 +2069,7 @@
       "source_file": "src/main/device/protocol/certificate.ts",
       "source_location": "L1",
       "id": "src_main_device_protocol_certificate_ts",
-      "community": 3,
+      "community": 2,
       "norm_label": "certificate.ts"
     },
     {
@@ -2063,9 +2081,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "readme_gtv_desktop_remote",
       "community": 24,
-      "norm_label": "gtv desktop remote"
+      "norm_label": "gtv desktop remote",
+      "id": "readme_gtv_desktop_remote"
     },
     {
       "label": "Network Scan",
@@ -2076,9 +2094,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "readme_network_scan",
       "community": 25,
-      "norm_label": "network scan"
+      "norm_label": "network scan",
+      "id": "readme_network_scan"
     },
     {
       "label": "Encrypted Pairing Protocol",
@@ -2089,9 +2107,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "readme_pairing_protocol",
-      "community": 0,
-      "norm_label": "encrypted pairing protocol"
+      "community": 13,
+      "norm_label": "encrypted pairing protocol",
+      "id": "readme_pairing_protocol"
     },
     {
       "label": "Keyboard Control",
@@ -2102,9 +2120,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "readme_keyboard_control",
-      "community": 0,
-      "norm_label": "keyboard control"
+      "community": 26,
+      "norm_label": "keyboard control",
+      "id": "readme_keyboard_control"
     },
     {
       "label": "Global Shortcut CmdOrCtrl+Shift+G",
@@ -2115,9 +2133,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "readme_global_shortcut",
-      "community": 26,
-      "norm_label": "global shortcut cmdorctrl+shift+g"
+      "community": 27,
+      "norm_label": "global shortcut cmdorctrl+shift+g",
+      "id": "readme_global_shortcut"
     },
     {
       "label": "MAC Address Device Tracking",
@@ -2128,9 +2146,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "readme_mac_address_tracking",
-      "community": 0,
-      "norm_label": "mac address device tracking"
+      "community": 28,
+      "norm_label": "mac address device tracking",
+      "id": "readme_mac_address_tracking"
     },
     {
       "label": "Menubar App",
@@ -2141,9 +2159,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "readme_menubar_app",
-      "community": 27,
-      "norm_label": "menubar app"
+      "community": 29,
+      "norm_label": "menubar app",
+      "id": "readme_menubar_app"
     },
     {
       "label": "Debug Telemetry",
@@ -2154,9 +2172,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "development_debug_telemetry",
-      "community": 0,
-      "norm_label": "debug telemetry"
+      "community": 30,
+      "norm_label": "debug telemetry",
+      "id": "development_debug_telemetry"
     },
     {
       "label": "Bounded Command Queue",
@@ -2167,9 +2185,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "development_command_queue",
-      "community": 0,
-      "norm_label": "bounded command queue"
+      "community": 31,
+      "norm_label": "bounded command queue",
+      "id": "development_command_queue"
     },
     {
       "label": "electron-builder Packaging",
@@ -2180,9 +2198,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "development_electron_builder",
-      "community": 28,
-      "norm_label": "electron-builder packaging"
+      "community": 32,
+      "norm_label": "electron-builder packaging",
+      "id": "development_electron_builder"
     },
     {
       "label": "Reset App State Script",
@@ -2193,61 +2211,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "development_reset_app",
-      "community": 0,
-      "norm_label": "reset app state script"
-    },
-    {
-      "label": "reset-app-state main",
-      "file_type": "code",
-      "source_file": "scripts/reset-app-state.mjs",
-      "source_location": "51",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "reset_script_main",
-      "community": 0,
-      "norm_label": "reset-app-state main"
-    },
-    {
-      "label": "getAppDataRoot",
-      "file_type": "code",
-      "source_file": "scripts/reset-app-state.mjs",
-      "source_location": "7",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "reset_script_getappdataroot",
-      "community": 0,
-      "norm_label": "getappdataroot"
-    },
-    {
-      "label": "getResetTargets",
-      "file_type": "code",
-      "source_file": "scripts/reset-app-state.mjs",
-      "source_location": "18",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "reset_script_getresettargets",
-      "community": 0,
-      "norm_label": "getresettargets"
-    },
-    {
-      "label": "removeTarget",
-      "file_type": "code",
-      "source_file": "scripts/reset-app-state.mjs",
-      "source_location": "28",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "reset_script_removetarget",
-      "community": 0,
-      "norm_label": "removetarget"
+      "community": 33,
+      "norm_label": "reset app state script",
+      "id": "development_reset_app"
     },
     {
       "label": "devices.json (saved devices file)",
@@ -2258,9 +2224,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "reset_script_devices_json",
-      "community": 0,
-      "norm_label": "devices.json (saved devices file)"
+      "community": 34,
+      "norm_label": "devices.json (saved devices file)",
+      "id": "reset_script_devices_json"
     },
     {
       "label": "androidtvremote (pairing certs dir)",
@@ -2271,490 +2237,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "reset_script_androidtvremote_dir",
-      "community": 0,
-      "norm_label": "androidtvremote (pairing certs dir)"
-    },
-    {
-      "label": "App React Component",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "316",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_component",
-      "community": 0,
-      "norm_label": "app react component"
-    },
-    {
-      "label": "Icon Component",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "122",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_icon",
-      "community": 0,
-      "norm_label": "icon component"
-    },
-    {
-      "label": "getDesktopApi",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "79",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_getdesktopapi",
-      "community": 0,
-      "norm_label": "getdesktopapi"
-    },
-    {
-      "label": "keyboardCommandMap",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "21",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_keyboardcommandmap",
-      "community": 0,
-      "norm_label": "keyboardcommandmap"
-    },
-    {
-      "label": "burstSensitiveCommands",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "42",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_burstsensitivecommands",
-      "community": 0,
-      "norm_label": "burstsensitivecommands"
-    },
-    {
-      "label": "MAX_QUEUED_COMMANDS (100)",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "43",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_max_queued_commands",
-      "community": 0,
-      "norm_label": "max_queued_commands (100)"
-    },
-    {
-      "label": "handleCommand",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "852",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_handlecommand",
-      "community": 0,
-      "norm_label": "handlecommand"
-    },
-    {
-      "label": "enqueueCommand",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "781",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_enqueuecommand",
-      "community": 0,
-      "norm_label": "enqueuecommand"
-    },
-    {
-      "label": "flushQueuedCommands",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "809",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_flushqueuedcommands",
-      "community": 0,
-      "norm_label": "flushqueuedcommands"
-    },
-    {
-      "label": "createCommandRequest",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "760",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_createcommandrequest",
-      "community": 0,
-      "norm_label": "createcommandrequest"
-    },
-    {
-      "label": "recordQueuedCommandDrop",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "772",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_recordqueuedcommanddrop",
-      "community": 0,
-      "norm_label": "recordqueuedcommanddrop"
-    },
-    {
-      "label": "refreshState",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "435",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_refreshstate",
-      "community": 0,
-      "norm_label": "refreshstate"
-    },
-    {
-      "label": "handleScanDevices",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "441",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_handlescandevices",
-      "community": 0,
-      "norm_label": "handlescandevices"
-    },
-    {
-      "label": "handleStartPairing",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "602",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_handlestartpairing",
-      "community": 0,
-      "norm_label": "handlestartpairing"
-    },
-    {
-      "label": "startPairingFlow",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "594",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_startpairingflow",
-      "community": 0,
-      "norm_label": "startpairingflow"
-    },
-    {
-      "label": "handlePair",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "663",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_handlepair",
-      "community": 0,
-      "norm_label": "handlepair"
-    },
-    {
-      "label": "handleConnect",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "715",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_handleconnect",
-      "community": 0,
-      "norm_label": "handleconnect"
-    },
-    {
-      "label": "handleDisconnect",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "740",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_handledisconnect",
-      "community": 0,
-      "norm_label": "handledisconnect"
-    },
-    {
-      "label": "handleSendText",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "858",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_handlesendtext",
-      "community": 0,
-      "norm_label": "handlesendtext"
-    },
-    {
-      "label": "handleRemove",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "889",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_handleremove",
-      "community": 0,
-      "norm_label": "handleremove"
-    },
-    {
-      "label": "handleResetState",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "911",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_handleresetstate",
-      "community": 0,
-      "norm_label": "handleresetstate"
-    },
-    {
-      "label": "findDiscoveredForSaved",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "351",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_finddiscoveredforsaved",
-      "community": 0,
-      "norm_label": "finddiscoveredforsaved"
-    },
-    {
-      "label": "saveDiscoveredDevice",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "567",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_savedevice",
-      "community": 0,
-      "norm_label": "savediscovereddevice"
-    },
-    {
-      "label": "BootstrapState",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "4",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_bootstrapstate",
-      "community": 0,
-      "norm_label": "bootstrapstate"
-    },
-    {
-      "label": "CommandDispatchRequest",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "5",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_commanddispatchrequest",
-      "community": 0,
-      "norm_label": "commanddispatchrequest"
-    },
-    {
-      "label": "DeviceCapabilities",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "6",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_devicecapabilities",
-      "community": 0,
-      "norm_label": "devicecapabilities"
-    },
-    {
-      "label": "DiscoveredDevice",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "8",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_discovereddevice",
-      "community": 0,
-      "norm_label": "discovereddevice"
-    },
-    {
-      "label": "SavedDevice",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "11",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_saveddevice",
-      "community": 0,
-      "norm_label": "saveddevice"
-    },
-    {
-      "label": "RemoteCommand",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "9",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_remotecommand",
-      "community": 29,
-      "norm_label": "remotecommand"
-    },
-    {
-      "label": "RemoteCommandSource",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "10",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_remotecommandsource",
-      "community": 30,
-      "norm_label": "remotecommandsource"
-    },
-    {
-      "label": "DeviceDraft",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "7",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_devicedraft",
-      "community": 31,
-      "norm_label": "devicedraft"
-    },
-    {
-      "label": "window.gtvRemote Desktop Bridge",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "80",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_gtvremote_bridge",
-      "community": 0,
-      "norm_label": "window.gtvremote desktop bridge"
-    },
-    {
-      "label": "isEditableTarget",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "91",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_iseditabletarget",
-      "community": 0,
-      "norm_label": "iseditabletarget"
-    },
-    {
-      "label": "sanitizePairCode",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "105",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_sanitizepaircode",
-      "community": 0,
-      "norm_label": "sanitizepaircode"
-    },
-    {
-      "label": "shouldRestartPairingFlow",
-      "file_type": "code",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "116",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "app_shouldrestartpairingflow",
-      "community": 0,
-      "norm_label": "shouldrestartpairingflow"
-    },
-    {
-      "label": "main.tsx renderer entry",
-      "file_type": "code",
-      "source_file": "src/renderer/main.tsx",
-      "source_location": "1",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "main_tsx",
-      "community": 0,
-      "norm_label": "main.tsx renderer entry"
-    },
-    {
-      "label": "index.html entry point",
-      "file_type": "code",
-      "source_file": "index.html",
-      "source_location": "1",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "index_html",
-      "community": 0,
-      "norm_label": "index.html entry point"
+      "community": 13,
+      "norm_label": "androidtvremote (pairing certs dir)",
+      "id": "reset_script_androidtvremote_dir"
     },
     {
       "label": "graphify knowledge graph config",
@@ -2765,9 +2250,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "agents_graphify",
-      "community": 32,
-      "norm_label": "graphify knowledge graph config"
+      "community": 35,
+      "norm_label": "graphify knowledge graph config",
+      "id": "agents_graphify"
     },
     {
       "label": "Favicon 16x16 - GTV Remote",
@@ -2778,9 +2263,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "favicon_16_icon",
-      "community": 11,
-      "norm_label": "favicon 16x16 - gtv remote"
+      "community": 10,
+      "norm_label": "favicon 16x16 - gtv remote",
+      "id": "favicon_16_icon"
     },
     {
       "label": "Favicon 32x32 - GTV Remote",
@@ -2791,9 +2276,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "favicon_32_icon",
-      "community": 11,
-      "norm_label": "favicon 32x32 - gtv remote"
+      "community": 10,
+      "norm_label": "favicon 32x32 - gtv remote",
+      "id": "favicon_32_icon"
     },
     {
       "label": "Favicon SVG - Google TV Remote Outlined Icon",
@@ -2804,9 +2289,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "favicon_svg_icon",
-      "community": 11,
-      "norm_label": "favicon svg - google tv remote outlined icon"
+      "community": 10,
+      "norm_label": "favicon svg - google tv remote outlined icon",
+      "id": "favicon_svg_icon"
     },
     {
       "label": "Taskbar Icon - Google TV Remote App Icon (Color, macOS style)",
@@ -2817,9 +2302,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "taskbar_icon_icon",
-      "community": 11,
-      "norm_label": "taskbar icon - google tv remote app icon (color, macos style)"
+      "community": 10,
+      "norm_label": "taskbar icon - google tv remote app icon (color, macos style)",
+      "id": "taskbar_icon_icon"
     },
     {
       "label": "Taskbar Icon Black - Monochrome Remote Control Icon",
@@ -2830,9 +2315,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "taskbar_icon_black_icon",
-      "community": 11,
-      "norm_label": "taskbar icon black - monochrome remote control icon"
+      "community": 10,
+      "norm_label": "taskbar icon black - monochrome remote control icon",
+      "id": "taskbar_icon_black_icon"
     },
     {
       "label": "Menubar Icon White - White Remote Control Icon for macOS Menu Bar",
@@ -2843,9 +2328,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "menubar_icon_white_icon",
-      "community": 11,
-      "norm_label": "menubar icon white - white remote control icon for macos menu bar"
+      "community": 10,
+      "norm_label": "menubar icon white - white remote control icon for macos menu bar",
+      "id": "menubar_icon_white_icon"
     },
     {
       "label": "GTV Remote Icon SVG - Google TV Remote Streamline Outlined Material Icon",
@@ -2856,9 +2341,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "gtv_remote_icon_svg",
-      "community": 11,
-      "norm_label": "gtv remote icon svg - google tv remote streamline outlined material icon"
+      "community": 10,
+      "norm_label": "gtv remote icon svg - google tv remote streamline outlined material icon",
+      "id": "gtv_remote_icon_svg"
     },
     {
       "label": "GTV Remote Icon 512px - Small Remote Control Icon (black outline)",
@@ -2869,9 +2354,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "gtv_remote_icon_512_icon",
-      "community": 11,
-      "norm_label": "gtv remote icon 512px - small remote control icon (black outline)"
+      "community": 10,
+      "norm_label": "gtv remote icon 512px - small remote control icon (black outline)",
+      "id": "gtv_remote_icon_512_icon"
     }
   ],
   "links": [
@@ -3014,8 +2499,8 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L32",
       "weight": 1.0,
-      "_src": "device_googletvadapter_getlegacyuserdatapaths",
-      "_tgt": "main_logger_getappdatapath",
+      "_src": "main_logger_getappdatapath",
+      "_tgt": "device_googletvadapter_getlegacyuserdatapaths",
       "source": "main_logger_getappdatapath",
       "target": "device_googletvadapter_getlegacyuserdatapaths"
     },
@@ -3026,8 +2511,8 @@
       "source_file": "src/main/device/androidTvRemote.ts",
       "source_location": "L309",
       "weight": 1.0,
-      "_src": "device_androidtvremote_androidtvremotebridge_getstatedir",
-      "_tgt": "main_logger_getappdatapath",
+      "_src": "main_logger_getappdatapath",
+      "_tgt": "device_androidtvremote_androidtvremotebridge_getstatedir",
       "source": "main_logger_getappdatapath",
       "target": "device_androidtvremote_androidtvremotebridge_getstatedir"
     },
@@ -3110,8 +2595,8 @@
       "source_file": "src/main/main.ts",
       "source_location": "L222",
       "weight": 1.0,
-      "_src": "main_main_bootstrapapp",
-      "_tgt": "main_logger_loginfo",
+      "_src": "main_logger_loginfo",
+      "_tgt": "main_main_bootstrapapp",
       "source": "main_logger_loginfo",
       "target": "main_main_bootstrapapp"
     },
@@ -3122,8 +2607,8 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L446",
       "weight": 1.0,
-      "_src": "main_metrics_commandmetricsstore_logmetric",
-      "_tgt": "main_logger_loginfo",
+      "_src": "main_logger_loginfo",
+      "_tgt": "main_metrics_commandmetricsstore_logmetric",
       "source": "main_logger_loginfo",
       "target": "main_metrics_commandmetricsstore_logmetric"
     },
@@ -3134,8 +2619,8 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L45",
       "weight": 1.0,
-      "_src": "device_googletvadapter_googletvadapter_scanfordevices",
-      "_tgt": "main_logger_loginfo",
+      "_src": "main_logger_loginfo",
+      "_tgt": "device_googletvadapter_googletvadapter_scanfordevices",
       "source": "main_logger_loginfo",
       "target": "device_googletvadapter_googletvadapter_scanfordevices"
     },
@@ -3144,10 +2629,22 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "src/main/device/googleTvAdapter.ts",
+      "source_location": "L60",
+      "weight": 1.0,
+      "_src": "main_logger_loginfo",
+      "_tgt": "device_googletvadapter_googletvadapter_rundevicescan",
+      "source": "main_logger_loginfo",
+      "target": "device_googletvadapter_googletvadapter_rundevicescan"
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L84",
       "weight": 1.0,
-      "_src": "device_googletvadapter_googletvadapter_savedevice",
-      "_tgt": "main_logger_loginfo",
+      "_src": "main_logger_loginfo",
+      "_tgt": "device_googletvadapter_googletvadapter_savedevice",
       "source": "main_logger_loginfo",
       "target": "device_googletvadapter_googletvadapter_savedevice"
     },
@@ -3158,8 +2655,8 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L107",
       "weight": 1.0,
-      "_src": "device_googletvadapter_googletvadapter_removedevice",
-      "_tgt": "main_logger_loginfo",
+      "_src": "main_logger_loginfo",
+      "_tgt": "device_googletvadapter_googletvadapter_removedevice",
       "source": "main_logger_loginfo",
       "target": "device_googletvadapter_googletvadapter_removedevice"
     },
@@ -3170,8 +2667,8 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L121",
       "weight": 1.0,
-      "_src": "device_googletvadapter_googletvadapter_resetstate",
-      "_tgt": "main_logger_loginfo",
+      "_src": "main_logger_loginfo",
+      "_tgt": "device_googletvadapter_googletvadapter_resetstate",
       "source": "main_logger_loginfo",
       "target": "device_googletvadapter_googletvadapter_resetstate"
     },
@@ -3182,8 +2679,8 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L141",
       "weight": 1.0,
-      "_src": "device_googletvadapter_googletvadapter_pair",
-      "_tgt": "main_logger_loginfo",
+      "_src": "main_logger_loginfo",
+      "_tgt": "device_googletvadapter_googletvadapter_pair",
       "source": "main_logger_loginfo",
       "target": "device_googletvadapter_googletvadapter_pair"
     },
@@ -3194,8 +2691,8 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L179",
       "weight": 1.0,
-      "_src": "device_googletvadapter_googletvadapter_startpairing",
-      "_tgt": "main_logger_loginfo",
+      "_src": "main_logger_loginfo",
+      "_tgt": "device_googletvadapter_googletvadapter_startpairing",
       "source": "main_logger_loginfo",
       "target": "device_googletvadapter_googletvadapter_startpairing"
     },
@@ -3206,8 +2703,8 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L226",
       "weight": 1.0,
-      "_src": "device_googletvadapter_googletvadapter_connect",
-      "_tgt": "main_logger_loginfo",
+      "_src": "main_logger_loginfo",
+      "_tgt": "device_googletvadapter_googletvadapter_connect",
       "source": "main_logger_loginfo",
       "target": "device_googletvadapter_googletvadapter_connect"
     },
@@ -3218,8 +2715,8 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L272",
       "weight": 1.0,
-      "_src": "device_googletvadapter_googletvadapter_disconnect",
-      "_tgt": "main_logger_loginfo",
+      "_src": "main_logger_loginfo",
+      "_tgt": "device_googletvadapter_googletvadapter_disconnect",
       "source": "main_logger_loginfo",
       "target": "device_googletvadapter_googletvadapter_disconnect"
     },
@@ -3230,8 +2727,8 @@
       "source_file": "src/main/device/androidTvRemote.ts",
       "source_location": "L355",
       "weight": 1.0,
-      "_src": "device_androidtvremote_androidtvremotebridge_migratecerts",
-      "_tgt": "main_logger_loginfo",
+      "_src": "main_logger_loginfo",
+      "_tgt": "device_androidtvremote_androidtvremotebridge_migratecerts",
       "source": "main_logger_loginfo",
       "target": "device_androidtvremote_androidtvremotebridge_migratecerts"
     },
@@ -3242,8 +2739,8 @@
       "source_file": "src/main/device/androidTvRemote.ts",
       "source_location": "L382",
       "weight": 1.0,
-      "_src": "device_androidtvremote_androidtvremotebridge_loadorcreatecerts",
-      "_tgt": "main_logger_loginfo",
+      "_src": "main_logger_loginfo",
+      "_tgt": "device_androidtvremote_androidtvremotebridge_loadorcreatecerts",
       "source": "main_logger_loginfo",
       "target": "device_androidtvremote_androidtvremotebridge_loadorcreatecerts"
     },
@@ -3266,8 +2763,8 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L169",
       "weight": 1.0,
-      "_src": "device_googletvadapter_googletvadapter_pair",
-      "_tgt": "main_logger_logerror",
+      "_src": "main_logger_logerror",
+      "_tgt": "device_googletvadapter_googletvadapter_pair",
       "source": "main_logger_logerror",
       "target": "device_googletvadapter_googletvadapter_pair"
     },
@@ -3278,8 +2775,8 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L216",
       "weight": 1.0,
-      "_src": "device_googletvadapter_googletvadapter_startpairing",
-      "_tgt": "main_logger_logerror",
+      "_src": "main_logger_logerror",
+      "_tgt": "device_googletvadapter_googletvadapter_startpairing",
       "source": "main_logger_logerror",
       "target": "device_googletvadapter_googletvadapter_startpairing"
     },
@@ -3290,8 +2787,8 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L262",
       "weight": 1.0,
-      "_src": "device_googletvadapter_googletvadapter_connect",
-      "_tgt": "main_logger_logerror",
+      "_src": "main_logger_logerror",
+      "_tgt": "device_googletvadapter_googletvadapter_connect",
       "source": "main_logger_logerror",
       "target": "device_googletvadapter_googletvadapter_connect"
     },
@@ -3314,8 +2811,8 @@
       "source_file": "src/main/main.ts",
       "source_location": "L222",
       "weight": 1.0,
-      "_src": "main_main_bootstrapapp",
-      "_tgt": "main_logger_getloggerpath",
+      "_src": "main_logger_getloggerpath",
+      "_tgt": "main_main_bootstrapapp",
       "source": "main_logger_getloggerpath",
       "target": "main_main_bootstrapapp"
     },
@@ -4871,7 +4368,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/googleTvAdapter.ts",
-      "source_location": "L127",
+      "source_location": "L142",
       "weight": 1.0,
       "_src": "device_googletvadapter_googletvadapter_resetstate",
       "_tgt": "device_googletvadapter_getlegacyuserdatapaths",
@@ -4895,7 +4392,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/googleTvAdapter.ts",
-      "source_location": "L40",
+      "source_location": "L42",
       "weight": 1.0,
       "_src": "device_googletvadapter_googletvadapter",
       "_tgt": "device_googletvadapter_googletvadapter_listdevices",
@@ -4907,7 +4404,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/googleTvAdapter.ts",
-      "source_location": "L44",
+      "source_location": "L46",
       "weight": 1.0,
       "_src": "device_googletvadapter_googletvadapter",
       "_tgt": "device_googletvadapter_googletvadapter_scanfordevices",
@@ -4919,7 +4416,19 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/googleTvAdapter.ts",
-      "source_location": "L83",
+      "source_location": "L59",
+      "weight": 1.0,
+      "_src": "device_googletvadapter_googletvadapter",
+      "_tgt": "device_googletvadapter_googletvadapter_rundevicescan",
+      "source": "device_googletvadapter_googletvadapter",
+      "target": "device_googletvadapter_googletvadapter_rundevicescan",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/main/device/googleTvAdapter.ts",
+      "source_location": "L98",
       "weight": 1.0,
       "_src": "device_googletvadapter_googletvadapter",
       "_tgt": "device_googletvadapter_googletvadapter_savedevice",
@@ -4931,7 +4440,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/googleTvAdapter.ts",
-      "source_location": "L106",
+      "source_location": "L121",
       "weight": 1.0,
       "_src": "device_googletvadapter_googletvadapter",
       "_tgt": "device_googletvadapter_googletvadapter_removedevice",
@@ -4943,7 +4452,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/googleTvAdapter.ts",
-      "source_location": "L120",
+      "source_location": "L135",
       "weight": 1.0,
       "_src": "device_googletvadapter_googletvadapter",
       "_tgt": "device_googletvadapter_googletvadapter_resetstate",
@@ -4955,7 +4464,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/googleTvAdapter.ts",
-      "source_location": "L140",
+      "source_location": "L155",
       "weight": 1.0,
       "_src": "device_googletvadapter_googletvadapter",
       "_tgt": "device_googletvadapter_googletvadapter_pair",
@@ -4967,7 +4476,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/googleTvAdapter.ts",
-      "source_location": "L178",
+      "source_location": "L193",
       "weight": 1.0,
       "_src": "device_googletvadapter_googletvadapter",
       "_tgt": "device_googletvadapter_googletvadapter_startpairing",
@@ -4979,7 +4488,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/googleTvAdapter.ts",
-      "source_location": "L225",
+      "source_location": "L240",
       "weight": 1.0,
       "_src": "device_googletvadapter_googletvadapter",
       "_tgt": "device_googletvadapter_googletvadapter_connect",
@@ -4991,7 +4500,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/googleTvAdapter.ts",
-      "source_location": "L271",
+      "source_location": "L286",
       "weight": 1.0,
       "_src": "device_googletvadapter_googletvadapter",
       "_tgt": "device_googletvadapter_googletvadapter_disconnect",
@@ -5003,7 +4512,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/googleTvAdapter.ts",
-      "source_location": "L292",
+      "source_location": "L307",
       "weight": 1.0,
       "_src": "device_googletvadapter_googletvadapter",
       "_tgt": "device_googletvadapter_googletvadapter_sendcommand",
@@ -5015,7 +4524,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/googleTvAdapter.ts",
-      "source_location": "L315",
+      "source_location": "L330",
       "weight": 1.0,
       "_src": "device_googletvadapter_googletvadapter",
       "_tgt": "device_googletvadapter_googletvadapter_sendtext",
@@ -5027,7 +4536,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/googleTvAdapter.ts",
-      "source_location": "L327",
+      "source_location": "L342",
       "weight": 1.0,
       "_src": "device_googletvadapter_googletvadapter",
       "_tgt": "device_googletvadapter_googletvadapter_getcapabilities",
@@ -5039,7 +4548,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/googleTvAdapter.ts",
-      "source_location": "L334",
+      "source_location": "L349",
       "weight": 1.0,
       "_src": "device_googletvadapter_googletvadapter",
       "_tgt": "device_googletvadapter_googletvadapter_getbootstrapstate",
@@ -5070,6 +4579,18 @@
       "_tgt": "device_store_readdevices",
       "source": "device_googletvadapter_googletvadapter_listdevices",
       "target": "device_store_readdevices"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/main/device/googleTvAdapter.ts",
+      "source_location": "L52",
+      "weight": 1.0,
+      "_src": "device_googletvadapter_googletvadapter_scanfordevices",
+      "_tgt": "device_googletvadapter_googletvadapter_rundevicescan",
+      "source": "device_googletvadapter_googletvadapter_scanfordevices",
+      "target": "device_googletvadapter_googletvadapter_rundevicescan",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -5105,6 +4626,42 @@
       "_src": "device_googletvadapter_googletvadapter_scanfordevices",
       "_tgt": "device_store_writedevices",
       "source": "device_googletvadapter_googletvadapter_scanfordevices",
+      "target": "device_store_writedevices"
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "src/main/device/googleTvAdapter.ts",
+      "source_location": "L61",
+      "weight": 1.0,
+      "_src": "device_googletvadapter_googletvadapter_rundevicescan",
+      "_tgt": "device_discovery_discovergoogletvdevices",
+      "source": "device_googletvadapter_googletvadapter_rundevicescan",
+      "target": "device_discovery_discovergoogletvdevices"
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "src/main/device/googleTvAdapter.ts",
+      "source_location": "L65",
+      "weight": 1.0,
+      "_src": "device_googletvadapter_googletvadapter_rundevicescan",
+      "_tgt": "device_store_readdevices",
+      "source": "device_googletvadapter_googletvadapter_rundevicescan",
+      "target": "device_store_readdevices"
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "src/main/device/googleTvAdapter.ts",
+      "source_location": "L84",
+      "weight": 1.0,
+      "_src": "device_googletvadapter_googletvadapter_rundevicescan",
+      "_tgt": "device_store_writedevices",
+      "source": "device_googletvadapter_googletvadapter_rundevicescan",
       "target": "device_store_writedevices"
     },
     {
@@ -5195,7 +4752,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/googleTvAdapter.ts",
-      "source_location": "L189",
+      "source_location": "L204",
       "weight": 1.0,
       "_src": "device_googletvadapter_googletvadapter_startpairing",
       "_tgt": "device_googletvadapter_googletvadapter_disconnect",
@@ -5267,7 +4824,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "dist-electron/main/device/androidTvRemote.js",
-      "source_location": "L18",
+      "source_location": "L20",
       "weight": 1.0,
       "_src": "dist_electron_main_device_androidtvremote_js",
       "_tgt": "device_androidtvremote_toerror",
@@ -5279,7 +4836,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "dist-electron/main/device/androidTvRemote.js",
-      "source_location": "L30",
+      "source_location": "L32",
       "weight": 1.0,
       "_src": "dist_electron_main_device_androidtvremote_js",
       "_tgt": "device_androidtvremote_iscertificaterejectederror",
@@ -5291,7 +4848,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "dist-electron/main/device/androidTvRemote.js",
-      "source_location": "L34",
+      "source_location": "L36",
       "weight": 1.0,
       "_src": "dist_electron_main_device_androidtvremote_js",
       "_tgt": "device_androidtvremote_normalizeremoteerror",
@@ -5303,7 +4860,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "dist-electron/main/device/androidTvRemote.js",
-      "source_location": "L44",
+      "source_location": "L46",
       "weight": 1.0,
       "_src": "dist_electron_main_device_androidtvremote_js",
       "_tgt": "device_androidtvremote_nativeremoteclient",
@@ -5315,7 +4872,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "dist-electron/main/device/androidTvRemote.js",
-      "source_location": "L203",
+      "source_location": "L264",
       "weight": 1.0,
       "_src": "dist_electron_main_device_androidtvremote_js",
       "_tgt": "device_androidtvremote_androidtvremotebridge",
@@ -5327,7 +4884,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L78",
+      "source_location": "L81",
       "weight": 1.0,
       "_src": "device_androidtvremote_iscertificaterejectederror",
       "_tgt": "device_androidtvremote_toerror",
@@ -5339,7 +4896,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L83",
+      "source_location": "L86",
       "weight": 1.0,
       "_src": "device_androidtvremote_normalizeremoteerror",
       "_tgt": "device_androidtvremote_toerror",
@@ -5351,7 +4908,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L61",
+      "source_location": "L64",
       "weight": 1.0,
       "_src": "src_main_device_androidtvremote_ts",
       "_tgt": "device_androidtvremote_toerror",
@@ -5363,7 +4920,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L85",
+      "source_location": "L88",
       "weight": 1.0,
       "_src": "device_androidtvremote_normalizeremoteerror",
       "_tgt": "device_androidtvremote_iscertificaterejectederror",
@@ -5375,7 +4932,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L495",
+      "source_location": "L571",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge_connect",
       "_tgt": "device_androidtvremote_iscertificaterejectederror",
@@ -5387,7 +4944,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L77",
+      "source_location": "L80",
       "weight": 1.0,
       "_src": "src_main_device_androidtvremote_ts",
       "_tgt": "device_androidtvremote_iscertificaterejectederror",
@@ -5399,7 +4956,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L483",
+      "source_location": "L559",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge_finishpairing",
       "_tgt": "device_androidtvremote_normalizeremoteerror",
@@ -5411,7 +4968,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L494",
+      "source_location": "L570",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge_connect",
       "_tgt": "device_androidtvremote_normalizeremoteerror",
@@ -5423,7 +4980,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L547",
+      "source_location": "L623",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge_sendcommand",
       "_tgt": "device_androidtvremote_normalizeremoteerror",
@@ -5435,7 +4992,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L82",
+      "source_location": "L85",
       "weight": 1.0,
       "_src": "src_main_device_androidtvremote_ts",
       "_tgt": "device_androidtvremote_normalizeremoteerror",
@@ -5447,7 +5004,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L112",
+      "source_location": "L120",
       "weight": 1.0,
       "_src": "device_androidtvremote_nativeremoteclient",
       "_tgt": "device_androidtvremote_nativeremoteclient_constructor",
@@ -5459,7 +5016,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L117",
+      "source_location": "L125",
       "weight": 1.0,
       "_src": "device_androidtvremote_nativeremoteclient",
       "_tgt": "device_androidtvremote_nativeremoteclient_snapshot",
@@ -5471,7 +5028,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L121",
+      "source_location": "L129",
       "weight": 1.0,
       "_src": "device_androidtvremote_nativeremoteclient",
       "_tgt": "device_androidtvremote_nativeremoteclient_isconnected",
@@ -5483,7 +5040,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L125",
+      "source_location": "L133",
       "weight": 1.0,
       "_src": "device_androidtvremote_nativeremoteclient",
       "_tgt": "device_androidtvremote_nativeremoteclient_connect",
@@ -5495,7 +5052,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L202",
+      "source_location": "L239",
       "weight": 1.0,
       "_src": "device_androidtvremote_nativeremoteclient",
       "_tgt": "device_androidtvremote_nativeremoteclient_disconnect",
@@ -5507,7 +5064,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L214",
+      "source_location": "L252",
       "weight": 1.0,
       "_src": "device_androidtvremote_nativeremoteclient",
       "_tgt": "device_androidtvremote_nativeremoteclient_sendcommand",
@@ -5519,7 +5076,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L228",
+      "source_location": "L266",
       "weight": 1.0,
       "_src": "device_androidtvremote_nativeremoteclient",
       "_tgt": "device_androidtvremote_nativeremoteclient_sendtext",
@@ -5531,7 +5088,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L240",
+      "source_location": "L278",
       "weight": 1.0,
       "_src": "device_androidtvremote_nativeremoteclient",
       "_tgt": "device_androidtvremote_nativeremoteclient_getsocket",
@@ -5543,7 +5100,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L248",
+      "source_location": "L286",
       "weight": 1.0,
       "_src": "device_androidtvremote_nativeremoteclient",
       "_tgt": "device_androidtvremote_nativeremoteclient_flushbuffer",
@@ -5555,7 +5112,19 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L256",
+      "source_location": "L298",
+      "weight": 1.0,
+      "_src": "device_androidtvremote_nativeremoteclient",
+      "_tgt": "device_androidtvremote_nativeremoteclient_readnextframe",
+      "source": "device_androidtvremote_nativeremoteclient",
+      "target": "device_androidtvremote_nativeremoteclient_readnextframe",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/main/device/androidTvRemote.ts",
+      "source_location": "L330",
       "weight": 1.0,
       "_src": "device_androidtvremote_nativeremoteclient",
       "_tgt": "device_androidtvremote_nativeremoteclient_handlemessage",
@@ -5567,7 +5136,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L100",
+      "source_location": "L103",
       "weight": 1.0,
       "_src": "src_main_device_androidtvremote_ts",
       "_tgt": "device_androidtvremote_nativeremoteclient",
@@ -5579,7 +5148,19 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L215",
+      "source_location": "L147",
+      "weight": 1.0,
+      "_src": "device_androidtvremote_nativeremoteclient_connect",
+      "_tgt": "device_androidtvremote_androidtvremotebridge_disconnect",
+      "source": "device_androidtvremote_nativeremoteclient_connect",
+      "target": "device_androidtvremote_androidtvremotebridge_disconnect",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/main/device/androidTvRemote.ts",
+      "source_location": "L253",
       "weight": 1.0,
       "_src": "device_androidtvremote_nativeremoteclient_sendcommand",
       "_tgt": "device_androidtvremote_nativeremoteclient_getsocket",
@@ -5603,7 +5184,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L234",
+      "source_location": "L272",
       "weight": 1.0,
       "_src": "device_androidtvremote_nativeremoteclient_sendtext",
       "_tgt": "device_androidtvremote_nativeremoteclient_getsocket",
@@ -5627,7 +5208,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L273",
+      "source_location": "L347",
       "weight": 1.0,
       "_src": "device_androidtvremote_nativeremoteclient_handlemessage",
       "_tgt": "device_androidtvremote_nativeremoteclient_getsocket",
@@ -5639,7 +5220,19 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L251",
+      "source_location": "L288",
+      "weight": 1.0,
+      "_src": "device_androidtvremote_nativeremoteclient_flushbuffer",
+      "_tgt": "device_androidtvremote_nativeremoteclient_readnextframe",
+      "source": "device_androidtvremote_nativeremoteclient_flushbuffer",
+      "target": "device_androidtvremote_nativeremoteclient_readnextframe",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/main/device/androidTvRemote.ts",
+      "source_location": "L294",
       "weight": 1.0,
       "_src": "device_androidtvremote_nativeremoteclient_flushbuffer",
       "_tgt": "device_androidtvremote_nativeremoteclient_handlemessage",
@@ -5699,7 +5292,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L308",
+      "source_location": "L384",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge",
       "_tgt": "device_androidtvremote_androidtvremotebridge_getstatedir",
@@ -5711,7 +5304,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L312",
+      "source_location": "L388",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge",
       "_tgt": "device_androidtvremote_androidtvremotebridge_getfilesforcertkey",
@@ -5723,7 +5316,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L323",
+      "source_location": "L399",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge",
       "_tgt": "device_androidtvremote_androidtvremotebridge_getfilesforhost",
@@ -5735,7 +5328,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L331",
+      "source_location": "L407",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge",
       "_tgt": "device_androidtvremote_androidtvremotebridge_migratecerts",
@@ -5747,7 +5340,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L365",
+      "source_location": "L441",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge",
       "_tgt": "device_androidtvremote_androidtvremotebridge_loadorcreatecerts",
@@ -5759,7 +5352,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L387",
+      "source_location": "L463",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge",
       "_tgt": "device_androidtvremote_androidtvremotebridge_clearpersistedhoststate",
@@ -5771,7 +5364,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L392",
+      "source_location": "L468",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge",
       "_tgt": "device_androidtvremote_androidtvremotebridge_clearhostsession",
@@ -5783,7 +5376,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L408",
+      "source_location": "L484",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge",
       "_tgt": "device_androidtvremote_androidtvremotebridge_getsession",
@@ -5795,7 +5388,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L426",
+      "source_location": "L502",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge",
       "_tgt": "device_androidtvremote_androidtvremotebridge_startpairing",
@@ -5807,7 +5400,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L467",
+      "source_location": "L543",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge",
       "_tgt": "device_androidtvremote_androidtvremotebridge_finishpairing",
@@ -5819,7 +5412,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L487",
+      "source_location": "L563",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge",
       "_tgt": "device_androidtvremote_androidtvremotebridge_connect",
@@ -5831,7 +5424,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L511",
+      "source_location": "L587",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge",
       "_tgt": "device_androidtvremote_androidtvremotebridge_disconnect",
@@ -5843,7 +5436,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L519",
+      "source_location": "L595",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge",
       "_tgt": "device_androidtvremote_androidtvremotebridge_reset",
@@ -5855,7 +5448,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L532",
+      "source_location": "L608",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge",
       "_tgt": "device_androidtvremote_androidtvremotebridge_sendcommand",
@@ -5867,7 +5460,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L565",
+      "source_location": "L641",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge",
       "_tgt": "device_androidtvremote_androidtvremotebridge_sendtext",
@@ -5879,7 +5472,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L305",
+      "source_location": "L381",
       "weight": 1.0,
       "_src": "src_main_device_androidtvremote_ts",
       "_tgt": "device_androidtvremote_androidtvremotebridge",
@@ -5891,7 +5484,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L314",
+      "source_location": "L390",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge_getfilesforcertkey",
       "_tgt": "device_androidtvremote_androidtvremotebridge_getstatedir",
@@ -5903,7 +5496,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L350",
+      "source_location": "L426",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge_migratecerts",
       "_tgt": "device_androidtvremote_androidtvremotebridge_getstatedir",
@@ -5915,7 +5508,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L377",
+      "source_location": "L453",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge_loadorcreatecerts",
       "_tgt": "device_androidtvremote_androidtvremotebridge_getstatedir",
@@ -5927,7 +5520,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L529",
+      "source_location": "L605",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge_reset",
       "_tgt": "device_androidtvremote_androidtvremotebridge_getstatedir",
@@ -5939,7 +5532,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L324",
+      "source_location": "L400",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge_getfilesforhost",
       "_tgt": "device_androidtvremote_androidtvremotebridge_getfilesforcertkey",
@@ -5951,7 +5544,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L332",
+      "source_location": "L408",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge_migratecerts",
       "_tgt": "device_androidtvremote_androidtvremotebridge_getfilesforcertkey",
@@ -5963,7 +5556,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L366",
+      "source_location": "L442",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge_loadorcreatecerts",
       "_tgt": "device_androidtvremote_androidtvremotebridge_getfilesforcertkey",
@@ -5975,7 +5568,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L388",
+      "source_location": "L464",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge_clearpersistedhoststate",
       "_tgt": "device_androidtvremote_androidtvremotebridge_getfilesforcertkey",
@@ -5987,7 +5580,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L420",
+      "source_location": "L496",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge_getsession",
       "_tgt": "device_androidtvremote_androidtvremotebridge_loadorcreatecerts",
@@ -6011,7 +5604,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L404",
+      "source_location": "L480",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge_clearhostsession",
       "_tgt": "device_androidtvremote_androidtvremotebridge_clearpersistedhoststate",
@@ -6023,7 +5616,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L400",
+      "source_location": "L476",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge_clearhostsession",
       "_tgt": "device_androidtvremote_androidtvremotebridge_disconnect",
@@ -6035,7 +5628,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L475",
+      "source_location": "L551",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge_finishpairing",
       "_tgt": "device_androidtvremote_androidtvremotebridge_clearhostsession",
@@ -6047,7 +5640,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L496",
+      "source_location": "L572",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge_connect",
       "_tgt": "device_androidtvremote_androidtvremotebridge_clearhostsession",
@@ -6059,7 +5652,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L427",
+      "source_location": "L503",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge_startpairing",
       "_tgt": "device_androidtvremote_androidtvremotebridge_getsession",
@@ -6071,7 +5664,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L468",
+      "source_location": "L544",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge_finishpairing",
       "_tgt": "device_androidtvremote_androidtvremotebridge_getsession",
@@ -6083,7 +5676,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L488",
+      "source_location": "L564",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge_connect",
       "_tgt": "device_androidtvremote_androidtvremotebridge_getsession",
@@ -6095,7 +5688,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L537",
+      "source_location": "L613",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge_sendcommand",
       "_tgt": "device_androidtvremote_androidtvremotebridge_getsession",
@@ -6107,7 +5700,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L566",
+      "source_location": "L642",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge_sendtext",
       "_tgt": "device_androidtvremote_androidtvremotebridge_getsession",
@@ -6119,7 +5712,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L543",
+      "source_location": "L619",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge_sendcommand",
       "_tgt": "device_androidtvremote_androidtvremotebridge_connect",
@@ -6131,7 +5724,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L569",
+      "source_location": "L645",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge_sendtext",
       "_tgt": "device_androidtvremote_androidtvremotebridge_connect",
@@ -6143,7 +5736,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/main/device/androidTvRemote.ts",
-      "source_location": "L521",
+      "source_location": "L597",
       "weight": 1.0,
       "_src": "device_androidtvremote_androidtvremotebridge_reset",
       "_tgt": "device_androidtvremote_androidtvremotebridge_disconnect",
@@ -7847,7 +7440,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L715",
+      "source_location": "L708",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_handleconnect",
@@ -7859,7 +7452,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L740",
+      "source_location": "L727",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_handledisconnect",
@@ -7871,7 +7464,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L760",
+      "source_location": "L747",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_createcommandrequest",
@@ -7883,7 +7476,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L772",
+      "source_location": "L759",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_recordqueuedcommanddrop",
@@ -7895,7 +7488,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L781",
+      "source_location": "L768",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_enqueuecommand",
@@ -7907,7 +7500,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L809",
+      "source_location": "L796",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_flushqueuedcommands",
@@ -7919,7 +7512,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L852",
+      "source_location": "L839",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_handlecommand",
@@ -7931,7 +7524,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L858",
+      "source_location": "L845",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_handlesendtext",
@@ -7943,7 +7536,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L889",
+      "source_location": "L876",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_handleremove",
@@ -7955,7 +7548,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L911",
+      "source_location": "L898",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_handleresetstate",
@@ -7967,7 +7560,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L947",
+      "source_location": "L934",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_opendevicepicker",
@@ -7979,7 +7572,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L954",
+      "source_location": "L941",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_renderstatuslabel",
@@ -8063,7 +7656,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L718",
+      "source_location": "L711",
       "weight": 1.0,
       "_src": "renderer_app_handleconnect",
       "_tgt": "renderer_app_getdesktopapi",
@@ -8075,7 +7668,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L743",
+      "source_location": "L730",
       "weight": 1.0,
       "_src": "renderer_app_handledisconnect",
       "_tgt": "renderer_app_getdesktopapi",
@@ -8087,7 +7680,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L773",
+      "source_location": "L760",
       "weight": 1.0,
       "_src": "renderer_app_recordqueuedcommanddrop",
       "_tgt": "renderer_app_getdesktopapi",
@@ -8099,7 +7692,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L827",
+      "source_location": "L814",
       "weight": 1.0,
       "_src": "renderer_app_flushqueuedcommands",
       "_tgt": "renderer_app_getdesktopapi",
@@ -8111,7 +7704,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L865",
+      "source_location": "L852",
       "weight": 1.0,
       "_src": "renderer_app_handlesendtext",
       "_tgt": "renderer_app_getdesktopapi",
@@ -8123,7 +7716,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L892",
+      "source_location": "L879",
       "weight": 1.0,
       "_src": "renderer_app_handleremove",
       "_tgt": "renderer_app_getdesktopapi",
@@ -8135,7 +7728,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L921",
+      "source_location": "L908",
       "weight": 1.0,
       "_src": "renderer_app_handleresetstate",
       "_tgt": "renderer_app_getdesktopapi",
@@ -8159,7 +7752,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L697",
+      "source_location": "L690",
       "weight": 1.0,
       "_src": "renderer_app_handlepair",
       "_tgt": "renderer_app_shouldrestartpairingflow",
@@ -8183,60 +7776,12 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L689",
-      "weight": 1.0,
-      "_src": "renderer_app_handlepair",
-      "_tgt": "renderer_app_refreshstate",
-      "source": "renderer_app_refreshstate",
-      "target": "renderer_app_handlepair",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "L720",
-      "weight": 1.0,
-      "_src": "renderer_app_handleconnect",
-      "_tgt": "renderer_app_refreshstate",
-      "source": "renderer_app_refreshstate",
-      "target": "renderer_app_handleconnect",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "src/renderer/App.tsx",
       "source_location": "L506",
       "weight": 1.0,
       "_src": "renderer_app_initialize",
       "_tgt": "renderer_app_handlescandevices",
       "source": "renderer_app_handlescandevices",
       "target": "renderer_app_initialize",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "L690",
-      "weight": 1.0,
-      "_src": "renderer_app_handlepair",
-      "_tgt": "renderer_app_handlescandevices",
-      "source": "renderer_app_handlescandevices",
-      "target": "renderer_app_handlepair",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "L721",
-      "weight": 1.0,
-      "_src": "renderer_app_handleconnect",
-      "_tgt": "renderer_app_handlescandevices",
-      "source": "renderer_app_handlescandevices",
-      "target": "renderer_app_handleconnect",
       "confidence_score": 1.0
     },
     {
@@ -8303,7 +7848,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L853",
+      "source_location": "L840",
       "weight": 1.0,
       "_src": "renderer_app_handlecommand",
       "_tgt": "renderer_app_createcommandrequest",
@@ -8315,7 +7860,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L783",
+      "source_location": "L770",
       "weight": 1.0,
       "_src": "renderer_app_enqueuecommand",
       "_tgt": "renderer_app_recordqueuedcommanddrop",
@@ -8327,7 +7872,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L806",
+      "source_location": "L793",
       "weight": 1.0,
       "_src": "renderer_app_enqueuecommand",
       "_tgt": "renderer_app_flushqueuedcommands",
@@ -8339,7 +7884,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L855",
+      "source_location": "L842",
       "weight": 1.0,
       "_src": "renderer_app_handlecommand",
       "_tgt": "renderer_app_enqueuecommand",
@@ -8348,724 +7893,16 @@
       "confidence_score": 1.0
     },
     {
-      "relation": "conceptually_related_to",
-      "confidence": "INFERRED",
-      "confidence_score": 0.85,
-      "source_file": "README.md",
-      "source_location": null,
-      "weight": 1.0,
-      "_src": "readme_pairing_protocol",
-      "_tgt": "app_handlepair",
-      "source": "readme_pairing_protocol",
-      "target": "app_handlepair"
-    },
-    {
-      "relation": "conceptually_related_to",
-      "confidence": "INFERRED",
-      "confidence_score": 0.85,
-      "source_file": "README.md",
-      "source_location": null,
-      "weight": 1.0,
-      "_src": "readme_pairing_protocol",
-      "_tgt": "app_startpairingflow",
-      "source": "readme_pairing_protocol",
-      "target": "app_startpairingflow"
-    },
-    {
       "relation": "semantically_similar_to",
       "confidence": "INFERRED",
       "confidence_score": 0.75,
       "source_file": "scripts/reset-app-state.mjs",
       "source_location": null,
       "weight": 1.0,
-      "_src": "reset_script_androidtvremote_dir",
-      "_tgt": "readme_pairing_protocol",
+      "_src": "readme_pairing_protocol",
+      "_tgt": "reset_script_androidtvremote_dir",
       "source": "readme_pairing_protocol",
       "target": "reset_script_androidtvremote_dir"
-    },
-    {
-      "relation": "conceptually_related_to",
-      "confidence": "INFERRED",
-      "confidence_score": 0.95,
-      "source_file": "README.md",
-      "source_location": null,
-      "weight": 1.0,
-      "_src": "readme_keyboard_control",
-      "_tgt": "app_keyboardcommandmap",
-      "source": "readme_keyboard_control",
-      "target": "app_keyboardcommandmap"
-    },
-    {
-      "relation": "conceptually_related_to",
-      "confidence": "INFERRED",
-      "confidence_score": 0.85,
-      "source_file": "README.md",
-      "source_location": null,
-      "weight": 1.0,
-      "_src": "readme_keyboard_control",
-      "_tgt": "app_handlecommand",
-      "source": "readme_keyboard_control",
-      "target": "app_handlecommand"
-    },
-    {
-      "relation": "conceptually_related_to",
-      "confidence": "INFERRED",
-      "confidence_score": 0.85,
-      "source_file": "README.md",
-      "source_location": null,
-      "weight": 1.0,
-      "_src": "readme_mac_address_tracking",
-      "_tgt": "app_finddiscoveredforsaved",
-      "source": "readme_mac_address_tracking",
-      "target": "app_finddiscoveredforsaved"
-    },
-    {
-      "relation": "conceptually_related_to",
-      "confidence": "INFERRED",
-      "confidence_score": 0.7,
-      "source_file": "DEVELOPMENT.md",
-      "source_location": null,
-      "weight": 1.0,
-      "_src": "development_debug_telemetry",
-      "_tgt": "app_recordqueuedcommanddrop",
-      "source": "development_debug_telemetry",
-      "target": "app_recordqueuedcommanddrop"
-    },
-    {
-      "relation": "conceptually_related_to",
-      "confidence": "INFERRED",
-      "confidence_score": 0.95,
-      "source_file": "DEVELOPMENT.md",
-      "source_location": null,
-      "weight": 1.0,
-      "_src": "development_command_queue",
-      "_tgt": "app_enqueuecommand",
-      "source": "development_command_queue",
-      "target": "app_enqueuecommand"
-    },
-    {
-      "relation": "conceptually_related_to",
-      "confidence": "INFERRED",
-      "confidence_score": 0.95,
-      "source_file": "DEVELOPMENT.md",
-      "source_location": null,
-      "weight": 1.0,
-      "_src": "development_command_queue",
-      "_tgt": "app_flushqueuedcommands",
-      "source": "development_command_queue",
-      "target": "app_flushqueuedcommands"
-    },
-    {
-      "relation": "conceptually_related_to",
-      "confidence": "INFERRED",
-      "confidence_score": 0.95,
-      "source_file": "DEVELOPMENT.md",
-      "source_location": null,
-      "weight": 1.0,
-      "_src": "development_command_queue",
-      "_tgt": "app_max_queued_commands",
-      "source": "development_command_queue",
-      "target": "app_max_queued_commands"
-    },
-    {
-      "relation": "references",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "DEVELOPMENT.md",
-      "source_location": "64",
-      "weight": 1.0,
-      "_src": "development_reset_app",
-      "_tgt": "reset_script_main",
-      "source": "development_reset_app",
-      "target": "reset_script_main"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "scripts/reset-app-state.mjs",
-      "source_location": "53",
-      "weight": 1.0,
-      "_src": "reset_script_main",
-      "_tgt": "reset_script_getresettargets",
-      "source": "reset_script_main",
-      "target": "reset_script_getresettargets"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "scripts/reset-app-state.mjs",
-      "source_location": "54",
-      "weight": 1.0,
-      "_src": "reset_script_main",
-      "_tgt": "reset_script_removetarget",
-      "source": "reset_script_main",
-      "target": "reset_script_removetarget"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "scripts/reset-app-state.mjs",
-      "source_location": "19",
-      "weight": 1.0,
-      "_src": "reset_script_getresettargets",
-      "_tgt": "reset_script_getappdataroot",
-      "source": "reset_script_getappdataroot",
-      "target": "reset_script_getresettargets"
-    },
-    {
-      "relation": "references",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "scripts/reset-app-state.mjs",
-      "source_location": "24",
-      "weight": 1.0,
-      "_src": "reset_script_getresettargets",
-      "_tgt": "reset_script_devices_json",
-      "source": "reset_script_getresettargets",
-      "target": "reset_script_devices_json"
-    },
-    {
-      "relation": "references",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "scripts/reset-app-state.mjs",
-      "source_location": "24",
-      "weight": 1.0,
-      "_src": "reset_script_getresettargets",
-      "_tgt": "reset_script_androidtvremote_dir",
-      "source": "reset_script_getresettargets",
-      "target": "reset_script_androidtvremote_dir"
-    },
-    {
-      "relation": "semantically_similar_to",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "scripts/reset-app-state.mjs",
-      "source_location": null,
-      "weight": 1.0,
-      "_src": "reset_script_devices_json",
-      "_tgt": "app_saveddevice",
-      "source": "reset_script_devices_json",
-      "target": "app_saveddevice"
-    },
-    {
-      "relation": "references",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/main.tsx",
-      "source_location": "4",
-      "weight": 1.0,
-      "_src": "main_tsx",
-      "_tgt": "app_component",
-      "source": "app_component",
-      "target": "main_tsx"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "365",
-      "weight": 1.0,
-      "_src": "app_component",
-      "_tgt": "app_finddiscoveredforsaved",
-      "source": "app_component",
-      "target": "app_finddiscoveredforsaved"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "506",
-      "weight": 1.0,
-      "_src": "app_component",
-      "_tgt": "app_handlescandevices",
-      "source": "app_component",
-      "target": "app_handlescandevices"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "499",
-      "weight": 1.0,
-      "_src": "app_component",
-      "_tgt": "app_refreshstate",
-      "source": "app_component",
-      "target": "app_refreshstate"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "558",
-      "weight": 1.0,
-      "_src": "app_component",
-      "_tgt": "app_handlecommand",
-      "source": "app_component",
-      "target": "app_handlecommand"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "548",
-      "weight": 1.0,
-      "_src": "app_component",
-      "_tgt": "app_iseditabletarget",
-      "source": "app_component",
-      "target": "app_iseditabletarget"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "1175",
-      "weight": 1.0,
-      "_src": "app_component",
-      "_tgt": "app_sanitizepaircode",
-      "source": "app_component",
-      "target": "app_sanitizepaircode"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "977",
-      "weight": 1.0,
-      "_src": "app_component",
-      "_tgt": "app_icon",
-      "source": "app_component",
-      "target": "app_icon"
-    },
-    {
-      "relation": "references",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "552",
-      "weight": 1.0,
-      "_src": "app_component",
-      "_tgt": "app_keyboardcommandmap",
-      "source": "app_component",
-      "target": "app_keyboardcommandmap"
-    },
-    {
-      "relation": "shares_data_with",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "317",
-      "weight": 1.0,
-      "_src": "app_component",
-      "_tgt": "app_bootstrapstate",
-      "source": "app_component",
-      "target": "app_bootstrapstate"
-    },
-    {
-      "relation": "shares_data_with",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "48",
-      "weight": 1.0,
-      "_src": "app_component",
-      "_tgt": "app_commanddispatchrequest",
-      "source": "app_component",
-      "target": "app_commanddispatchrequest"
-    },
-    {
-      "relation": "shares_data_with",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "330",
-      "weight": 1.0,
-      "_src": "app_component",
-      "_tgt": "app_devicecapabilities",
-      "source": "app_component",
-      "target": "app_devicecapabilities"
-    },
-    {
-      "relation": "shares_data_with",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "324",
-      "weight": 1.0,
-      "_src": "app_component",
-      "_tgt": "app_discovereddevice",
-      "source": "app_component",
-      "target": "app_discovereddevice"
-    },
-    {
-      "relation": "shares_data_with",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "360",
-      "weight": 1.0,
-      "_src": "app_component",
-      "_tgt": "app_saveddevice",
-      "source": "app_component",
-      "target": "app_saveddevice"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "827",
-      "weight": 1.0,
-      "_src": "app_flushqueuedcommands",
-      "_tgt": "app_getdesktopapi",
-      "source": "app_getdesktopapi",
-      "target": "app_flushqueuedcommands"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "773",
-      "weight": 1.0,
-      "_src": "app_recordqueuedcommanddrop",
-      "_tgt": "app_getdesktopapi",
-      "source": "app_getdesktopapi",
-      "target": "app_recordqueuedcommanddrop"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "436",
-      "weight": 1.0,
-      "_src": "app_refreshstate",
-      "_tgt": "app_getdesktopapi",
-      "source": "app_getdesktopapi",
-      "target": "app_refreshstate"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "448",
-      "weight": 1.0,
-      "_src": "app_handlescandevices",
-      "_tgt": "app_getdesktopapi",
-      "source": "app_getdesktopapi",
-      "target": "app_handlescandevices"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "595",
-      "weight": 1.0,
-      "_src": "app_startpairingflow",
-      "_tgt": "app_getdesktopapi",
-      "source": "app_getdesktopapi",
-      "target": "app_startpairingflow"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "568",
-      "weight": 1.0,
-      "_src": "app_savedevice",
-      "_tgt": "app_getdesktopapi",
-      "source": "app_getdesktopapi",
-      "target": "app_savedevice"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "675",
-      "weight": 1.0,
-      "_src": "app_handlepair",
-      "_tgt": "app_getdesktopapi",
-      "source": "app_getdesktopapi",
-      "target": "app_handlepair"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "718",
-      "weight": 1.0,
-      "_src": "app_handleconnect",
-      "_tgt": "app_getdesktopapi",
-      "source": "app_getdesktopapi",
-      "target": "app_handleconnect"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "743",
-      "weight": 1.0,
-      "_src": "app_handledisconnect",
-      "_tgt": "app_getdesktopapi",
-      "source": "app_getdesktopapi",
-      "target": "app_handledisconnect"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "865",
-      "weight": 1.0,
-      "_src": "app_handlesendtext",
-      "_tgt": "app_getdesktopapi",
-      "source": "app_getdesktopapi",
-      "target": "app_handlesendtext"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "892",
-      "weight": 1.0,
-      "_src": "app_handleremove",
-      "_tgt": "app_getdesktopapi",
-      "source": "app_getdesktopapi",
-      "target": "app_handleremove"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "921",
-      "weight": 1.0,
-      "_src": "app_handleresetstate",
-      "_tgt": "app_getdesktopapi",
-      "source": "app_getdesktopapi",
-      "target": "app_handleresetstate"
-    },
-    {
-      "relation": "references",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "80",
-      "weight": 1.0,
-      "_src": "app_getdesktopapi",
-      "_tgt": "app_gtvremote_bridge",
-      "source": "app_getdesktopapi",
-      "target": "app_gtvremote_bridge"
-    },
-    {
-      "relation": "references",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "792",
-      "weight": 1.0,
-      "_src": "app_enqueuecommand",
-      "_tgt": "app_burstsensitivecommands",
-      "source": "app_burstsensitivecommands",
-      "target": "app_enqueuecommand"
-    },
-    {
-      "relation": "references",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "782",
-      "weight": 1.0,
-      "_src": "app_enqueuecommand",
-      "_tgt": "app_max_queued_commands",
-      "source": "app_max_queued_commands",
-      "target": "app_enqueuecommand"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "853",
-      "weight": 1.0,
-      "_src": "app_handlecommand",
-      "_tgt": "app_createcommandrequest",
-      "source": "app_handlecommand",
-      "target": "app_createcommandrequest"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "855",
-      "weight": 1.0,
-      "_src": "app_handlecommand",
-      "_tgt": "app_enqueuecommand",
-      "source": "app_handlecommand",
-      "target": "app_enqueuecommand"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "783",
-      "weight": 1.0,
-      "_src": "app_enqueuecommand",
-      "_tgt": "app_recordqueuedcommanddrop",
-      "source": "app_enqueuecommand",
-      "target": "app_recordqueuedcommanddrop"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "806",
-      "weight": 1.0,
-      "_src": "app_enqueuecommand",
-      "_tgt": "app_flushqueuedcommands",
-      "source": "app_enqueuecommand",
-      "target": "app_flushqueuedcommands"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "847",
-      "weight": 1.0,
-      "_src": "app_flushqueuedcommands",
-      "_tgt": "app_flushqueuedcommands",
-      "source": "app_flushqueuedcommands",
-      "target": "app_flushqueuedcommands"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "689",
-      "weight": 1.0,
-      "_src": "app_handlepair",
-      "_tgt": "app_refreshstate",
-      "source": "app_refreshstate",
-      "target": "app_handlepair"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "720",
-      "weight": 1.0,
-      "_src": "app_handleconnect",
-      "_tgt": "app_refreshstate",
-      "source": "app_refreshstate",
-      "target": "app_handleconnect"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "690",
-      "weight": 1.0,
-      "_src": "app_handlepair",
-      "_tgt": "app_handlescandevices",
-      "source": "app_handlescandevices",
-      "target": "app_handlepair"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "721",
-      "weight": 1.0,
-      "_src": "app_handleconnect",
-      "_tgt": "app_handlescandevices",
-      "source": "app_handlescandevices",
-      "target": "app_handleconnect"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "609",
-      "weight": 1.0,
-      "_src": "app_handlestartpairing",
-      "_tgt": "app_startpairingflow",
-      "source": "app_handlestartpairing",
-      "target": "app_startpairingflow"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "697",
-      "weight": 1.0,
-      "_src": "app_handlepair",
-      "_tgt": "app_shouldrestartpairingflow",
-      "source": "app_handlepair",
-      "target": "app_shouldrestartpairingflow"
-    },
-    {
-      "relation": "shares_data_with",
-      "confidence": "INFERRED",
-      "confidence_score": 0.9,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "351",
-      "weight": 1.0,
-      "_src": "app_finddiscoveredforsaved",
-      "_tgt": "app_discovereddevice",
-      "source": "app_finddiscoveredforsaved",
-      "target": "app_discovereddevice"
-    },
-    {
-      "relation": "shares_data_with",
-      "confidence": "INFERRED",
-      "confidence_score": 0.9,
-      "source_file": "src/renderer/App.tsx",
-      "source_location": "351",
-      "weight": 1.0,
-      "_src": "app_finddiscoveredforsaved",
-      "_tgt": "app_saveddevice",
-      "source": "app_finddiscoveredforsaved",
-      "target": "app_saveddevice"
-    },
-    {
-      "relation": "references",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "index.html",
-      "source_location": "13",
-      "weight": 1.0,
-      "_src": "index_html",
-      "_tgt": "main_tsx",
-      "source": "main_tsx",
-      "target": "index_html"
     },
     {
       "relation": "semantically_similar_to",
@@ -9158,8 +7995,8 @@
       "source_file": "assets/icons/gtv-remote-icon-512.png",
       "source_location": null,
       "weight": 1.0,
-      "_src": "gtv_remote_icon_512_icon",
-      "_tgt": "gtv_remote_icon_svg",
+      "_src": "gtv_remote_icon_svg",
+      "_tgt": "gtv_remote_icon_512_icon",
       "source": "gtv_remote_icon_svg",
       "target": "gtv_remote_icon_512_icon"
     }
