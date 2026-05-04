@@ -20,7 +20,12 @@
       {
         "id": "device_pairing_flow",
         "label": "Device Pairing Flow",
-        "nodes": ["app_savedevice", "app_startpairingflow", "app_handlepair", "app_handleconnect"],
+        "nodes": [
+          "app_savedevice",
+          "app_startpairingflow",
+          "app_handlepair",
+          "app_handleconnect"
+        ],
         "relation": "participate_in",
         "confidence": "INFERRED",
         "confidence_score": 0.85,
@@ -29,7 +34,11 @@
       {
         "id": "device_discovery_merge",
         "label": "Device Discovery and Merge (saved + discovered)",
-        "nodes": ["app_finddiscoveredforsaved", "app_saveddevice", "app_discovereddevice"],
+        "nodes": [
+          "app_finddiscoveredforsaved",
+          "app_saveddevice",
+          "app_discovereddevice"
+        ],
         "relation": "participate_in",
         "confidence": "INFERRED",
         "confidence_score": 0.88,
@@ -8019,7 +8028,12 @@
     {
       "id": "device_pairing_flow",
       "label": "Device Pairing Flow",
-      "nodes": ["app_savedevice", "app_startpairingflow", "app_handlepair", "app_handleconnect"],
+      "nodes": [
+        "app_savedevice",
+        "app_startpairingflow",
+        "app_handlepair",
+        "app_handleconnect"
+      ],
       "relation": "participate_in",
       "confidence": "INFERRED",
       "confidence_score": 0.85,
@@ -8028,7 +8042,11 @@
     {
       "id": "device_discovery_merge",
       "label": "Device Discovery and Merge (saved + discovered)",
-      "nodes": ["app_finddiscoveredforsaved", "app_saveddevice", "app_discovereddevice"],
+      "nodes": [
+        "app_finddiscoveredforsaved",
+        "app_saveddevice",
+        "app_discovereddevice"
+      ],
       "relation": "participate_in",
       "confidence": "INFERRED",
       "confidence_score": 0.88,
