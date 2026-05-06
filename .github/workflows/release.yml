@@ -126,3 +126,47 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx semantic-release
+
+      - name: Update Homebrew tap
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          TAP_REPOSITORY: ${{ vars.HOMEBREW_TAP_REPOSITORY || 'usrivastava92/homebrew-tap' }}
+          RELEASE_VERSION: ${{ needs.build-macos.outputs.next-version }}
+          SOURCE_REPOSITORY: ${{ github.repository }}
+        run: |
+          if [ -z "$HOMEBREW_TAP_TOKEN" ]; then
+            echo "HOMEBREW_TAP_TOKEN is not configured; skipping Homebrew tap update."
+            exit 0
+          fi
+
+          DMG_PATH=$(find dmg-artifacts -type f -name '*.dmg' | head -n 1)
+          if [ -z "$DMG_PATH" ]; then
+            echo "No DMG artifact found."
+            exit 1
+          fi
+
+          DMG_NAME=$(basename "$DMG_PATH")
+          DMG_SHA256=$(shasum -a 256 "$DMG_PATH" | awk '{print $1}')
+
+          git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/${TAP_REPOSITORY}.git" homebrew-tap
+          mkdir -p homebrew-tap/Casks
+
+          node scripts/render-homebrew-cask.mjs \
+            --version "$RELEASE_VERSION" \
+            --sha256 "$DMG_SHA256" \
+            --artifact-name "$DMG_NAME" \
+            --repository "$SOURCE_REPOSITORY" \
+            > homebrew-tap/Casks/gtv-desktop-remote.rb
+
+          cd homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Casks/gtv-desktop-remote.rb
+
+          if git diff --cached --quiet; then
+            echo "Homebrew cask is already up to date."
+            exit 0
+          fi
+
+          git commit -m "Update gtv-desktop-remote to ${RELEASE_VERSION}"
+          git push origin HEAD

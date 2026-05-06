@@ -53,7 +53,7 @@
       "source_file": "commitlint.config.ts",
       "source_location": "L1",
       "id": "commitlint_config_ts",
-      "community": 14,
+      "community": 15,
       "norm_label": "commitlint.config.ts"
     },
     {
@@ -62,7 +62,7 @@
       "source_file": "eslint.config.ts",
       "source_location": "L1",
       "id": "eslint_config_ts",
-      "community": 15,
+      "community": 16,
       "norm_label": "eslint.config.ts"
     },
     {
@@ -71,7 +71,7 @@
       "source_file": "tailwind.config.ts",
       "source_location": "L1",
       "id": "tailwind_config_ts",
-      "community": 16,
+      "community": 17,
       "norm_label": "tailwind.config.ts"
     },
     {
@@ -80,7 +80,7 @@
       "source_file": "vite.config.ts",
       "source_location": "L1",
       "id": "vite_config_ts",
-      "community": 17,
+      "community": 18,
       "norm_label": "vite.config.ts"
     },
     {
@@ -89,7 +89,7 @@
       "source_file": "dist-electron/shared/types.js",
       "source_location": "L1",
       "id": "dist_electron_shared_types_js",
-      "community": 18,
+      "community": 19,
       "norm_label": "types.js"
     },
     {
@@ -98,7 +98,7 @@
       "source_file": "dist-electron/main/preload.js",
       "source_location": "L1",
       "id": "dist_electron_main_preload_js",
-      "community": 19,
+      "community": 20,
       "norm_label": "preload.js"
     },
     {
@@ -1632,12 +1632,57 @@
       "norm_label": ".sendcode()"
     },
     {
+      "label": "render-homebrew-cask.mjs",
+      "file_type": "code",
+      "source_file": "scripts/render-homebrew-cask.mjs",
+      "source_location": "L1",
+      "id": "scripts_render_homebrew_cask_mjs",
+      "community": 12,
+      "norm_label": "render-homebrew-cask.mjs"
+    },
+    {
+      "label": "parseArgs()",
+      "file_type": "code",
+      "source_file": "scripts/render-homebrew-cask.mjs",
+      "source_location": "L7",
+      "id": "scripts_render_homebrew_cask_parseargs",
+      "community": 12,
+      "norm_label": "parseargs()"
+    },
+    {
+      "label": "requireArg()",
+      "file_type": "code",
+      "source_file": "scripts/render-homebrew-cask.mjs",
+      "source_location": "L31",
+      "id": "scripts_render_homebrew_cask_requirearg",
+      "community": 12,
+      "norm_label": "requirearg()"
+    },
+    {
+      "label": "releaseAssetUrl()",
+      "file_type": "code",
+      "source_file": "scripts/render-homebrew-cask.mjs",
+      "source_location": "L39",
+      "id": "scripts_render_homebrew_cask_releaseasseturl",
+      "community": 12,
+      "norm_label": "releaseasseturl()"
+    },
+    {
+      "label": "renderCask()",
+      "file_type": "code",
+      "source_file": "scripts/render-homebrew-cask.mjs",
+      "source_location": "L44",
+      "id": "scripts_render_homebrew_cask_rendercask",
+      "community": 12,
+      "norm_label": "rendercask()"
+    },
+    {
       "label": "reset-app-state.mjs",
       "file_type": "code",
       "source_file": "scripts/reset-app-state.mjs",
       "source_location": "L1",
       "id": "scripts_reset_app_state_mjs",
-      "community": 12,
+      "community": 13,
       "norm_label": "reset-app-state.mjs"
     },
     {
@@ -1646,7 +1691,7 @@
       "source_file": "scripts/reset-app-state.mjs",
       "source_location": "L7",
       "id": "scripts_reset_app_state_getappdataroot",
-      "community": 12,
+      "community": 13,
       "norm_label": "getappdataroot()"
     },
     {
@@ -1655,7 +1700,7 @@
       "source_file": "scripts/reset-app-state.mjs",
       "source_location": "L18",
       "id": "scripts_reset_app_state_getresettargets",
-      "community": 12,
+      "community": 13,
       "norm_label": "getresettargets()"
     },
     {
@@ -1664,7 +1709,7 @@
       "source_file": "scripts/reset-app-state.mjs",
       "source_location": "L28",
       "id": "scripts_reset_app_state_removetarget",
-      "community": 12,
+      "community": 13,
       "norm_label": "removetarget()"
     },
     {
@@ -1673,7 +1718,7 @@
       "source_file": "scripts/reset-app-state.mjs",
       "source_location": "L51",
       "id": "scripts_reset_app_state_main",
-      "community": 12,
+      "community": 13,
       "norm_label": "main()"
     },
     {
@@ -1952,7 +1997,7 @@
       "source_file": "src/renderer/main.tsx",
       "source_location": "L1",
       "id": "src_renderer_main_tsx",
-      "community": 20,
+      "community": 21,
       "norm_label": "main.tsx"
     },
     {
@@ -1961,7 +2006,7 @@
       "source_file": "src/renderer/vite-env.d.ts",
       "source_location": "L1",
       "id": "src_renderer_vite_env_d_ts",
-      "community": 21,
+      "community": 22,
       "norm_label": "vite-env.d.ts"
     },
     {
@@ -1970,7 +2015,7 @@
       "source_file": "src/shared/types.ts",
       "source_location": "L1",
       "id": "src_shared_types_ts",
-      "community": 22,
+      "community": 23,
       "norm_label": "types.ts"
     },
     {
@@ -2006,7 +2051,7 @@
       "source_file": "src/main/preload.ts",
       "source_location": "L1",
       "id": "src_main_preload_ts",
-      "community": 23,
+      "community": 24,
       "norm_label": "preload.ts"
     },
     {
@@ -2090,7 +2135,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 24,
+      "community": 25,
       "norm_label": "gtv desktop remote",
       "id": "readme_gtv_desktop_remote"
     },
@@ -2103,7 +2148,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 25,
+      "community": 26,
       "norm_label": "network scan",
       "id": "readme_network_scan"
     },
@@ -2116,7 +2161,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 14,
       "norm_label": "encrypted pairing protocol",
       "id": "readme_pairing_protocol"
     },
@@ -2129,7 +2174,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 26,
+      "community": 27,
       "norm_label": "keyboard control",
       "id": "readme_keyboard_control"
     },
@@ -2142,7 +2187,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 27,
+      "community": 28,
       "norm_label": "global shortcut cmdorctrl+shift+g",
       "id": "readme_global_shortcut"
     },
@@ -2155,7 +2200,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 28,
+      "community": 29,
       "norm_label": "mac address device tracking",
       "id": "readme_mac_address_tracking"
     },
@@ -2168,7 +2213,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 29,
+      "community": 30,
       "norm_label": "menubar app",
       "id": "readme_menubar_app"
     },
@@ -2181,7 +2226,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 30,
+      "community": 31,
       "norm_label": "debug telemetry",
       "id": "development_debug_telemetry"
     },
@@ -2194,7 +2239,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 31,
+      "community": 32,
       "norm_label": "bounded command queue",
       "id": "development_command_queue"
     },
@@ -2207,7 +2252,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 32,
+      "community": 33,
       "norm_label": "electron-builder packaging",
       "id": "development_electron_builder"
     },
@@ -2220,7 +2265,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 33,
+      "community": 34,
       "norm_label": "reset app state script",
       "id": "development_reset_app"
     },
@@ -2233,7 +2278,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 34,
+      "community": 35,
       "norm_label": "devices.json (saved devices file)",
       "id": "reset_script_devices_json"
     },
@@ -2246,7 +2291,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 14,
       "norm_label": "androidtvremote (pairing certs dir)",
       "id": "reset_script_androidtvremote_dir"
     },
@@ -2259,7 +2304,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 35,
+      "community": 36,
       "norm_label": "graphify knowledge graph config",
       "id": "agents_graphify"
     },
@@ -7155,6 +7200,66 @@
       "_tgt": "protocol_pairingprotocol_pairingmanager",
       "source": "protocol_pairingprotocol_pairingmanager",
       "target": "src_main_device_protocol_pairingprotocol_ts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/render-homebrew-cask.mjs",
+      "source_location": "L7",
+      "weight": 1.0,
+      "_src": "scripts_render_homebrew_cask_mjs",
+      "_tgt": "scripts_render_homebrew_cask_parseargs",
+      "source": "scripts_render_homebrew_cask_mjs",
+      "target": "scripts_render_homebrew_cask_parseargs",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/render-homebrew-cask.mjs",
+      "source_location": "L31",
+      "weight": 1.0,
+      "_src": "scripts_render_homebrew_cask_mjs",
+      "_tgt": "scripts_render_homebrew_cask_requirearg",
+      "source": "scripts_render_homebrew_cask_mjs",
+      "target": "scripts_render_homebrew_cask_requirearg",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/render-homebrew-cask.mjs",
+      "source_location": "L39",
+      "weight": 1.0,
+      "_src": "scripts_render_homebrew_cask_mjs",
+      "_tgt": "scripts_render_homebrew_cask_releaseasseturl",
+      "source": "scripts_render_homebrew_cask_mjs",
+      "target": "scripts_render_homebrew_cask_releaseasseturl",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/render-homebrew-cask.mjs",
+      "source_location": "L44",
+      "weight": 1.0,
+      "_src": "scripts_render_homebrew_cask_mjs",
+      "_tgt": "scripts_render_homebrew_cask_rendercask",
+      "source": "scripts_render_homebrew_cask_mjs",
+      "target": "scripts_render_homebrew_cask_rendercask",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/render-homebrew-cask.mjs",
+      "source_location": "L49",
+      "weight": 1.0,
+      "_src": "scripts_render_homebrew_cask_rendercask",
+      "_tgt": "scripts_render_homebrew_cask_releaseasseturl",
+      "source": "scripts_render_homebrew_cask_releaseasseturl",
+      "target": "scripts_render_homebrew_cask_rendercask",
       "confidence_score": 1.0
     },
     {

@@ -16,6 +16,7 @@
     "build": "tsc -p tsconfig.electron.json && vite build",
     "pack": "npm run build && electron-builder --dir --publish never",
     "dist:mac": "npm run build && electron-builder --mac dmg zip --publish never",
+    "homebrew:cask": "node scripts/render-homebrew-cask.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.electron.json --noEmit",
     "reset:app": "node scripts/reset-app-state.mjs",
