@@ -537,7 +537,7 @@ function App() {
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (!bridgeReady || !isConnected) {
+      if (!bridgeReady || !isConnected || currentView !== 'remote') {
         return;
       }
 
@@ -562,7 +562,7 @@ function App() {
     return () => {
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, [bridgeReady, isConnected]);
+  }, [bridgeReady, isConnected, currentView]);
 
   async function saveDiscoveredDevice(device: DiscoveredDevice): Promise<SavedDevice> {
     const devices = await getDesktopApi().saveDevice({

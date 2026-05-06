@@ -37,6 +37,27 @@ GTV Desktop Remote lets you control any Google TV or Android TV device from your
 
 ---
 
+## Screenshots
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center" width="50%">
+        <img src="assets/screenshots/remote.png" alt="Connected remote controls screen" width="320" />
+        <br />
+        <sub><strong>Remote controls</strong></sub>
+      </td>
+      <td align="center" width="50%">
+        <img src="assets/screenshots/device-discovery.png" alt="Connected device management screen" width="320" />
+        <br />
+        <sub><strong>Device management</strong></sub>
+      </td>
+    </tr>
+  </table>
+</div>
+
+---
+
 ## Installation
 
 Download the latest `.dmg` from the [Releases](https://github.com/usrivastava92/gtv-desktop-remote/releases/latest) page, open it, and drag the app to your Applications folder.
