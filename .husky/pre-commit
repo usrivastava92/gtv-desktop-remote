@@ -1,1 +1,37 @@
 npx lint-staged
+
+# Keep the Graphify code graph in the same commit as code changes.
+# Graphify can generate extra local files; .gitignore controls what is allowed into Git.
+GIT_DIR=$(git rev-parse --git-dir 2>/dev/null)
+[ -d "$GIT_DIR/rebase-merge" ] && exit 0
+[ -d "$GIT_DIR/rebase-apply" ] && exit 0
+[ -f "$GIT_DIR/MERGE_HEAD" ] && exit 0
+[ -f "$GIT_DIR/CHERRY_PICK_HEAD" ] && exit 0
+
+[ ! -d "graphify-out" ] && exit 0
+
+CHANGED=$(git diff --cached --name-only)
+[ -z "$CHANGED" ] && exit 0
+
+HAS_CODE=0
+for file in $CHANGED; do
+  case "$file" in
+    *.ts|*.tsx|*.js|*.jsx|*.mjs|*.cjs|*.mts|*.cts|*.py|*.java|*.go|*.rs|*.c|*.cc|*.cpp|*.h|*.hpp|*.cs|*.rb|*.php|*.swift|*.kt|*.kts|*.scala|*.sh|*.bash|*.zsh)
+      HAS_CODE=1
+      break
+      ;;
+  esac
+done
+
+[ "$HAS_CODE" = "0" ] && exit 0
+
+GRAPHIFY_BIN=$(command -v graphify 2>/dev/null)
+[ -z "$GRAPHIFY_BIN" ] && exit 0
+
+"$GRAPHIFY_BIN" update . || {
+  echo "[graphify hook] Rebuild failed; run 'graphify update .' manually."
+  exit 1
+}
+
+rm -f graphify-out/graph.html
+git add graphify-out
