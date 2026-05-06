@@ -1,12 +1,12 @@
 # Graph Report - gtv-desktop-remote  (2026-05-06)
 
 ## Corpus Check
-- 36 files · ~43,313 words
+- 36 files · ~43,613 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 272 nodes · 528 edges · 27 communities detected
-- Extraction: 88% EXTRACTED · 12% INFERRED · 0% AMBIGUOUS · INFERRED: 61 edges (avg confidence: 0.81)
+- 274 nodes · 533 edges · 27 communities detected
+- Extraction: 89% EXTRACTED · 11% INFERRED · 0% AMBIGUOUS · INFERRED: 61 edges (avg confidence: 0.81)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
@@ -40,9 +40,9 @@
 
 ## God Nodes (most connected - your core abstractions)
 1. `CommandMetricsStore` - 22 edges
-2. `AndroidTvRemoteBridge` - 20 edges
-3. `logInfo()` - 19 edges
-4. `GoogleTvAdapter` - 19 edges
+2. `AndroidTvRemoteBridge` - 21 edges
+3. `GoogleTvAdapter` - 20 edges
+4. `logInfo()` - 19 edges
 5. `NoopCommandMetricsStore` - 17 edges
 6. `NativeRemoteClient` - 16 edges
 7. `getDesktopApi()` - 16 edges
@@ -70,7 +70,7 @@
 ## Communities
 
 ### Community 0 - "Community 0"
-Cohesion: 0.14
+Cohesion: 0.13
 Nodes (14): getLegacyUserDataPaths(), GoogleTvAdapter, clearDeviceStore(), getDeviceStorePath(), getStorePath(), readDevices(), writeDevices(), getAppDataPath() (+6 more)
 
 ### Community 1 - "Community 1"
@@ -78,12 +78,12 @@ Cohesion: 0.11
 Nodes (28): clearAssistantLongPressTimer(), convertFloat32ToPcm16(), createCommandRequest(), downsampleTo8kMono(), enqueueCommand(), flushQueuedCommands(), getDesktopApi(), handleCommand() (+20 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.16
-Nodes (14): NativeRemoteClient, createImeBatchEditMessage(), createRemoteConfigure(), createRemoteKeyInject(), createRemoteKeyInjectRaw(), createRemoteMessage(), createRemotePingResponse(), createRemoteSetActive() (+6 more)
+Cohesion: 0.17
+Nodes (5): AndroidTvRemoteBridge, isCertificateRejectedError(), normalizeRemoteError(), toError(), generateCertificate()
 
 ### Community 3 - "Community 3"
-Cohesion: 0.18
-Nodes (5): AndroidTvRemoteBridge, isCertificateRejectedError(), normalizeRemoteError(), toError(), generateCertificate()
+Cohesion: 0.17
+Nodes (14): NativeRemoteClient, createImeBatchEditMessage(), createRemoteConfigure(), createRemoteKeyInject(), createRemoteKeyInjectRaw(), createRemoteMessage(), createRemotePingResponse(), createRemoteSetActive() (+6 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.21
@@ -214,8 +214,8 @@ Nodes (1): graphify knowledge graph config
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `logInfo()` connect `Community 0` to `Community 3`, `Community 4`, `Community 6`?**
-  _High betweenness centrality (0.259) - this node is a cross-community bridge._
+- **Why does `logInfo()` connect `Community 0` to `Community 2`, `Community 4`, `Community 6`?**
+  _High betweenness centrality (0.261) - this node is a cross-community bridge._
 - **Why does `CommandMetricsStore` connect `Community 4` to `Community 5`?**
   _High betweenness centrality (0.097) - this node is a cross-community bridge._
 - **Are the 16 inferred relationships involving `logInfo()` (e.g. with `bootstrapApp()` and `.logMetric()`) actually correct?**
@@ -223,7 +223,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `GTV Desktop Remote`, `Network Scan`, `Encrypted Pairing Protocol` to the rest of the system?**
   _17 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.14 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.13 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
   _Cohesion score 0.11 - nodes in this community are weakly interconnected._
 - **Should `Community 5` be split into smaller, more focused modules?**

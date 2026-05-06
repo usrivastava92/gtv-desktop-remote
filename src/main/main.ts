@@ -257,6 +257,9 @@ function registerIpc() {
   ipcMain.handle('device:assistantVoiceStop', async (_event, sessionId: number) =>
     adapter.stopAssistantVoice(sessionId)
   );
+  ipcMain.handle('device:assistantVoicePending', async () =>
+    adapter.hasPendingAssistantVoiceSession()
+  );
   ipcMain.handle('device:capabilities', async () => adapter.getCapabilities());
 }
 

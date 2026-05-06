@@ -338,12 +338,11 @@ function Icon({ name, className }: { name: IconName; className?: string }) {
       );
     case 'assistant':
       return (
-        <svg {...props}>
-          <path d="M12 4.5V8.8" />
-          <rect x="8.4" y="3.6" width="7.2" height="10.3" rx="3.6" />
-          <path d="M7.1 10.2V10.6C7.1 13.4 9.2 15.6 12 15.6C14.8 15.6 16.9 13.4 16.9 10.6V10.2" />
-          <path d="M12 15.6V19.5" />
-          <path d="M9 19.5H15" />
+        <svg className={className} viewBox="0 0 28 24" fill="none" aria-hidden>
+          <circle cx="8" cy="12" r="6" fill="#4285F4" />
+          <circle cx="16.4" cy="10.3" r="3.9" fill="#EA4335" />
+          <circle cx="16.4" cy="17" r="4.5" fill="#FBBC05" />
+          <circle cx="21.5" cy="7" r="2.1" fill="#34A853" />
         </svg>
       );
     case 'volumeUp':
@@ -402,7 +401,6 @@ function App() {
   const [assistantStatus, setAssistantStatus] = useState<'idle' | 'arming' | 'active' | 'error'>(
     'idle'
   );
-  const [assistantStatusText, setAssistantStatusText] = useState('Hold G to talk');
   const pairCodeInputRef = useRef<HTMLInputElement>(null);
   const commandQueueRef = useRef<QueuedCommandBatch[]>([]);
   const queuedCommandCountRef = useRef(0);
@@ -625,7 +623,6 @@ function App() {
 
     if (assistantStatus === 'arming') {
       setAssistantStatus('idle');
-      setAssistantStatusText('Hold G to talk');
     }
 
     if (!assistantActiveRef.current) {
@@ -634,7 +631,6 @@ function App() {
 
     assistantActiveRef.current = false;
     setAssistantStatus('idle');
-    setAssistantStatusText('Hold G to talk');
 
     const sessionId = assistantVoiceSessionIdRef.current;
     assistantVoiceSessionIdRef.current = null;
@@ -706,7 +702,6 @@ function App() {
 
     assistantActiveRef.current = true;
     setAssistantStatus('active');
-    setAssistantStatusText('Listening... release G to send');
 
     try {
       const sessionId = await getDesktopApi().startAssistantVoice();
@@ -779,7 +774,6 @@ function App() {
     } catch (error) {
       assistantActiveRef.current = false;
       setAssistantStatus('error');
-      setAssistantStatusText('Assistant mic start failed');
       setBootstrap((current) => ({
         ...current,
         deviceState: {
@@ -791,6 +785,60 @@ function App() {
       await stopAssistantSession();
     }
   }
+
+  useEffect(() => {
+    if (!bridgeReady || !isConnected || currentView !== 'remote' || assistantActiveRef.current) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      if (assistantActiveRef.current) {
+        return;
+      }
+
+      void getDesktopApi()
+        .hasPendingAssistantVoiceSession()
+        .then((pending) => {
+          if (pending && !assistantActiveRef.current) {
+            void startAssistantSession();
+          }
+        })
+        .catch(() => {
+          // Ignore polling failures and retry on next interval.
+        });
+    }, 300);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [bridgeReady, isConnected, currentView]);
+
+  useEffect(() => {
+    if (!bridgeReady || !isConnected || currentView !== 'remote') {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      if (!assistantActiveRef.current) {
+        return;
+      }
+
+      void getDesktopApi()
+        .hasPendingAssistantVoiceSession()
+        .then((pending) => {
+          if (!pending && assistantActiveRef.current) {
+            void stopAssistantSession();
+          }
+        })
+        .catch(() => {
+          // Ignore polling failures and retry on next interval.
+        });
+    }, 300);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [bridgeReady, isConnected, currentView]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -806,6 +854,18 @@ function App() {
         return;
       }
 
+      if (event.key === 'Enter' && assistantActiveRef.current) {
+        event.preventDefault();
+        void stopAssistantSession();
+        return;
+      }
+
+      if ((event.key === 'Escape' || event.key === 'Esc') && assistantActiveRef.current) {
+        event.preventDefault();
+        void stopAssistantSession();
+        return;
+      }
+
       if (event.key === 'g' || event.key === 'G') {
         event.preventDefault();
 
@@ -818,7 +878,6 @@ function App() {
         }
 
         setAssistantStatus('arming');
-        setAssistantStatusText('Hold G to activate assistant');
 
         assistantLongPressTimerRef.current = window.setTimeout(() => {
           assistantLongPressTimerRef.current = null;
@@ -1525,6 +1584,15 @@ function App() {
               </div>
             </section>
 
+            {assistantStatus === 'active' ? (
+              <div className="ui-assistant-wave" aria-label="Assistant listening">
+                <span className="ui-assistant-dot ui-assistant-dot-blue" />
+                <span className="ui-assistant-dot ui-assistant-dot-red" />
+                <span className="ui-assistant-dot ui-assistant-dot-yellow" />
+                <span className="ui-assistant-dot ui-assistant-dot-green" />
+              </div>
+            ) : null}
+
             <section className="ui-nav-well">
               <div className="ui-nav-grid">
                 <button
@@ -1605,15 +1673,6 @@ function App() {
             ) : null}
 
             <section className="ui-media-section">
-              <p
-                className={classes(
-                  'ui-assistant-status',
-                  assistantStatus === 'active' && 'ui-assistant-status-active',
-                  assistantStatus === 'error' && 'ui-assistant-status-error'
-                )}
-              >
-                {assistantStatusText}
-              </p>
               <div className="ui-media-grid">
                 <div className="ui-media-column">
                   <button
@@ -1675,7 +1734,7 @@ function App() {
                         void stopAssistantSession();
                       }}
                     >
-                      <Icon name="assistant" className="h-5 w-5" />
+                      <Icon name="assistant" className="h-10 w-10" />
                     </button>
                     <button
                       className="ui-media-button ui-media-danger"

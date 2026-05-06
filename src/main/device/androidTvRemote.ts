@@ -283,6 +283,12 @@ class NativeRemoteClient {
 
   async startVoiceSession(): Promise<number> {
     const socket = this.getSocket();
+    if (this.state.voiceSessionId) {
+      const existingSessionId = this.state.voiceSessionId;
+      socket.write(createRemoteVoiceBegin(existingSessionId));
+      return existingSessionId;
+    }
+
     this.state.voiceSessionId = undefined;
     const waitForVoiceBegin = () =>
       new Promise<number>((resolve, reject) => {
@@ -326,6 +332,9 @@ class NativeRemoteClient {
     const socket = this.getSocket();
     socket.write(createRemoteVoiceEnd(sessionId));
     socket.write(createRemoteKeyInjectRaw('KEYCODE_SEARCH', 'END_LONG'));
+    if (this.state.voiceSessionId === sessionId) {
+      this.state.voiceSessionId = undefined;
+    }
   }
 
   private getSocket(): TLSSocket {
@@ -390,6 +399,7 @@ class NativeRemoteClient {
     remoteImeKeyInject?: { appInfo?: { appPackage?: string } };
     remoteImeBatchEdit?: { fieldCounter?: number; imeCounter?: number };
     remoteVoiceBegin?: { sessionId?: number };
+    remoteVoiceEnd?: { sessionId?: number };
     remoteStart?: { started?: boolean };
   }): void {
     if (message.remoteConfigure) {
@@ -434,6 +444,11 @@ class NativeRemoteClient {
     if (message.remoteVoiceBegin?.sessionId) {
       this.state.voiceSessionId = message.remoteVoiceBegin.sessionId;
       this.getSocket().emit('remote-voice-begin', message.remoteVoiceBegin.sessionId);
+      return;
+    }
+
+    if (message.remoteVoiceEnd) {
+      this.state.voiceSessionId = undefined;
     }
   }
 }
@@ -730,6 +745,13 @@ class AndroidTvRemoteBridge {
     session.remoteClient ??= new NativeRemoteClient(host, session.certs);
     await session.remoteClient.connect();
     session.remoteClient.stopVoiceSession(sessionId);
+  }
+
+  async hasPendingAssistantVoiceSession(host: string, certKey?: string): Promise<boolean> {
+    const session = await this.getSession(host, certKey);
+    session.remoteClient ??= new NativeRemoteClient(host, session.certs);
+    await session.remoteClient.connect();
+    return Boolean(session.remoteClient.snapshot.voiceSessionId);
   }
 }
 

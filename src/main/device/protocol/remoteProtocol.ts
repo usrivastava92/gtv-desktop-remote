@@ -187,6 +187,7 @@ function decodeRemoteMessage(buffer: Buffer) {
     remoteImeKeyInject?: { appInfo?: { appPackage?: string } };
     remoteImeBatchEdit?: { fieldCounter?: number; imeCounter?: number };
     remoteVoiceBegin?: { sessionId?: number };
+    remoteVoiceEnd?: { sessionId?: number };
     remoteSetVolumeLevel?: { volumeLevel?: number; volumeMuted?: boolean };
     remoteStart?: { started?: boolean };
   };

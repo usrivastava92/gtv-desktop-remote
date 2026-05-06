@@ -181,6 +181,7 @@ export interface DeviceAdapter {
   startAssistantVoice(): Promise<number>;
   sendAssistantVoiceChunk(sessionId: number, chunkBase64: string): Promise<void>;
   stopAssistantVoice(sessionId: number): Promise<void>;
+  hasPendingAssistantVoiceSession(): Promise<boolean>;
   getCapabilities(): Promise<DeviceCapabilities>;
   getBootstrapState(): Promise<BootstrapState>;
 }

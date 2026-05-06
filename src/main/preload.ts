@@ -39,6 +39,8 @@ const api = {
     ipcRenderer.invoke('device:assistantVoiceChunk', sessionId, chunkBase64),
   stopAssistantVoice: (sessionId: number): Promise<void> =>
     ipcRenderer.invoke('device:assistantVoiceStop', sessionId),
+  hasPendingAssistantVoiceSession: (): Promise<boolean> =>
+    ipcRenderer.invoke('device:assistantVoicePending'),
   capabilities: (): Promise<DeviceCapabilities> => ipcRenderer.invoke('device:capabilities'),
 };
 

@@ -420,6 +420,17 @@ export class GoogleTvAdapter implements DeviceAdapter {
     });
   }
 
+  async hasPendingAssistantVoiceSession(): Promise<boolean> {
+    if (!this.activeDevice) {
+      return false;
+    }
+
+    return androidTvRemoteBridge.hasPendingAssistantVoiceSession(
+      this.activeDevice.host,
+      this.activeDevice.macAddress
+    );
+  }
+
   getCapabilities(): Promise<DeviceCapabilities> {
     return Promise.resolve({
       textInput: true,
