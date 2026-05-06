@@ -138,6 +138,33 @@ This project uses `electron-builder` for packaging.
 - Tagged releases are intended to produce macOS artifacts
 - The current target platform is macOS
 
+## Homebrew Cask Releases
+
+Homebrew installation is published through a tap repository. The release workflow
+updates `usrivastava92/homebrew-tap` after semantic-release creates a GitHub
+release and uploads the macOS DMG.
+
+Required setup:
+
+- Create the tap repository: `usrivastava92/homebrew-tap`
+- Add a repository secret named `HOMEBREW_TAP_TOKEN` with permission to push to
+  that tap repository
+- Optionally set a repository variable named `HOMEBREW_TAP_REPOSITORY` if the
+  tap repository is not `usrivastava92/homebrew-tap`
+
+The workflow computes the DMG checksum and renders
+`Casks/gtv-desktop-remote.rb` using:
+
+```bash
+npm run homebrew:cask -- --version 0.8.0 --sha256 <sha256> --artifact-name "GTV Remote-0.8.0-mac-arm64.dmg"
+```
+
+Users can install the published cask with:
+
+```bash
+brew install --cask usrivastava92/tap/gtv-desktop-remote
+```
+
 ## Recommended Developer Flow
 
 1. `npm install`
