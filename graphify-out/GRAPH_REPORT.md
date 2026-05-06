@@ -1,7 +1,7 @@
 # Graph Report - gtv-desktop-remote  (2026-05-06)
 
 ## Corpus Check
-- 35 files · ~41,159 words
+- 35 files · ~41,160 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
