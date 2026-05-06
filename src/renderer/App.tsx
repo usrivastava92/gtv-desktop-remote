@@ -39,6 +39,12 @@ const keyboardCommandMap: Partial<Record<string, RemoteCommand>> = {
   P: 'power',
 };
 
+const ASSISTANT_LONG_PRESS_MS = 320;
+const ASSISTANT_VOICE_SAMPLE_RATE = 8_000;
+const ASSISTANT_VOICE_MIN_CHUNK_BYTES = 8 * 1024;
+const ASSISTANT_VOICE_INITIAL_CHUNK_BYTES = 8 * 1024;
+const ASSISTANT_VOICE_STREAM_CHUNK_BYTES = 20 * 1024;
+
 const burstSensitiveCommands = new Set<RemoteCommand>(['up', 'down', 'left', 'right', 'select']);
 const MAX_QUEUED_COMMANDS = 100;
 
@@ -72,6 +78,7 @@ type IconName =
   | 'settings'
   | 'play'
   | 'power'
+  | 'assistant'
   | 'volumeUp'
   | 'volumeDown'
   | 'remote';
@@ -117,6 +124,52 @@ function shouldRestartPairingFlow(message: string): boolean {
   return /invalid pairing code|request a new code|no pairing session is active|pairing failed/i.test(
     message
   );
+}
+
+function convertFloat32ToPcm16(source: Float32Array): Int16Array {
+  const output = new Int16Array(source.length);
+  for (let index = 0; index < source.length; index += 1) {
+    const sample = Math.max(-1, Math.min(1, source[index] ?? 0));
+    output[index] = sample < 0 ? Math.round(sample * 0x8000) : Math.round(sample * 0x7fff);
+  }
+  return output;
+}
+
+function downsampleTo8kMono(source: Float32Array, inputSampleRate: number): Uint8Array {
+  if (inputSampleRate <= ASSISTANT_VOICE_SAMPLE_RATE) {
+    return new Uint8Array(convertFloat32ToPcm16(source).buffer);
+  }
+
+  const ratio = inputSampleRate / ASSISTANT_VOICE_SAMPLE_RATE;
+  const outputLength = Math.max(1, Math.floor(source.length / ratio));
+  const output = new Float32Array(outputLength);
+  let outputIndex = 0;
+  let sourceIndex = 0;
+
+  while (outputIndex < outputLength) {
+    const nextSourceIndex = Math.min(source.length, Math.round((outputIndex + 1) * ratio));
+    let total = 0;
+    let count = 0;
+
+    for (let index = Math.floor(sourceIndex); index < nextSourceIndex; index += 1) {
+      total += source[index] ?? 0;
+      count += 1;
+    }
+
+    output[outputIndex] = count > 0 ? total / count : 0;
+    outputIndex += 1;
+    sourceIndex = nextSourceIndex;
+  }
+
+  return new Uint8Array(convertFloat32ToPcm16(output).buffer);
+}
+
+function toBase64(bytes: Uint8Array): string {
+  let binary = '';
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary);
 }
 
 function Icon({ name, className }: { name: IconName; className?: string }) {
@@ -283,6 +336,16 @@ function Icon({ name, className }: { name: IconName; className?: string }) {
           <path d="M7.2 6.5A6.5 6.5 0 1 0 16.8 6.5" />
         </svg>
       );
+    case 'assistant':
+      return (
+        <svg {...props}>
+          <path d="M12 4.5V8.8" />
+          <rect x="8.4" y="3.6" width="7.2" height="10.3" rx="3.6" />
+          <path d="M7.1 10.2V10.6C7.1 13.4 9.2 15.6 12 15.6C14.8 15.6 16.9 13.4 16.9 10.6V10.2" />
+          <path d="M12 15.6V19.5" />
+          <path d="M9 19.5H15" />
+        </svg>
+      );
     case 'volumeUp':
       return (
         <svg {...props}>
@@ -336,10 +399,25 @@ function App() {
   const [scanning, setScanning] = useState(false);
   const [bridgeReady, setBridgeReady] = useState(false);
   const [pairingReady, setPairingReady] = useState(false);
+  const [assistantStatus, setAssistantStatus] = useState<'idle' | 'arming' | 'active' | 'error'>(
+    'idle'
+  );
+  const [assistantStatusText, setAssistantStatusText] = useState('Hold G to talk');
   const pairCodeInputRef = useRef<HTMLInputElement>(null);
   const commandQueueRef = useRef<QueuedCommandBatch[]>([]);
   const queuedCommandCountRef = useRef(0);
   const isProcessingQueueRef = useRef(false);
+  const assistantLongPressTimerRef = useRef<number | null>(null);
+  const assistantActiveRef = useRef(false);
+  const assistantVoiceSessionIdRef = useRef<number | null>(null);
+  const assistantAudioContextRef = useRef<AudioContext | null>(null);
+  const assistantMediaStreamRef = useRef<MediaStream | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
+  const assistantProcessorRef = useRef<ScriptProcessorNode | null>(null);
+  const assistantAudioBufferRef = useRef<Uint8Array>(new Uint8Array(0));
+  const assistantChunkQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const assistantChunkCountRef = useRef(0);
+  const assistantFirstChunkSentRef = useRef(false);
 
   const discoveredByHost = new Map(discoveredDevices.map((device) => [device.host, device]));
   const discoveredByMac = new Map(
@@ -535,6 +613,185 @@ function App() {
     }
   }, [pairingReady]);
 
+  function clearAssistantLongPressTimer() {
+    if (assistantLongPressTimerRef.current !== null) {
+      window.clearTimeout(assistantLongPressTimerRef.current);
+      assistantLongPressTimerRef.current = null;
+    }
+  }
+
+  async function stopAssistantSession() {
+    clearAssistantLongPressTimer();
+
+    if (assistantStatus === 'arming') {
+      setAssistantStatus('idle');
+      setAssistantStatusText('Hold G to talk');
+    }
+
+    if (!assistantActiveRef.current) {
+      return;
+    }
+
+    assistantActiveRef.current = false;
+    setAssistantStatus('idle');
+    setAssistantStatusText('Hold G to talk');
+
+    const sessionId = assistantVoiceSessionIdRef.current;
+    assistantVoiceSessionIdRef.current = null;
+    const sentChunks = assistantChunkCountRef.current;
+    assistantChunkCountRef.current = 0;
+    assistantFirstChunkSentRef.current = false;
+
+    const processor = assistantProcessorRef.current;
+    if (processor) {
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
+      processor.onaudioprocess = null;
+      processor.disconnect();
+      assistantProcessorRef.current = null;
+    }
+
+    const stream = assistantMediaStreamRef.current;
+    if (stream) {
+      for (const track of stream.getTracks()) {
+        track.stop();
+      }
+      assistantMediaStreamRef.current = null;
+    }
+
+    const context = assistantAudioContextRef.current;
+    if (context) {
+      await context.close();
+      assistantAudioContextRef.current = null;
+    }
+
+    if (sessionId !== null && assistantAudioBufferRef.current.length > 0) {
+      const remaining = assistantAudioBufferRef.current;
+      const finalSize = Math.max(ASSISTANT_VOICE_MIN_CHUNK_BYTES, remaining.length);
+      const padded = new Uint8Array(finalSize);
+      padded.set(remaining.subarray(0, finalSize));
+      assistantAudioBufferRef.current = new Uint8Array(0);
+      assistantChunkQueueRef.current = assistantChunkQueueRef.current.then(async () => {
+        await getDesktopApi().sendAssistantVoiceChunk(sessionId, toBase64(padded));
+      });
+    }
+
+    if (sessionId !== null) {
+      try {
+        await assistantChunkQueueRef.current;
+        await getDesktopApi().stopAssistantVoice(sessionId);
+        setBootstrap((current) => ({
+          ...current,
+          deviceState: {
+            ...current.deviceState,
+            message: `Assistant voice sent (${String(sentChunks)} chunk${sentChunks === 1 ? '' : 's'}).`,
+          },
+        }));
+      } catch (error) {
+        setBootstrap((current) => ({
+          ...current,
+          deviceState: {
+            ...current.deviceState,
+            status: 'error',
+            message: (error as Error).message,
+          },
+        }));
+      }
+    }
+  }
+
+  async function startAssistantSession() {
+    if (assistantActiveRef.current || remoteDisabled || currentView !== 'remote') {
+      return;
+    }
+
+    assistantActiveRef.current = true;
+    setAssistantStatus('active');
+    setAssistantStatusText('Listening... release G to send');
+
+    try {
+      const sessionId = await getDesktopApi().startAssistantVoice();
+      assistantVoiceSessionIdRef.current = sessionId;
+      assistantFirstChunkSentRef.current = false;
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          channelCount: 1,
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+        },
+      });
+      assistantMediaStreamRef.current = mediaStream;
+
+      const audioContext = new AudioContext();
+      assistantAudioContextRef.current = audioContext;
+      await audioContext.resume();
+      if (audioContext.state !== 'running') {
+        throw new Error('Microphone audio context could not start.');
+      }
+      const source = audioContext.createMediaStreamSource(mediaStream);
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
+      const processor = audioContext.createScriptProcessor(4096, 1, 1);
+      assistantProcessorRef.current = processor;
+
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
+      processor.onaudioprocess = (event) => {
+        if (!assistantActiveRef.current || assistantVoiceSessionIdRef.current === null) {
+          return;
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-deprecated
+        const input = event.inputBuffer.getChannelData(0);
+        const downsampled = downsampleTo8kMono(input, audioContext.sampleRate);
+        if (downsampled.length === 0) {
+          return;
+        }
+
+        const previous = assistantAudioBufferRef.current;
+        const merged = new Uint8Array(previous.length + downsampled.length);
+        merged.set(previous);
+        merged.set(downsampled, previous.length);
+        assistantAudioBufferRef.current = merged;
+
+        while (
+          assistantAudioBufferRef.current.length >=
+          (assistantFirstChunkSentRef.current
+            ? ASSISTANT_VOICE_STREAM_CHUNK_BYTES
+            : ASSISTANT_VOICE_INITIAL_CHUNK_BYTES)
+        ) {
+          const nextChunkSize = assistantFirstChunkSentRef.current
+            ? ASSISTANT_VOICE_STREAM_CHUNK_BYTES
+            : ASSISTANT_VOICE_INITIAL_CHUNK_BYTES;
+          const chunk = assistantAudioBufferRef.current.subarray(0, nextChunkSize);
+          assistantAudioBufferRef.current = assistantAudioBufferRef.current.subarray(nextChunkSize);
+          const activeSessionId = assistantVoiceSessionIdRef.current;
+
+          const payload = new Uint8Array(chunk);
+          assistantChunkQueueRef.current = assistantChunkQueueRef.current.then(async () => {
+            await getDesktopApi().sendAssistantVoiceChunk(activeSessionId, toBase64(payload));
+            assistantChunkCountRef.current += 1;
+            assistantFirstChunkSentRef.current = true;
+          });
+        }
+      };
+
+      source.connect(processor);
+      processor.connect(audioContext.destination);
+    } catch (error) {
+      assistantActiveRef.current = false;
+      setAssistantStatus('error');
+      setAssistantStatusText('Assistant mic start failed');
+      setBootstrap((current) => ({
+        ...current,
+        deviceState: {
+          ...current.deviceState,
+          status: 'error',
+          message: (error as Error).message,
+        },
+      }));
+      await stopAssistantSession();
+    }
+  }
+
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (!bridgeReady || !isConnected || currentView !== 'remote') {
@@ -549,6 +806,27 @@ function App() {
         return;
       }
 
+      if (event.key === 'g' || event.key === 'G') {
+        event.preventDefault();
+
+        if (
+          event.repeat ||
+          assistantLongPressTimerRef.current !== null ||
+          assistantActiveRef.current
+        ) {
+          return;
+        }
+
+        setAssistantStatus('arming');
+        setAssistantStatusText('Hold G to activate assistant');
+
+        assistantLongPressTimerRef.current = window.setTimeout(() => {
+          assistantLongPressTimerRef.current = null;
+          void startAssistantSession();
+        }, ASSISTANT_LONG_PRESS_MS);
+        return;
+      }
+
       const command = keyboardCommandMap[event.key];
       if (!command) {
         return;
@@ -558,11 +836,28 @@ function App() {
       handleCommand(command, 'keyboard');
     }
 
+    function onKeyUp(event: KeyboardEvent) {
+      if (event.key !== 'g' && event.key !== 'G') {
+        return;
+      }
+
+      if (isEditableTarget(event.target)) {
+        return;
+      }
+
+      event.preventDefault();
+      void stopAssistantSession();
+    }
+
     window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
     return () => {
       window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      clearAssistantLongPressTimer();
+      void stopAssistantSession();
     };
-  }, [bridgeReady, isConnected, currentView]);
+  }, [bridgeReady, isConnected, currentView, remoteDisabled]);
 
   async function saveDiscoveredDevice(device: DiscoveredDevice): Promise<SavedDevice> {
     const devices = await getDesktopApi().saveDevice({
@@ -597,29 +892,6 @@ function App() {
     setPairingDeviceId(deviceId);
     setPairingReady(true);
     setDevicePickerOpen(false);
-  }
-
-  async function handleStartPairing(deviceId = selectedPairedDeviceId) {
-    if (!deviceId) {
-      return;
-    }
-
-    setBusy(true);
-    try {
-      await startPairingFlow(deviceId);
-    } catch (error) {
-      setPairingReady(false);
-      setDevicePickerOpen(true);
-      setBootstrap((current) => ({
-        ...current,
-        deviceState: {
-          status: 'error',
-          message: (error as Error).message,
-        },
-      }));
-    } finally {
-      setBusy(false);
-    }
   }
 
   async function handleSelectSavedDevice(deviceId: string) {
@@ -1333,6 +1605,15 @@ function App() {
             ) : null}
 
             <section className="ui-media-section">
+              <p
+                className={classes(
+                  'ui-assistant-status',
+                  assistantStatus === 'active' && 'ui-assistant-status-active',
+                  assistantStatus === 'error' && 'ui-assistant-status-error'
+                )}
+              >
+                {assistantStatusText}
+              </p>
               <div className="ui-media-grid">
                 <div className="ui-media-column">
                   <button
@@ -1371,13 +1652,30 @@ function App() {
                   </button>
                   <div className="ui-media-subgrid">
                     <button
-                      className="ui-media-button"
+                      className={classes(
+                        'ui-media-button',
+                        assistantStatus === 'active' && 'ui-media-button-assistant-active'
+                      )}
                       disabled={remoteDisabled}
-                      onClick={() => {
-                        void handleStartPairing(currentRemoteDevice?.id);
+                      onMouseDown={() => {
+                        void startAssistantSession();
+                      }}
+                      onMouseUp={() => {
+                        void stopAssistantSession();
+                      }}
+                      onMouseLeave={() => {
+                        void stopAssistantSession();
+                      }}
+                      onTouchStart={(event) => {
+                        event.preventDefault();
+                        void startAssistantSession();
+                      }}
+                      onTouchEnd={(event) => {
+                        event.preventDefault();
+                        void stopAssistantSession();
                       }}
                     >
-                      <Icon name="remote" className="h-5 w-5" />
+                      <Icon name="assistant" className="h-5 w-5" />
                     </button>
                     <button
                       className="ui-media-button ui-media-danger"

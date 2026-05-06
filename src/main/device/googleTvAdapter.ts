@@ -39,6 +39,11 @@ export class GoogleTvAdapter implements DeviceAdapter {
 
   private scanPromise: Promise<DiscoveredDevice[]> | undefined;
 
+  private assistantVoiceStats = new Map<
+    number,
+    { chunks: number; bytes: number; startedAt: number }
+  >();
+
   async listDevices(): Promise<SavedDevice[]> {
     return readDevices();
   }
@@ -337,6 +342,82 @@ export class GoogleTvAdapter implements DeviceAdapter {
       text,
       this.activeDevice.macAddress
     );
+  }
+
+  async startAssistantVoice(): Promise<number> {
+    if (!this.activeDevice) {
+      throw new Error('No active device connected.');
+    }
+
+    const sessionId = await androidTvRemoteBridge.startAssistantVoice(
+      this.activeDevice.host,
+      this.activeDevice.macAddress
+    );
+    await logInfo('adapter', 'Assistant voice session started', {
+      deviceId: this.activeDevice.id,
+      host: this.activeDevice.host,
+      sessionId,
+    });
+    this.assistantVoiceStats.set(sessionId, { chunks: 0, bytes: 0, startedAt: Date.now() });
+    return sessionId;
+  }
+
+  async sendAssistantVoiceChunk(sessionId: number, chunkBase64: string): Promise<void> {
+    if (!this.activeDevice) {
+      throw new Error('No active device connected.');
+    }
+
+    const chunk = Buffer.from(chunkBase64, 'base64');
+    await androidTvRemoteBridge.sendAssistantVoiceChunk(
+      this.activeDevice.host,
+      sessionId,
+      chunk,
+      this.activeDevice.macAddress
+    );
+
+    const stats = this.assistantVoiceStats.get(sessionId);
+    if (stats) {
+      stats.chunks += 1;
+      stats.bytes += chunk.length;
+      if (stats.chunks % 10 === 0) {
+        await logInfo('adapter', 'Assistant voice chunk progress', {
+          deviceId: this.activeDevice.id,
+          host: this.activeDevice.host,
+          sessionId,
+          chunks: stats.chunks,
+          bytes: stats.bytes,
+        });
+      }
+    } else {
+      await logInfo('adapter', 'Assistant voice chunk sent without tracked session', {
+        deviceId: this.activeDevice.id,
+        host: this.activeDevice.host,
+        sessionId,
+        bytes: chunk.length,
+      });
+    }
+  }
+
+  async stopAssistantVoice(sessionId: number): Promise<void> {
+    if (!this.activeDevice) {
+      throw new Error('No active device connected.');
+    }
+
+    await androidTvRemoteBridge.stopAssistantVoice(
+      this.activeDevice.host,
+      sessionId,
+      this.activeDevice.macAddress
+    );
+    const stats = this.assistantVoiceStats.get(sessionId);
+    this.assistantVoiceStats.delete(sessionId);
+    await logInfo('adapter', 'Assistant voice session ended', {
+      deviceId: this.activeDevice.id,
+      host: this.activeDevice.host,
+      sessionId,
+      chunks: stats?.chunks ?? 0,
+      bytes: stats?.bytes ?? 0,
+      durationMs: stats ? Date.now() - stats.startedAt : undefined,
+    });
   }
 
   getCapabilities(): Promise<DeviceCapabilities> {

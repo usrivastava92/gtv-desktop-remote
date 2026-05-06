@@ -12,8 +12,12 @@ import {
   createImeBatchEditMessage,
   createRemoteConfigure,
   createRemoteKeyInject,
+  createRemoteKeyInjectRaw,
   createRemotePingResponse,
   createRemoteSetActive,
+  createRemoteVoiceBegin,
+  createRemoteVoiceEnd,
+  createRemoteVoicePayload,
   parseRemoteMessage,
 } from './protocol/remoteProtocol';
 
@@ -36,6 +40,7 @@ interface RemoteState {
   imeCounter: number;
   imeFieldCounter: number;
   lastActivityAt: number;
+  voiceSessionId?: number;
 }
 
 interface DeviceSession {
@@ -59,6 +64,7 @@ const DEFAULT_PAIRING_PORT = 6467;
 const REMOTE_FEATURES = 622;
 const REMOTE_STALE_AFTER_MS = 30_000;
 const REMOTE_CONNECT_TIMEOUT_MS = 10_000;
+const REMOTE_VOICE_BEGIN_TIMEOUT_MS = 2_000;
 const SERVICE_NAME = 'GTV Desktop Remote';
 
 function toError(error: unknown, fallback: string): Error {
@@ -275,6 +281,53 @@ class NativeRemoteClient {
     );
   }
 
+  async startVoiceSession(): Promise<number> {
+    const socket = this.getSocket();
+    this.state.voiceSessionId = undefined;
+    const waitForVoiceBegin = () =>
+      new Promise<number>((resolve, reject) => {
+        const onVoiceBegin = (nextSessionId: number) => {
+          clearTimeout(timeoutId);
+          resolve(nextSessionId);
+        };
+
+        const timeoutId = setTimeout(() => {
+          socket.removeListener('remote-voice-begin', onVoiceBegin);
+          reject(new Error('TV did not open a voice session.'));
+        }, REMOTE_VOICE_BEGIN_TIMEOUT_MS);
+
+        socket.once('remote-voice-begin', onVoiceBegin);
+      });
+
+    socket.write(createRemoteKeyInjectRaw('KEYCODE_SEARCH', 'START_LONG'));
+
+    let sessionId: number;
+    try {
+      sessionId = await waitForVoiceBegin();
+    } catch {
+      socket.write(createRemoteKeyInjectRaw('KEYCODE_SEARCH', 'SHORT'));
+      sessionId = await waitForVoiceBegin();
+    }
+
+    socket.write(createRemoteVoiceBegin(sessionId));
+    return sessionId;
+  }
+
+  sendVoiceChunk(sessionId: number, samples: Buffer): void {
+    if (!samples.length) {
+      return;
+    }
+
+    const socket = this.getSocket();
+    socket.write(createRemoteVoicePayload(sessionId, samples));
+  }
+
+  stopVoiceSession(sessionId: number): void {
+    const socket = this.getSocket();
+    socket.write(createRemoteVoiceEnd(sessionId));
+    socket.write(createRemoteKeyInjectRaw('KEYCODE_SEARCH', 'END_LONG'));
+  }
+
   private getSocket(): TLSSocket {
     if (!this.socket || this.socket.destroyed) {
       throw new Error('Connection has been lost.');
@@ -336,6 +389,7 @@ class NativeRemoteClient {
     remotePingRequest?: { val1?: number };
     remoteImeKeyInject?: { appInfo?: { appPackage?: string } };
     remoteImeBatchEdit?: { fieldCounter?: number; imeCounter?: number };
+    remoteVoiceBegin?: { sessionId?: number };
     remoteStart?: { started?: boolean };
   }): void {
     if (message.remoteConfigure) {
@@ -374,6 +428,12 @@ class NativeRemoteClient {
 
     if (message.remoteStart) {
       this.state.isOn = Boolean(message.remoteStart.started);
+      return;
+    }
+
+    if (message.remoteVoiceBegin?.sessionId) {
+      this.state.voiceSessionId = message.remoteVoiceBegin.sessionId;
+      this.getSocket().emit('remote-voice-begin', message.remoteVoiceBegin.sessionId);
     }
   }
 }
@@ -644,6 +704,32 @@ class AndroidTvRemoteBridge {
 
     await session.remoteClient.connect();
     session.remoteClient.sendText(text);
+  }
+
+  async startAssistantVoice(host: string, certKey?: string): Promise<number> {
+    const session = await this.getSession(host, certKey);
+    session.remoteClient ??= new NativeRemoteClient(host, session.certs);
+    await session.remoteClient.connect();
+    return session.remoteClient.startVoiceSession();
+  }
+
+  async sendAssistantVoiceChunk(
+    host: string,
+    sessionId: number,
+    chunk: Buffer,
+    certKey?: string
+  ): Promise<void> {
+    const session = await this.getSession(host, certKey);
+    session.remoteClient ??= new NativeRemoteClient(host, session.certs);
+    await session.remoteClient.connect();
+    session.remoteClient.sendVoiceChunk(sessionId, chunk);
+  }
+
+  async stopAssistantVoice(host: string, sessionId: number, certKey?: string): Promise<void> {
+    const session = await this.getSession(host, certKey);
+    session.remoteClient ??= new NativeRemoteClient(host, session.certs);
+    await session.remoteClient.connect();
+    session.remoteClient.stopVoiceSession(sessionId);
   }
 }
 

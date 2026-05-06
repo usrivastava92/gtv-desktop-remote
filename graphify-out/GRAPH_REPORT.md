@@ -1,12 +1,12 @@
 # Graph Report - gtv-desktop-remote  (2026-05-06)
 
 ## Corpus Check
-- 36 files · ~41,280 words
+- 36 files · ~43,313 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 253 nodes · 475 edges · 27 communities detected
-- Extraction: 89% EXTRACTED · 11% INFERRED · 0% AMBIGUOUS · INFERRED: 53 edges (avg confidence: 0.81)
+- 272 nodes · 528 edges · 27 communities detected
+- Extraction: 88% EXTRACTED · 12% INFERRED · 0% AMBIGUOUS · INFERRED: 61 edges (avg confidence: 0.81)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
@@ -40,15 +40,15 @@
 
 ## God Nodes (most connected - your core abstractions)
 1. `CommandMetricsStore` - 22 edges
-2. `NoopCommandMetricsStore` - 17 edges
-3. `AndroidTvRemoteBridge` - 17 edges
-4. `logInfo()` - 16 edges
-5. `GoogleTvAdapter` - 16 edges
-6. `getDesktopApi()` - 14 edges
-7. `NativeRemoteClient` - 13 edges
+2. `AndroidTvRemoteBridge` - 20 edges
+3. `logInfo()` - 19 edges
+4. `GoogleTvAdapter` - 19 edges
+5. `NoopCommandMetricsStore` - 17 edges
+6. `NativeRemoteClient` - 16 edges
+7. `getDesktopApi()` - 16 edges
 8. `readDevices()` - 12 edges
 9. `writeDevices()` - 10 edges
-10. `bootstrapApp()` - 8 edges
+10. `createRemoteMessage()` - 10 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Encrypted Pairing Protocol` --semantically_similar_to--> `androidtvremote (pairing certs dir)`  [INFERRED] [semantically similar]
@@ -70,20 +70,20 @@
 ## Communities
 
 ### Community 0 - "Community 0"
-Cohesion: 0.15
+Cohesion: 0.14
 Nodes (14): getLegacyUserDataPaths(), GoogleTvAdapter, clearDeviceStore(), getDeviceStorePath(), getStorePath(), readDevices(), writeDevices(), getAppDataPath() (+6 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.13
-Nodes (23): createCommandRequest(), enqueueCommand(), flushQueuedCommands(), getDesktopApi(), handleCommand(), handleConnect(), handleDisconnect(), handlePair() (+15 more)
+Cohesion: 0.11
+Nodes (28): clearAssistantLongPressTimer(), convertFloat32ToPcm16(), createCommandRequest(), downsampleTo8kMono(), enqueueCommand(), flushQueuedCommands(), getDesktopApi(), handleCommand() (+20 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.2
-Nodes (5): AndroidTvRemoteBridge, isCertificateRejectedError(), normalizeRemoteError(), toError(), generateCertificate()
+Cohesion: 0.16
+Nodes (14): NativeRemoteClient, createImeBatchEditMessage(), createRemoteConfigure(), createRemoteKeyInject(), createRemoteKeyInjectRaw(), createRemoteMessage(), createRemotePingResponse(), createRemoteSetActive() (+6 more)
 
 ### Community 3 - "Community 3"
 Cohesion: 0.18
-Nodes (10): NativeRemoteClient, createImeBatchEditMessage(), createRemoteConfigure(), createRemoteKeyInject(), createRemoteMessage(), createRemotePingResponse(), createRemoteSetActive(), decodeRemoteMessage() (+2 more)
+Nodes (5): AndroidTvRemoteBridge, isCertificateRejectedError(), normalizeRemoteError(), toError(), generateCertificate()
 
 ### Community 4 - "Community 4"
 Cohesion: 0.21
@@ -214,15 +214,17 @@ Nodes (1): graphify knowledge graph config
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `logInfo()` connect `Community 0` to `Community 2`, `Community 4`, `Community 6`?**
-  _High betweenness centrality (0.256) - this node is a cross-community bridge._
+- **Why does `logInfo()` connect `Community 0` to `Community 3`, `Community 4`, `Community 6`?**
+  _High betweenness centrality (0.259) - this node is a cross-community bridge._
 - **Why does `CommandMetricsStore` connect `Community 4` to `Community 5`?**
-  _High betweenness centrality (0.102) - this node is a cross-community bridge._
-- **Are the 13 inferred relationships involving `logInfo()` (e.g. with `bootstrapApp()` and `.logMetric()`) actually correct?**
-  _`logInfo()` has 13 INFERRED edges - model-reasoned connections that need verification._
+  _High betweenness centrality (0.097) - this node is a cross-community bridge._
+- **Are the 16 inferred relationships involving `logInfo()` (e.g. with `bootstrapApp()` and `.logMetric()`) actually correct?**
+  _`logInfo()` has 16 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `GTV Desktop Remote`, `Network Scan`, `Encrypted Pairing Protocol` to the rest of the system?**
   _17 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `Community 0` be split into smaller, more focused modules?**
+  _Cohesion score 0.14 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.13 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.11 - nodes in this community are weakly interconnected._
 - **Should `Community 5` be split into smaller, more focused modules?**
   _Cohesion score 0.12 - nodes in this community are weakly interconnected._

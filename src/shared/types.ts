@@ -9,7 +9,9 @@ export type RemoteCommand =
   | 'play_pause'
   | 'volume_up'
   | 'volume_down'
-  | 'power';
+  | 'power'
+  | 'assistant_press'
+  | 'assistant_release';
 
 export type RemoteCommandSource = 'keyboard' | 'button';
 
@@ -176,6 +178,9 @@ export interface DeviceAdapter {
   disconnect(): Promise<DeviceState>;
   sendCommand(request: CommandDispatchRequest): Promise<void>;
   sendText(text: string): Promise<void>;
+  startAssistantVoice(): Promise<number>;
+  sendAssistantVoiceChunk(sessionId: number, chunkBase64: string): Promise<void>;
+  stopAssistantVoice(sessionId: number): Promise<void>;
   getCapabilities(): Promise<DeviceCapabilities>;
   getBootstrapState(): Promise<BootstrapState>;
 }
