@@ -69,23 +69,65 @@ export class GoogleTvAdapter implements DeviceAdapter {
     // Auto-update saved device hosts when a device is found by MAC but on a new IP
     const savedDevices = await readDevices();
     const updatedDevices = savedDevices.map((saved) => {
-      if (!saved.macAddress) return saved;
-      const match = discovered.find(
-        (d) => d.macAddress && d.macAddress === saved.macAddress && d.host !== saved.host
-      );
+      const fingerprintMatches =
+        saved.deviceFingerprint &&
+        discovered.filter((d) => d.deviceFingerprint === saved.deviceFingerprint);
+      const match = discovered.find((d) => {
+        if (saved.macAddress && d.macAddress) {
+          return d.macAddress === saved.macAddress;
+        }
+        if (saved.castDeviceId && d.castDeviceId) {
+          return d.castDeviceId === saved.castDeviceId;
+        }
+        if (saved.networkHostName && d.networkHostName) {
+          return d.networkHostName === saved.networkHostName;
+        }
+        if (fingerprintMatches && fingerprintMatches.length === 1) {
+          return d.id === fingerprintMatches[0]?.id;
+        }
+        return d.host === saved.host;
+      });
       if (!match) return saved;
+      if (match.host === saved.host) {
+        return {
+          ...saved,
+          macAddress: saved.macAddress ?? match.macAddress,
+          castDeviceId: saved.castDeviceId ?? match.castDeviceId,
+          networkHostName: saved.networkHostName ?? match.networkHostName,
+          deviceFingerprint: saved.deviceFingerprint ?? match.deviceFingerprint,
+        };
+      }
       void logInfo('adapter', 'Device IP changed — updating host', {
         deviceId: saved.id,
         name: saved.name,
         oldHost: saved.host,
         newHost: match.host,
         macAddress: saved.macAddress,
+        castDeviceId: saved.castDeviceId,
+        networkHostName: saved.networkHostName,
+        deviceFingerprint: saved.deviceFingerprint,
       });
-      return { ...saved, host: match.host };
+      return {
+        ...saved,
+        host: match.host,
+        macAddress: saved.macAddress ?? match.macAddress,
+        castDeviceId: saved.castDeviceId ?? match.castDeviceId,
+        networkHostName: saved.networkHostName ?? match.networkHostName,
+        deviceFingerprint: saved.deviceFingerprint ?? match.deviceFingerprint,
+      };
     });
 
-    const updatedHosts = updatedDevices.some((d, i) => d.host !== savedDevices[i]?.host);
-    if (updatedHosts) {
+    const updatedDevicesChanged = updatedDevices.some((updated, i) => {
+      const previous = savedDevices[i];
+      return (
+        updated.host !== previous.host ||
+        updated.macAddress !== previous.macAddress ||
+        updated.castDeviceId !== previous.castDeviceId ||
+        updated.networkHostName !== previous.networkHostName ||
+        updated.deviceFingerprint !== previous.deviceFingerprint
+      );
+    });
+    if (updatedDevicesChanged) {
       await writeDevices(updatedDevices);
       // Migrate any IP-keyed cert files to MAC-keyed cert files for updated devices
       for (let i = 0; i < savedDevices.length; i++) {
@@ -104,17 +146,44 @@ export class GoogleTvAdapter implements DeviceAdapter {
     await logInfo('adapter', 'Saving device', { draft });
     const devices = await readDevices();
     const normalizedHost = draft.host.trim();
+    const normalizedMac = draft.macAddress?.trim();
+    const normalizedCastDeviceId = draft.castDeviceId?.trim();
+    const normalizedNetworkHostName = draft.networkHostName?.trim();
+    const normalizedDeviceFingerprint = draft.deviceFingerprint?.trim();
+    const existingDevice = devices.find((device) => {
+      if (normalizedMac && device.macAddress) {
+        return device.macAddress === normalizedMac;
+      }
+      if (normalizedCastDeviceId && device.castDeviceId) {
+        return device.castDeviceId === normalizedCastDeviceId;
+      }
+      if (normalizedNetworkHostName && device.networkHostName) {
+        return device.networkHostName === normalizedNetworkHostName;
+      }
+      if (normalizedDeviceFingerprint && device.deviceFingerprint) {
+        return device.deviceFingerprint === normalizedDeviceFingerprint;
+      }
+      return device.host === normalizedHost;
+    });
 
     const nextDevice: SavedDevice = {
-      id: randomUUID(),
-      isPaired: false,
+      id: existingDevice?.id ?? randomUUID(),
+      isPaired: existingDevice?.isPaired ?? false,
       name: draft.name.trim() || normalizedHost,
       host: normalizedHost,
       adbPort: draft.adbPort,
       pairingPort: draft.pairingPort,
+      macAddress: normalizedMac ?? existingDevice?.macAddress,
+      castDeviceId: normalizedCastDeviceId ?? existingDevice?.castDeviceId,
+      networkHostName: normalizedNetworkHostName ?? existingDevice?.networkHostName,
+      deviceFingerprint: normalizedDeviceFingerprint ?? existingDevice?.deviceFingerprint,
+      lastConnectedAt: existingDevice?.lastConnectedAt,
     };
 
-    const nextDevices = [...devices.filter((device) => device.host !== normalizedHost), nextDevice];
+    const nextDevices = [
+      ...devices.filter((device) => device.id !== existingDevice?.id),
+      nextDevice,
+    ];
     await writeDevices(nextDevices);
     this.deviceState = {
       ...this.deviceState,

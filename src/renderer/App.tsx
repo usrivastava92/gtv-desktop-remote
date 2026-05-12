@@ -423,12 +423,45 @@ function App() {
       .filter((device) => device.macAddress)
       .map((device) => [device.macAddress!, device])
   );
+  const discoveredByCastDeviceId = new Map(
+    discoveredDevices
+      .filter((device) => device.castDeviceId)
+      .map((device) => [device.castDeviceId!, device])
+  );
+  const discoveredByNetworkHostName = new Map(
+    discoveredDevices
+      .filter((device) => device.networkHostName)
+      .map((device) => [device.networkHostName!, device])
+  );
+  const discoveredByFingerprint = new Map(
+    discoveredDevices
+      .filter((device) => device.deviceFingerprint)
+      .map((device) => [device.deviceFingerprint!, device])
+  );
 
-  function findDiscoveredForSaved(savedDevice: { host: string; macAddress?: string }) {
-    // Prefer MAC-based match (stable across IP changes), fall back to host
+  function findDiscoveredForSaved(savedDevice: {
+    host: string;
+    macAddress?: string;
+    castDeviceId?: string;
+    networkHostName?: string;
+    deviceFingerprint?: string;
+  }) {
+    // Prefer stable identifiers (MAC, Cast ID, mDNS host, fingerprint), fall back to host.
     if (savedDevice.macAddress) {
       const byMac = discoveredByMac.get(savedDevice.macAddress);
       if (byMac) return byMac;
+    }
+    if (savedDevice.castDeviceId) {
+      const byCastDeviceId = discoveredByCastDeviceId.get(savedDevice.castDeviceId);
+      if (byCastDeviceId) return byCastDeviceId;
+    }
+    if (savedDevice.networkHostName) {
+      const byNetworkHostName = discoveredByNetworkHostName.get(savedDevice.networkHostName);
+      if (byNetworkHostName) return byNetworkHostName;
+    }
+    if (savedDevice.deviceFingerprint) {
+      const byFingerprint = discoveredByFingerprint.get(savedDevice.deviceFingerprint);
+      if (byFingerprint) return byFingerprint;
     }
     return discoveredByHost.get(savedDevice.host);
   }
@@ -442,12 +475,40 @@ function App() {
     }));
   const unpairedNetworkDevices = discoveredDevices.filter(
     (discoveredDevice) =>
-      !bootstrap.devices.some(
-        (savedDevice) =>
-          savedDevice.isPaired &&
-          (savedDevice.host === discoveredDevice.host ||
-            (savedDevice.macAddress && savedDevice.macAddress === discoveredDevice.macAddress))
-      )
+      !bootstrap.devices.some((savedDevice) => {
+        if (!savedDevice.isPaired) {
+          return false;
+        }
+        if (savedDevice.host === discoveredDevice.host) {
+          return true;
+        }
+        if (
+          savedDevice.macAddress != null &&
+          discoveredDevice.macAddress != null &&
+          savedDevice.macAddress === discoveredDevice.macAddress
+        ) {
+          return true;
+        }
+        if (
+          savedDevice.castDeviceId != null &&
+          discoveredDevice.castDeviceId != null &&
+          savedDevice.castDeviceId === discoveredDevice.castDeviceId
+        ) {
+          return true;
+        }
+        if (
+          savedDevice.networkHostName != null &&
+          discoveredDevice.networkHostName != null &&
+          savedDevice.networkHostName === discoveredDevice.networkHostName
+        ) {
+          return true;
+        }
+        return (
+          savedDevice.deviceFingerprint != null &&
+          discoveredDevice.deviceFingerprint != null &&
+          savedDevice.deviceFingerprint === discoveredDevice.deviceFingerprint
+        );
+      })
   );
 
   const selectedDevice: DevicePickerSelection | undefined = (() => {
@@ -924,8 +985,42 @@ function App() {
       host: device.host,
       adbPort: device.adbPort ?? initialDraft.adbPort,
       pairingPort: device.pairingPort,
+      macAddress: device.macAddress,
+      castDeviceId: device.castDeviceId,
+      networkHostName: device.networkHostName,
+      deviceFingerprint: device.deviceFingerprint,
     });
-    const savedDevice = devices.find((item: SavedDevice) => item.host === device.host);
+    const savedDevice = devices.find((item: SavedDevice) => {
+      if (item.host === device.host) {
+        return true;
+      }
+      if (
+        item.macAddress != null &&
+        device.macAddress != null &&
+        item.macAddress === device.macAddress
+      ) {
+        return true;
+      }
+      if (
+        item.castDeviceId != null &&
+        device.castDeviceId != null &&
+        item.castDeviceId === device.castDeviceId
+      ) {
+        return true;
+      }
+      if (
+        item.networkHostName != null &&
+        device.networkHostName != null &&
+        item.networkHostName === device.networkHostName
+      ) {
+        return true;
+      }
+      return (
+        item.deviceFingerprint != null &&
+        device.deviceFingerprint != null &&
+        item.deviceFingerprint === device.deviceFingerprint
+      );
+    });
 
     if (!savedDevice) {
       throw new Error('Saved device could not be resolved after saving.');

@@ -121,6 +121,9 @@ export interface SavedDevice {
   adbPort?: number;
   pairingPort?: number;
   macAddress?: string;
+  castDeviceId?: string;
+  networkHostName?: string;
+  deviceFingerprint?: string;
   lastConnectedAt?: string;
 }
 
@@ -132,6 +135,9 @@ export interface DiscoveredDevice {
   pairingPort?: number;
   remotePort?: number;
   macAddress?: string;
+  castDeviceId?: string;
+  networkHostName?: string;
+  deviceFingerprint?: string;
   model?: string;
   source: 'googlecast' | 'adb' | 'androidtvremote';
 }
@@ -141,6 +147,7 @@ export interface PairingRequest {
   host: string;
   code: string;
   macAddress?: string;
+  castDeviceId?: string;
 }
 
 export interface DeviceDraft {
@@ -148,6 +155,10 @@ export interface DeviceDraft {
   host: string;
   adbPort: number;
   pairingPort?: number;
+  macAddress?: string;
+  castDeviceId?: string;
+  networkHostName?: string;
+  deviceFingerprint?: string;
 }
 
 export interface DeviceState {
