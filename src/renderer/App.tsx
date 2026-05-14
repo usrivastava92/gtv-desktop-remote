@@ -40,7 +40,6 @@ const keyboardCommandMap: Partial<Record<string, RemoteCommand>> = {
   P: 'power',
 };
 
-const ASSISTANT_LONG_PRESS_MS = 320;
 const ASSISTANT_VOICE_SAMPLE_RATE = 8_000;
 const ASSISTANT_VOICE_MIN_CHUNK_BYTES = 8 * 1024;
 const ASSISTANT_VOICE_INITIAL_CHUNK_BYTES = 8 * 1024;
@@ -399,9 +398,7 @@ function App() {
   const [scanning, setScanning] = useState(false);
   const [bridgeReady, setBridgeReady] = useState(false);
   const [pairingReady, setPairingReady] = useState(false);
-  const [assistantStatus, setAssistantStatus] = useState<'idle' | 'arming' | 'active' | 'error'>(
-    'idle'
-  );
+  const [assistantStatus, setAssistantStatus] = useState<'idle' | 'active' | 'error'>('idle');
   const [updaterStatus, setUpdaterStatus] = useState<UpdaterStatus>({
     inProgress: false,
     stage: 'idle',
@@ -417,7 +414,9 @@ function App() {
   const queuedCommandCountRef = useRef(0);
   const isProcessingQueueRef = useRef(false);
   const assistantLongPressTimerRef = useRef<number | null>(null);
+  const assistantStartingRef = useRef(false);
   const assistantActiveRef = useRef(false);
+  const assistantSessionTokenRef = useRef(0);
   const assistantVoiceSessionIdRef = useRef<number | null>(null);
   const assistantAudioContextRef = useRef<AudioContext | null>(null);
   const assistantMediaStreamRef = useRef<MediaStream | null>(null);
@@ -633,12 +632,11 @@ function App() {
 
   async function stopAssistantSession() {
     clearAssistantLongPressTimer();
-
-    if (assistantStatus === 'arming') {
-      setAssistantStatus('idle');
-    }
+    assistantSessionTokenRef.current += 1;
+    assistantStartingRef.current = false;
 
     if (!assistantActiveRef.current) {
+      setAssistantStatus('idle');
       return;
     }
 
@@ -709,15 +707,29 @@ function App() {
   }
 
   async function startAssistantSession() {
-    if (assistantActiveRef.current || remoteDisabled || currentView !== 'remote') {
+    if (
+      assistantActiveRef.current ||
+      assistantStartingRef.current ||
+      remoteDisabled ||
+      currentView !== 'remote'
+    ) {
       return;
     }
 
+    assistantStartingRef.current = true;
     assistantActiveRef.current = true;
+    const sessionToken = assistantSessionTokenRef.current + 1;
+    assistantSessionTokenRef.current = sessionToken;
     setAssistantStatus('active');
 
+    let sessionId: number | null = null;
     try {
-      const sessionId = await getDesktopApi().startAssistantVoice();
+      sessionId = await getDesktopApi().startAssistantVoice();
+      if (assistantSessionTokenRef.current !== sessionToken) {
+        await getDesktopApi().stopAssistantVoice(sessionId);
+        return;
+      }
+
       assistantVoiceSessionIdRef.current = sessionId;
       assistantFirstChunkSentRef.current = false;
       const mediaStream = await navigator.mediaDevices.getUserMedia({
@@ -728,6 +740,14 @@ function App() {
           autoGainControl: false,
         },
       });
+      if (assistantSessionTokenRef.current !== sessionToken) {
+        for (const track of mediaStream.getTracks()) {
+          track.stop();
+        }
+        await getDesktopApi().stopAssistantVoice(sessionId);
+        return;
+      }
+
       assistantMediaStreamRef.current = mediaStream;
 
       const audioContext = new AudioContext();
@@ -795,7 +815,16 @@ function App() {
           message: (error as Error).message,
         },
       }));
+      if (sessionId !== null && assistantVoiceSessionIdRef.current !== sessionId) {
+        await getDesktopApi()
+          .stopAssistantVoice(sessionId)
+          .catch(() => undefined);
+      }
       await stopAssistantSession();
+    } finally {
+      if (assistantSessionTokenRef.current === sessionToken) {
+        assistantStartingRef.current = false;
+      }
     }
   }
 
@@ -895,12 +924,21 @@ function App() {
           return;
         }
 
-        setAssistantStatus('arming');
+        void startAssistantSession();
+        return;
+      }
 
-        assistantLongPressTimerRef.current = window.setTimeout(() => {
-          assistantLongPressTimerRef.current = null;
+      if (event.key === 'v' || event.key === 'V') {
+        event.preventDefault();
+        if (event.repeat) {
+          return;
+        }
+
+        if (assistantActiveRef.current || assistantStartingRef.current) {
+          void stopAssistantSession();
+        } else {
           void startAssistantSession();
-        }, ASSISTANT_LONG_PRESS_MS);
+        }
         return;
       }
 
@@ -1878,22 +1916,12 @@ function App() {
                         assistantStatus === 'active' && 'ui-media-button-assistant-active'
                       )}
                       disabled={remoteDisabled}
-                      onMouseDown={() => {
-                        void startAssistantSession();
-                      }}
-                      onMouseUp={() => {
-                        void stopAssistantSession();
-                      }}
-                      onMouseLeave={() => {
-                        void stopAssistantSession();
-                      }}
-                      onTouchStart={(event) => {
-                        event.preventDefault();
-                        void startAssistantSession();
-                      }}
-                      onTouchEnd={(event) => {
-                        event.preventDefault();
-                        void stopAssistantSession();
+                      onClick={() => {
+                        if (assistantActiveRef.current || assistantStartingRef.current) {
+                          void stopAssistantSession();
+                        } else {
+                          void startAssistantSession();
+                        }
                       }}
                     >
                       <Icon name="assistant" className="h-10 w-10" />
