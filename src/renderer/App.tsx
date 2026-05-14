@@ -40,6 +40,12 @@ const keyboardCommandMap: Partial<Record<string, RemoteCommand>> = {
   P: 'power',
 };
 
+const ASSISTANT_LONG_PRESS_MS = 320;
+const ASSISTANT_VOICE_SAMPLE_RATE = 8_000;
+const ASSISTANT_VOICE_MIN_CHUNK_BYTES = 8 * 1024;
+const ASSISTANT_VOICE_INITIAL_CHUNK_BYTES = 8 * 1024;
+const ASSISTANT_VOICE_STREAM_CHUNK_BYTES = 20 * 1024;
+
 const burstSensitiveCommands = new Set<RemoteCommand>(['up', 'down', 'left', 'right', 'select']);
 const MAX_QUEUED_COMMANDS = 100;
 
@@ -119,6 +125,52 @@ function shouldRestartPairingFlow(message: string): boolean {
   return /invalid pairing code|request a new code|no pairing session is active|pairing failed/i.test(
     message
   );
+}
+
+function convertFloat32ToPcm16(source: Float32Array): Int16Array {
+  const output = new Int16Array(source.length);
+  for (let index = 0; index < source.length; index += 1) {
+    const sample = Math.max(-1, Math.min(1, source[index] ?? 0));
+    output[index] = sample < 0 ? Math.round(sample * 0x8000) : Math.round(sample * 0x7fff);
+  }
+  return output;
+}
+
+function downsampleTo8kMono(source: Float32Array, inputSampleRate: number): Uint8Array {
+  if (inputSampleRate <= ASSISTANT_VOICE_SAMPLE_RATE) {
+    return new Uint8Array(convertFloat32ToPcm16(source).buffer);
+  }
+
+  const ratio = inputSampleRate / ASSISTANT_VOICE_SAMPLE_RATE;
+  const outputLength = Math.max(1, Math.floor(source.length / ratio));
+  const output = new Float32Array(outputLength);
+  let outputIndex = 0;
+  let sourceIndex = 0;
+
+  while (outputIndex < outputLength) {
+    const nextSourceIndex = Math.min(source.length, Math.round((outputIndex + 1) * ratio));
+    let total = 0;
+    let count = 0;
+
+    for (let index = Math.floor(sourceIndex); index < nextSourceIndex; index += 1) {
+      total += source[index] ?? 0;
+      count += 1;
+    }
+
+    output[outputIndex] = count > 0 ? total / count : 0;
+    outputIndex += 1;
+    sourceIndex = nextSourceIndex;
+  }
+
+  return new Uint8Array(convertFloat32ToPcm16(output).buffer);
+}
+
+function toBase64(bytes: Uint8Array): string {
+  let binary = '';
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary);
 }
 
 function Icon({ name, className }: { name: IconName; className?: string }) {
@@ -312,12 +364,11 @@ function Icon({ name, className }: { name: IconName; className?: string }) {
       );
     case 'assistant':
       return (
-        <svg {...props}>
-          <circle cx="12" cy="12" r="3" />
-          <path d="M12 2.75V5.25" />
-          <path d="M12 18.75V21.25" />
-          <path d="M2.75 12H5.25" />
-          <path d="M18.75 12H21.25" />
+        <svg className={className} viewBox="0 0 28 24" fill="none" aria-hidden>
+          <circle cx="8" cy="12" r="6" fill="#4285F4" />
+          <circle cx="16.4" cy="10.3" r="3.9" fill="#EA4335" />
+          <circle cx="16.4" cy="17" r="4.5" fill="#FBBC05" />
+          <circle cx="21.5" cy="7" r="2.1" fill="#34A853" />
         </svg>
       );
     default:
@@ -348,6 +399,9 @@ function App() {
   const [scanning, setScanning] = useState(false);
   const [bridgeReady, setBridgeReady] = useState(false);
   const [pairingReady, setPairingReady] = useState(false);
+  const [assistantStatus, setAssistantStatus] = useState<'idle' | 'arming' | 'active' | 'error'>(
+    'idle'
+  );
   const [updaterStatus, setUpdaterStatus] = useState<UpdaterStatus>({
     inProgress: false,
     stage: 'idle',
@@ -357,10 +411,22 @@ function App() {
     updateInstallable: false,
   });
   const [dismissedUpdateVersion, setDismissedUpdateVersion] = useState<string | null>(null);
+  const [updaterToast, setUpdaterToast] = useState<string | null>(null);
   const pairCodeInputRef = useRef<HTMLInputElement>(null);
   const commandQueueRef = useRef<QueuedCommandBatch[]>([]);
   const queuedCommandCountRef = useRef(0);
   const isProcessingQueueRef = useRef(false);
+  const assistantLongPressTimerRef = useRef<number | null>(null);
+  const assistantActiveRef = useRef(false);
+  const assistantVoiceSessionIdRef = useRef<number | null>(null);
+  const assistantAudioContextRef = useRef<AudioContext | null>(null);
+  const assistantMediaStreamRef = useRef<MediaStream | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
+  const assistantProcessorRef = useRef<ScriptProcessorNode | null>(null);
+  const assistantAudioBufferRef = useRef<Uint8Array>(new Uint8Array(0));
+  const assistantChunkQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const assistantChunkCountRef = useRef(0);
+  const assistantFirstChunkSentRef = useRef(false);
 
   const discoveredByHost = new Map(discoveredDevices.map((device) => [device.host, device]));
   const discoveredByMac = new Map(
@@ -558,6 +624,240 @@ function App() {
     }
   }, [pairingReady]);
 
+  function clearAssistantLongPressTimer() {
+    if (assistantLongPressTimerRef.current !== null) {
+      window.clearTimeout(assistantLongPressTimerRef.current);
+      assistantLongPressTimerRef.current = null;
+    }
+  }
+
+  async function stopAssistantSession() {
+    clearAssistantLongPressTimer();
+
+    if (assistantStatus === 'arming') {
+      setAssistantStatus('idle');
+    }
+
+    if (!assistantActiveRef.current) {
+      return;
+    }
+
+    assistantActiveRef.current = false;
+    setAssistantStatus('idle');
+
+    const sessionId = assistantVoiceSessionIdRef.current;
+    assistantVoiceSessionIdRef.current = null;
+    const sentChunks = assistantChunkCountRef.current;
+    assistantChunkCountRef.current = 0;
+    assistantFirstChunkSentRef.current = false;
+
+    const processor = assistantProcessorRef.current;
+    if (processor) {
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
+      processor.onaudioprocess = null;
+      processor.disconnect();
+      assistantProcessorRef.current = null;
+    }
+
+    const stream = assistantMediaStreamRef.current;
+    if (stream) {
+      for (const track of stream.getTracks()) {
+        track.stop();
+      }
+      assistantMediaStreamRef.current = null;
+    }
+
+    const context = assistantAudioContextRef.current;
+    if (context) {
+      await context.close();
+      assistantAudioContextRef.current = null;
+    }
+
+    if (sessionId !== null && assistantAudioBufferRef.current.length > 0) {
+      const remaining = assistantAudioBufferRef.current;
+      const finalSize = Math.max(ASSISTANT_VOICE_MIN_CHUNK_BYTES, remaining.length);
+      const padded = new Uint8Array(finalSize);
+      padded.set(remaining.subarray(0, finalSize));
+      assistantAudioBufferRef.current = new Uint8Array(0);
+      assistantChunkQueueRef.current = assistantChunkQueueRef.current.then(async () => {
+        await getDesktopApi().sendAssistantVoiceChunk(sessionId, toBase64(padded));
+      });
+    }
+
+    if (sessionId !== null) {
+      try {
+        await assistantChunkQueueRef.current;
+        await getDesktopApi().stopAssistantVoice(sessionId);
+        setBootstrap((current) => ({
+          ...current,
+          deviceState: {
+            ...current.deviceState,
+            message: `Assistant voice sent (${String(sentChunks)} chunk${sentChunks === 1 ? '' : 's'}).`,
+          },
+        }));
+      } catch (error) {
+        setBootstrap((current) => ({
+          ...current,
+          deviceState: {
+            ...current.deviceState,
+            status: 'error',
+            message: (error as Error).message,
+          },
+        }));
+      }
+    }
+  }
+
+  async function startAssistantSession() {
+    if (assistantActiveRef.current || remoteDisabled || currentView !== 'remote') {
+      return;
+    }
+
+    assistantActiveRef.current = true;
+    setAssistantStatus('active');
+
+    try {
+      const sessionId = await getDesktopApi().startAssistantVoice();
+      assistantVoiceSessionIdRef.current = sessionId;
+      assistantFirstChunkSentRef.current = false;
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          channelCount: 1,
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+        },
+      });
+      assistantMediaStreamRef.current = mediaStream;
+
+      const audioContext = new AudioContext();
+      assistantAudioContextRef.current = audioContext;
+      await audioContext.resume();
+      if (audioContext.state !== 'running') {
+        throw new Error('Microphone audio context could not start.');
+      }
+      const source = audioContext.createMediaStreamSource(mediaStream);
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
+      const processor = audioContext.createScriptProcessor(4096, 1, 1);
+      assistantProcessorRef.current = processor;
+
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
+      processor.onaudioprocess = (event) => {
+        if (!assistantActiveRef.current || assistantVoiceSessionIdRef.current === null) {
+          return;
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-deprecated
+        const input = event.inputBuffer.getChannelData(0);
+        const downsampled = downsampleTo8kMono(input, audioContext.sampleRate);
+        if (downsampled.length === 0) {
+          return;
+        }
+
+        const previous = assistantAudioBufferRef.current;
+        const merged = new Uint8Array(previous.length + downsampled.length);
+        merged.set(previous);
+        merged.set(downsampled, previous.length);
+        assistantAudioBufferRef.current = merged;
+
+        while (
+          assistantAudioBufferRef.current.length >=
+          (assistantFirstChunkSentRef.current
+            ? ASSISTANT_VOICE_STREAM_CHUNK_BYTES
+            : ASSISTANT_VOICE_INITIAL_CHUNK_BYTES)
+        ) {
+          const nextChunkSize = assistantFirstChunkSentRef.current
+            ? ASSISTANT_VOICE_STREAM_CHUNK_BYTES
+            : ASSISTANT_VOICE_INITIAL_CHUNK_BYTES;
+          const chunk = assistantAudioBufferRef.current.subarray(0, nextChunkSize);
+          assistantAudioBufferRef.current = assistantAudioBufferRef.current.subarray(nextChunkSize);
+          const activeSessionId = assistantVoiceSessionIdRef.current;
+          const payload = new Uint8Array(chunk);
+
+          assistantChunkQueueRef.current = assistantChunkQueueRef.current.then(async () => {
+            await getDesktopApi().sendAssistantVoiceChunk(activeSessionId, toBase64(payload));
+            assistantChunkCountRef.current += 1;
+            assistantFirstChunkSentRef.current = true;
+          });
+        }
+      };
+
+      source.connect(processor);
+      processor.connect(audioContext.destination);
+    } catch (error) {
+      assistantActiveRef.current = false;
+      setAssistantStatus('error');
+      setBootstrap((current) => ({
+        ...current,
+        deviceState: {
+          ...current.deviceState,
+          status: 'error',
+          message: (error as Error).message,
+        },
+      }));
+      await stopAssistantSession();
+    }
+  }
+
+  useEffect(() => {
+    if (!bridgeReady || !isConnected || currentView !== 'remote' || assistantActiveRef.current) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      if (assistantActiveRef.current) {
+        return;
+      }
+
+      void getDesktopApi()
+        .hasPendingAssistantVoiceSession()
+        .then((pending) => {
+          if (pending && !assistantActiveRef.current) {
+            void startAssistantSession();
+          }
+        })
+        .catch(() => {
+          // Ignore polling failures and retry on next interval.
+        });
+    }, 300);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+    // These session functions intentionally close over refs; re-running this poll on every render
+    // can tear down an active microphone stream.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bridgeReady, isConnected, currentView]);
+
+  useEffect(() => {
+    if (!bridgeReady || !isConnected || currentView !== 'remote') {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      if (!assistantActiveRef.current) {
+        return;
+      }
+
+      void getDesktopApi()
+        .hasPendingAssistantVoiceSession()
+        .then((pending) => {
+          if (!pending && assistantActiveRef.current) {
+            void stopAssistantSession();
+          }
+        })
+        .catch(() => {
+          // Ignore polling failures and retry on next interval.
+        });
+    }, 300);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+    // See polling effect above; keep this tied to connection/view changes only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bridgeReady, isConnected, currentView]);
+
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (!bridgeReady || !isConnected || currentView !== 'remote') {
@@ -572,6 +872,38 @@ function App() {
         return;
       }
 
+      if (event.key === 'Enter' && assistantActiveRef.current) {
+        event.preventDefault();
+        void stopAssistantSession();
+        return;
+      }
+
+      if ((event.key === 'Escape' || event.key === 'Esc') && assistantActiveRef.current) {
+        event.preventDefault();
+        void stopAssistantSession();
+        return;
+      }
+
+      if (event.key === 'g' || event.key === 'G') {
+        event.preventDefault();
+
+        if (
+          event.repeat ||
+          assistantLongPressTimerRef.current !== null ||
+          assistantActiveRef.current
+        ) {
+          return;
+        }
+
+        setAssistantStatus('arming');
+
+        assistantLongPressTimerRef.current = window.setTimeout(() => {
+          assistantLongPressTimerRef.current = null;
+          void startAssistantSession();
+        }, ASSISTANT_LONG_PRESS_MS);
+        return;
+      }
+
       const command = keyboardCommandMap[event.key];
       if (!command) {
         return;
@@ -581,11 +913,30 @@ function App() {
       handleCommand(command, 'keyboard');
     }
 
+    function onKeyUp(event: KeyboardEvent) {
+      if (event.key !== 'g' && event.key !== 'G') {
+        return;
+      }
+
+      if (isEditableTarget(event.target)) {
+        return;
+      }
+
+      event.preventDefault();
+      void stopAssistantSession();
+    }
+
     window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
     return () => {
       window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      clearAssistantLongPressTimer();
+      void stopAssistantSession();
     };
-  }, [bridgeReady, isConnected, currentView]);
+    // Keyboard listeners should not be recreated for each command queue render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bridgeReady, isConnected, currentView, remoteDisabled]);
 
   async function saveDiscoveredDevice(device: DiscoveredDevice): Promise<SavedDevice> {
     const devices = await getDesktopApi().saveDevice({
@@ -1044,7 +1395,45 @@ function App() {
       return <div className="ui-update-check mt-4">Checking for updates…</div>;
     }
 
-    return null;
+    return (
+      <>
+        <button
+          className="ui-update-check mt-4"
+          disabled={bridgeDisabled}
+          onClick={() => {
+            void getDesktopApi()
+              .checkForUpdates()
+              .then((nextStatus) => {
+                setUpdaterStatus(nextStatus);
+                if (!nextStatus.updateInstallable) {
+                  setUpdaterToast(nextStatus.message || 'No updates available.');
+                  window.setTimeout(() => {
+                    setUpdaterToast((current) =>
+                      current === (nextStatus.message || 'No updates available.') ? null : current
+                    );
+                  }, 2600);
+                }
+              })
+              .catch((error: unknown) => {
+                const message = (error as Error).message || 'Update check failed.';
+                setUpdaterStatus((current) => ({
+                  ...current,
+                  inProgress: false,
+                  stage: 'failed',
+                  message,
+                }));
+                setUpdaterToast(message);
+                window.setTimeout(() => {
+                  setUpdaterToast((current) => (current === message ? null : current));
+                }, 2600);
+              });
+          }}
+        >
+          Check for Updates
+        </button>
+        {updaterToast ? <div className="ui-update-toast">{updaterToast}</div> : null}
+      </>
+    );
   }
 
   const updaterPanel = renderUpdaterPanel();
@@ -1083,7 +1472,9 @@ function App() {
                   )}
                 >
                   <span className="ui-status-dot" />
-                  <span>{isConnected ? 'Connected' : bootstrap.deviceState.status}</span>
+                  <span className="ui-pill-text">
+                    {isConnected ? 'Connected' : bootstrap.deviceState.status}
+                  </span>
                 </div>
               </div>
             </>
@@ -1123,16 +1514,12 @@ function App() {
                               <Icon name="tv" className="h-[1.2rem] w-[1.2rem]" />
                             </div>
                             <div className="ui-card-copy">
-                              <div className="flex items-center justify-between gap-3">
-                                <span className="ui-card-title">{displayName}</span>
-                                <span
-                                  className={classes('ui-badge', isActive && 'ui-badge-active')}
-                                >
-                                  {status}
-                                </span>
-                              </div>
+                              <span className="ui-card-title">{displayName}</span>
                               <span className="ui-card-meta">{subtitle}</span>
                             </div>
+                            <span className={classes('ui-badge', isActive && 'ui-badge-active')}>
+                              <span className="ui-pill-text">{status}</span>
+                            </span>
                           </div>
                         </button>
                       );
@@ -1221,7 +1608,7 @@ function App() {
               </div>
             </div>
 
-            {updaterPanel ? <div className="ui-devices-footer">{updaterPanel}</div> : null}
+            <div className="ui-devices-footer">{updaterPanel}</div>
 
             {bootstrap.deviceState.status === 'error' || !bridgeReady ? (
               <div className="ui-alert">
@@ -1359,6 +1746,15 @@ function App() {
               </div>
             </section>
 
+            {assistantStatus === 'active' ? (
+              <div className="ui-assistant-wave" aria-label="Assistant listening">
+                <span className="ui-assistant-dot ui-assistant-dot-blue" />
+                <span className="ui-assistant-dot ui-assistant-dot-red" />
+                <span className="ui-assistant-dot ui-assistant-dot-yellow" />
+                <span className="ui-assistant-dot ui-assistant-dot-green" />
+              </div>
+            ) : null}
+
             <section className="ui-nav-well">
               <div className="ui-nav-grid">
                 <button
@@ -1477,16 +1873,30 @@ function App() {
                   </button>
                   <div className="ui-media-subgrid">
                     <button
-                      className="ui-media-button"
+                      className={classes(
+                        'ui-media-button',
+                        assistantStatus === 'active' && 'ui-media-button-assistant-active'
+                      )}
                       disabled={remoteDisabled}
-                      onClick={() => {
-                        handleCommand('assistant_press');
-                        window.setTimeout(() => {
-                          handleCommand('assistant_release');
-                        }, 120);
+                      onMouseDown={() => {
+                        void startAssistantSession();
+                      }}
+                      onMouseUp={() => {
+                        void stopAssistantSession();
+                      }}
+                      onMouseLeave={() => {
+                        void stopAssistantSession();
+                      }}
+                      onTouchStart={(event) => {
+                        event.preventDefault();
+                        void startAssistantSession();
+                      }}
+                      onTouchEnd={(event) => {
+                        event.preventDefault();
+                        void stopAssistantSession();
                       }}
                     >
-                      <Icon name="assistant" className="h-5 w-5" />
+                      <Icon name="assistant" className="h-10 w-10" />
                     </button>
                     <button
                       className="ui-media-button ui-media-danger"
