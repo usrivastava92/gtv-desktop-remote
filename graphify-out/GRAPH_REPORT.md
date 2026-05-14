@@ -1,11 +1,11 @@
-# Graph Report - gtv-desktop-remote  (2026-05-12)
+# Graph Report - gtv-desktop-remote  (2026-05-14)
 
 ## Corpus Check
-- 36 files · ~44,382 words
+- 37 files · ~44,699 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 275 nodes · 536 edges · 27 communities detected
+- 291 nodes · 563 edges · 28 communities detected
 - Extraction: 89% EXTRACTED · 11% INFERRED · 0% AMBIGUOUS · INFERRED: 61 edges (avg confidence: 0.81)
 - Token cost: 0 input · 0 output
 
@@ -25,7 +25,7 @@
 - [[_COMMUNITY_Community 12|Community 12]]
 - [[_COMMUNITY_Community 13|Community 13]]
 - [[_COMMUNITY_Community 14|Community 14]]
-- [[_COMMUNITY_Community 25|Community 25]]
+- [[_COMMUNITY_Community 15|Community 15]]
 - [[_COMMUNITY_Community 26|Community 26]]
 - [[_COMMUNITY_Community 27|Community 27]]
 - [[_COMMUNITY_Community 28|Community 28]]
@@ -37,6 +37,7 @@
 - [[_COMMUNITY_Community 34|Community 34]]
 - [[_COMMUNITY_Community 35|Community 35]]
 - [[_COMMUNITY_Community 36|Community 36]]
+- [[_COMMUNITY_Community 37|Community 37]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `CommandMetricsStore` - 22 edges
@@ -78,12 +79,12 @@ Cohesion: 0.11
 Nodes (28): clearAssistantLongPressTimer(), convertFloat32ToPcm16(), createCommandRequest(), downsampleTo8kMono(), enqueueCommand(), flushQueuedCommands(), getDesktopApi(), handleCommand() (+20 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.16
-Nodes (14): NativeRemoteClient, createImeBatchEditMessage(), createRemoteConfigure(), createRemoteKeyInject(), createRemoteKeyInjectRaw(), createRemoteMessage(), createRemotePingResponse(), createRemoteSetActive() (+6 more)
-
-### Community 3 - "Community 3"
 Cohesion: 0.17
 Nodes (5): AndroidTvRemoteBridge, isCertificateRejectedError(), normalizeRemoteError(), toError(), generateCertificate()
+
+### Community 3 - "Community 3"
+Cohesion: 0.16
+Nodes (14): NativeRemoteClient, createImeBatchEditMessage(), createRemoteConfigure(), createRemoteKeyInject(), createRemoteKeyInjectRaw(), createRemoteMessage(), createRemotePingResponse(), createRemoteSetActive() (+6 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.12
@@ -98,82 +99,86 @@ Cohesion: 0.31
 Nodes (16): applyApplicationIcon(), attachWindowDiagnostics(), bootstrapApp(), buildContextMenu(), createTrayImage(), createWindow(), ensureWindow(), getAssetPath() (+8 more)
 
 ### Community 7 - "Community 7"
+Cohesion: 0.27
+Nodes (15): checkForMacUpdate(), checkForUpdatesInBackground(), checkForUpdatesManually(), compareVersions(), downloadFile(), findBestMacAsset(), getBundlePathFromExecPath(), getUpdaterStatus() (+7 more)
+
+### Community 8 - "Community 8"
 Cohesion: 0.28
 Nodes (11): base64UrlToHex(), createPairingConfiguration(), createPairingOption(), createPairingRequest(), createPairingSecret(), decodeHex(), encodePairingMessage(), getCertificateKeyMaterialFromX509() (+3 more)
 
-### Community 8 - "Community 8"
-Cohesion: 0.51
+### Community 9 - "Community 9"
+Cohesion: 0.49
 Nodes (9): browseServiceInstances(), buildDeviceFingerprint(), buildDiscoveredId(), decodeDnsSdValue(), discoverGoogleTvDevices(), parseTxtRecord(), resolveHostToIp(), resolveService() (+1 more)
 
-### Community 9 - "Community 9"
+### Community 10 - "Community 10"
 Cohesion: 0.5
 Nodes (8): connectDevice(), disconnectDevice(), escapeAdbText(), getSerial(), pairDevice(), runAdb(), sendRemoteCommand(), sendRemoteText()
 
-### Community 10 - "Community 10"
+### Community 11 - "Community 11"
 Cohesion: 0.29
 Nodes (8): Favicon 16x16 - GTV Remote, Favicon 32x32 - GTV Remote, Favicon SVG - Google TV Remote Outlined Icon, GTV Remote Icon 512px - Small Remote Control Icon (black outline), GTV Remote Icon SVG - Google TV Remote Streamline Outlined Material Icon, Menubar Icon White - White Remote Control Icon for macOS Menu Bar, Taskbar Icon Black - Monochrome Remote Control Icon, Taskbar Icon - Google TV Remote App Icon (Color, macOS style)
 
-### Community 11 - "Community 11"
+### Community 12 - "Community 12"
 Cohesion: 0.8
 Nodes (3): hasDebugFlag(), isDebugTelemetryEnabled(), readDebugEnvFlag()
 
-### Community 12 - "Community 12"
+### Community 13 - "Community 13"
 Cohesion: 0.5
 Nodes (2): releaseAssetUrl(), renderCask()
 
-### Community 13 - "Community 13"
+### Community 14 - "Community 14"
 Cohesion: 0.7
 Nodes (4): getAppDataRoot(), getResetTargets(), main(), removeTarget()
 
-### Community 14 - "Community 14"
+### Community 15 - "Community 15"
 Cohesion: 1.0
 Nodes (2): Encrypted Pairing Protocol, androidtvremote (pairing certs dir)
 
-### Community 25 - "Community 25"
+### Community 26 - "Community 26"
 Cohesion: 1.0
 Nodes (1): GTV Desktop Remote
 
-### Community 26 - "Community 26"
+### Community 27 - "Community 27"
 Cohesion: 1.0
 Nodes (1): Network Scan
 
-### Community 27 - "Community 27"
+### Community 28 - "Community 28"
 Cohesion: 1.0
 Nodes (1): Keyboard Control
 
-### Community 28 - "Community 28"
+### Community 29 - "Community 29"
 Cohesion: 1.0
 Nodes (1): Global Shortcut CmdOrCtrl+Shift+G
 
-### Community 29 - "Community 29"
+### Community 30 - "Community 30"
 Cohesion: 1.0
 Nodes (1): MAC Address Device Tracking
 
-### Community 30 - "Community 30"
+### Community 31 - "Community 31"
 Cohesion: 1.0
 Nodes (1): Menubar App
 
-### Community 31 - "Community 31"
+### Community 32 - "Community 32"
 Cohesion: 1.0
 Nodes (1): Debug Telemetry
 
-### Community 32 - "Community 32"
+### Community 33 - "Community 33"
 Cohesion: 1.0
 Nodes (1): Bounded Command Queue
 
-### Community 33 - "Community 33"
+### Community 34 - "Community 34"
 Cohesion: 1.0
 Nodes (1): electron-builder Packaging
 
-### Community 34 - "Community 34"
+### Community 35 - "Community 35"
 Cohesion: 1.0
 Nodes (1): Reset App State Script
 
-### Community 35 - "Community 35"
+### Community 36 - "Community 36"
 Cohesion: 1.0
 Nodes (1): devices.json (saved devices file)
 
-### Community 36 - "Community 36"
+### Community 37 - "Community 37"
 Cohesion: 1.0
 Nodes (1): graphify knowledge graph config
 
@@ -182,42 +187,42 @@ Nodes (1): graphify knowledge graph config
   These have ≤1 connection - possible missing edges or undocumented components.
 - **Thin community `Community 5`** (21 nodes): `CommandMetricsStore`, `.detectStalls()`, `.ensureCommand()`, `.getSnapshot()`, `.logMetric()`, `.pushWarning()`, `.recordAdapterDispatchCompleted()`, `.recordAdapterDispatchStart()`, `.recordBridgeSendStart()`, `.recordCommandFailed()`, `.recordCommandSucceeded()`, `.recordConnectCompleted()`, `.recordConnectFailed()`, `.recordConnectStarted()`, `.recordInboundMessage()`, `.recordIpcReceived()`, `.recordRendererDrop()`, `.recordSocketClosed()`, `.recordSocketDrain()`, `.recordSocketWrite()`, `.trimCommands()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 12`** (5 nodes): `render-homebrew-cask.mjs`, `parseArgs()`, `releaseAssetUrl()`, `renderCask()`, `requireArg()`
+- **Thin community `Community 13`** (5 nodes): `render-homebrew-cask.mjs`, `parseArgs()`, `releaseAssetUrl()`, `renderCask()`, `requireArg()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 14`** (2 nodes): `Encrypted Pairing Protocol`, `androidtvremote (pairing certs dir)`
+- **Thin community `Community 15`** (2 nodes): `Encrypted Pairing Protocol`, `androidtvremote (pairing certs dir)`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 25`** (1 nodes): `GTV Desktop Remote`
+- **Thin community `Community 26`** (1 nodes): `GTV Desktop Remote`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 26`** (1 nodes): `Network Scan`
+- **Thin community `Community 27`** (1 nodes): `Network Scan`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 27`** (1 nodes): `Keyboard Control`
+- **Thin community `Community 28`** (1 nodes): `Keyboard Control`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 28`** (1 nodes): `Global Shortcut CmdOrCtrl+Shift+G`
+- **Thin community `Community 29`** (1 nodes): `Global Shortcut CmdOrCtrl+Shift+G`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 29`** (1 nodes): `MAC Address Device Tracking`
+- **Thin community `Community 30`** (1 nodes): `MAC Address Device Tracking`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 30`** (1 nodes): `Menubar App`
+- **Thin community `Community 31`** (1 nodes): `Menubar App`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 31`** (1 nodes): `Debug Telemetry`
+- **Thin community `Community 32`** (1 nodes): `Debug Telemetry`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 32`** (1 nodes): `Bounded Command Queue`
+- **Thin community `Community 33`** (1 nodes): `Bounded Command Queue`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 33`** (1 nodes): `electron-builder Packaging`
+- **Thin community `Community 34`** (1 nodes): `electron-builder Packaging`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 34`** (1 nodes): `Reset App State Script`
+- **Thin community `Community 35`** (1 nodes): `Reset App State Script`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 35`** (1 nodes): `devices.json (saved devices file)`
+- **Thin community `Community 36`** (1 nodes): `devices.json (saved devices file)`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 36`** (1 nodes): `graphify knowledge graph config`
+- **Thin community `Community 37`** (1 nodes): `graphify knowledge graph config`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `logInfo()` connect `Community 0` to `Community 3`, `Community 5`, `Community 6`?**
-  _High betweenness centrality (0.263) - this node is a cross-community bridge._
+- **Why does `logInfo()` connect `Community 0` to `Community 2`, `Community 5`, `Community 6`?**
+  _High betweenness centrality (0.235) - this node is a cross-community bridge._
 - **Why does `CommandMetricsStore` connect `Community 5` to `Community 4`?**
-  _High betweenness centrality (0.097) - this node is a cross-community bridge._
+  _High betweenness centrality (0.086) - this node is a cross-community bridge._
 - **Are the 16 inferred relationships involving `logInfo()` (e.g. with `bootstrapApp()` and `.logMetric()`) actually correct?**
   _`logInfo()` has 16 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `GTV Desktop Remote`, `Network Scan`, `Encrypted Pairing Protocol` to the rest of the system?**
