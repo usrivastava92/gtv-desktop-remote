@@ -75,7 +75,8 @@ type IconName =
   | 'power'
   | 'volumeUp'
   | 'volumeDown'
-  | 'remote';
+  | 'remote'
+  | 'assistant';
 
 function getDesktopApi() {
   const api = window.gtvRemote;
@@ -309,6 +310,16 @@ function Icon({ name, className }: { name: IconName; className?: string }) {
           <circle cx="12" cy="16" r="0.9" fill="currentColor" stroke="none" />
         </svg>
       );
+    case 'assistant':
+      return (
+        <svg {...props}>
+          <circle cx="12" cy="12" r="3" />
+          <path d="M12 2.75V5.25" />
+          <path d="M12 18.75V21.25" />
+          <path d="M2.75 12H5.25" />
+          <path d="M18.75 12H21.25" />
+        </svg>
+      );
     default:
       return null;
   }
@@ -337,13 +348,15 @@ function App() {
   const [scanning, setScanning] = useState(false);
   const [bridgeReady, setBridgeReady] = useState(false);
   const [pairingReady, setPairingReady] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [updaterStatus, setUpdaterStatus] = useState<UpdaterStatus>({
     inProgress: false,
     stage: 'idle',
     currentVersion: 'unknown',
     message: 'Loading update status...',
+    updateAvailable: false,
+    updateInstallable: false,
   });
+  const [dismissedUpdateVersion, setDismissedUpdateVersion] = useState<string | null>(null);
   const pairCodeInputRef = useRef<HTMLInputElement>(null);
   const commandQueueRef = useRef<QueuedCommandBatch[]>([]);
   const queuedCommandCountRef = useRef(0);
@@ -941,6 +954,20 @@ function App() {
     }
   }
 
+  async function handleInstallUpdate() {
+    try {
+      const nextStatus = await getDesktopApi().installAvailableUpdate();
+      setUpdaterStatus(nextStatus);
+    } catch (error) {
+      setUpdaterStatus((current) => ({
+        ...current,
+        inProgress: false,
+        stage: 'failed',
+        message: (error as Error).message,
+      }));
+    }
+  }
+
   async function handleCheckForUpdates() {
     try {
       setUpdaterStatus((current) => ({
@@ -957,6 +984,7 @@ function App() {
       setUpdaterStatus((current) => ({
         ...current,
         inProgress: false,
+        stage: 'failed',
         message: (error as Error).message,
       }));
     }
@@ -964,10 +992,6 @@ function App() {
 
   useEffect(() => {
     if (!bridgeReady) {
-      return;
-    }
-
-    if (!updaterStatus.inProgress) {
       return;
     }
 
@@ -980,12 +1004,12 @@ function App() {
         .catch(() => {
           // Ignore polling failures; existing state remains visible.
         });
-    }, 800);
+    }, 1500);
 
     return () => {
       window.clearInterval(timer);
     };
-  }, [bridgeReady, updaterStatus.inProgress]);
+  }, [bridgeReady]);
 
   function openDevicePicker() {
     setTextInputOpen(false);
@@ -1004,6 +1028,68 @@ function App() {
     }
 
     return 'Offline';
+  }
+
+  function renderUpdaterPanel() {
+    const isDismissed =
+      updaterStatus.updateInstallable &&
+      updaterStatus.latestVersion &&
+      dismissedUpdateVersion === updaterStatus.latestVersion;
+
+    if (updaterStatus.updateInstallable && !isDismissed) {
+      return (
+        <section className="ui-update-panel mt-4">
+          <div className="ui-update-head">
+            <span className="ui-card-title ui-update-title-centered">Update Available</span>
+            <button
+              className="ui-update-close"
+              onClick={() => {
+                setDismissedUpdateVersion(updaterStatus.latestVersion ?? null);
+              }}
+              aria-label="Close update panel"
+            >
+              ✕
+            </button>
+          </div>
+          <p className="ui-copy ui-update-copy">
+            {updaterStatus.currentVersion} → {updaterStatus.latestVersion}
+          </p>
+          {updaterStatus.inProgress ? (
+            <div className="mt-2 w-full">
+              <div className="h-2 w-full overflow-hidden rounded-full bg-surface-soft">
+                <div
+                  className="h-full bg-primary transition-all"
+                  style={{ width: `${String(updaterStatus.progressPercent ?? 12)}%` }}
+                />
+              </div>
+            </div>
+          ) : null}
+          <button
+            className="ui-update-action"
+            disabled={bridgeDisabled || updaterStatus.inProgress}
+            onClick={() => {
+              void handleInstallUpdate();
+            }}
+          >
+            {updaterStatus.inProgress ? 'Updating…' : 'Update'}
+          </button>
+        </section>
+      );
+    }
+
+    return (
+      <button
+        className="ui-update-check mt-4"
+        disabled={bridgeDisabled || updaterStatus.inProgress}
+        onClick={() => {
+          void handleCheckForUpdates();
+        }}
+      >
+        {updaterStatus.inProgress || updaterStatus.stage === 'checking'
+          ? 'Checking for updates…'
+          : 'Check for Updates'}
+      </button>
+    );
   }
 
   return (
@@ -1049,183 +1135,136 @@ function App() {
 
         {currentView === 'devices' ? (
           <div className="ui-screen-scroll">
-            <section className="ui-section">
-              <div className="ui-section-row">
-                <h2 className="ui-section-heading">Known Devices</h2>
-                <span className="ui-live-dot" />
-              </div>
-              <div className="ui-list">
-                {pairedNetworkDevices.length === 0 ? (
-                  <div className="ui-empty">No paired devices yet.</div>
-                ) : (
-                  pairedNetworkDevices.map((option) => {
-                    const status = renderStatusLabel(option.savedDevice, option.discoveredDevice);
-                    const displayName = option.discoveredDevice?.name ?? option.savedDevice.name;
-                    const subtitle = option.discoveredDevice?.model ?? option.savedDevice.host;
-                    const isActive = bootstrap.deviceState.activeDeviceId === option.savedDevice.id;
+            <div className="ui-devices-content">
+              <section className="ui-section">
+                <div className="ui-section-row">
+                  <h2 className="ui-section-heading">Known Devices</h2>
+                  <span className="ui-live-dot" />
+                </div>
+                <div className="ui-list">
+                  {pairedNetworkDevices.length === 0 ? (
+                    <div className="ui-empty">No paired devices yet.</div>
+                  ) : (
+                    pairedNetworkDevices.map((option) => {
+                      const status = renderStatusLabel(option.savedDevice, option.discoveredDevice);
+                      const displayName = option.discoveredDevice?.name ?? option.savedDevice.name;
+                      const subtitle = option.discoveredDevice?.model ?? option.savedDevice.host;
+                      const isActive =
+                        bootstrap.deviceState.activeDeviceId === option.savedDevice.id;
 
-                    return (
+                      return (
+                        <button
+                          key={option.key}
+                          className={classes('ui-card', isActive && 'ui-card-active')}
+                          disabled={bridgeDisabled}
+                          onClick={() => {
+                            void handleSelectSavedDevice(option.savedDevice.id);
+                          }}
+                        >
+                          <div className="ui-card-row">
+                            <div className={classes('ui-avatar', isActive && 'ui-avatar-active')}>
+                              <Icon name="tv" className="h-[1.2rem] w-[1.2rem]" />
+                            </div>
+                            <div className="ui-card-copy">
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="ui-card-title">{displayName}</span>
+                                <span
+                                  className={classes('ui-badge', isActive && 'ui-badge-active')}
+                                >
+                                  {status}
+                                </span>
+                              </div>
+                              <span className="ui-card-meta">{subtitle}</span>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </section>
+
+              <section className="ui-section">
+                <div className="ui-section-row">
+                  <h2 className="ui-section-heading">New Devices Found</h2>
+                  <button
+                    className="ui-icon-button"
+                    disabled={bridgeDisabled || scanning}
+                    onClick={() => {
+                      void handleScanDevices(false);
+                    }}
+                  >
+                    <Icon
+                      name="refresh"
+                      className={`h-5 w-5 ${scanning ? 'animate-spin' : ''}`}
+                    />{' '}
+                  </button>
+                </div>
+                <div className="ui-list">
+                  {unpairedNetworkDevices.length === 0 ? (
+                    <div className="ui-empty ui-empty-recessed">
+                      No new devices detected right now.
+                    </div>
+                  ) : (
+                    unpairedNetworkDevices.map((device) => (
                       <button
-                        key={option.key}
-                        className={classes('ui-card', isActive && 'ui-card-active')}
+                        key={device.id}
+                        className="ui-found-row"
                         disabled={bridgeDisabled}
                         onClick={() => {
-                          void handleSelectSavedDevice(option.savedDevice.id);
+                          void handleSelectDiscoveredDevice(device);
                         }}
                       >
-                        <div className="ui-card-row">
-                          <div className={classes('ui-avatar', isActive && 'ui-avatar-active')}>
-                            <Icon name="tv" className="h-[1.2rem] w-[1.2rem]" />
-                          </div>
-                          <div className="ui-card-copy">
-                            <div className="flex items-center justify-between gap-3">
-                              <span className="ui-card-title">{displayName}</span>
-                              <span className={classes('ui-badge', isActive && 'ui-badge-active')}>
-                                {status}
+                        <div className="ui-found-content">
+                          <div className="ui-found-main">
+                            <div className="ui-found-icon">
+                              <Icon
+                                name={device.source === 'googlecast' ? 'cast' : 'devices'}
+                                className="h-[1.2rem] w-[1.2rem]"
+                              />
+                            </div>
+                            <div>
+                              <span className="block text-sm font-bold text-on-surface">
+                                {device.name}
+                              </span>
+                              <span className="block text-[10px] font-medium text-on-surface-variant">
+                                {device.model ?? 'Ready to pair'}
                               </span>
                             </div>
-                            <span className="ui-card-meta">{subtitle}</span>
+                          </div>
+                          <div className="ui-found-add">
+                            <Icon name="plus" className="h-4 w-4" />
                           </div>
                         </div>
                       </button>
-                    );
-                  })
-                )}
-              </div>
-            </section>
+                    ))
+                  )}
+                </div>
+              </section>
 
-            <section className="ui-section">
-              <div className="ui-section-row">
-                <h2 className="ui-section-heading">New Devices Found</h2>
+              <div className="ui-help">
                 <button
-                  className="ui-icon-button"
-                  disabled={bridgeDisabled || scanning}
+                  className="ui-help-chip"
+                  disabled={bridgeDisabled}
                   onClick={() => {
                     void handleScanDevices(false);
                   }}
                 >
-                  <Icon
-                    name="refresh"
-                    className={`h-5 w-5 ${scanning ? 'animate-spin' : ''}`}
-                  />{' '}
+                  Don&apos;t see your device?
                 </button>
-              </div>
-              <div className="ui-list">
-                {unpairedNetworkDevices.length === 0 ? (
-                  <div className="ui-empty ui-empty-recessed">
-                    No new devices detected right now.
-                  </div>
-                ) : (
-                  unpairedNetworkDevices.map((device) => (
-                    <button
-                      key={device.id}
-                      className="ui-found-row"
-                      disabled={bridgeDisabled}
-                      onClick={() => {
-                        void handleSelectDiscoveredDevice(device);
-                      }}
-                    >
-                      <div className="ui-found-content">
-                        <div className="ui-found-main">
-                          <div className="ui-found-icon">
-                            <Icon
-                              name={device.source === 'googlecast' ? 'cast' : 'devices'}
-                              className="h-[1.2rem] w-[1.2rem]"
-                            />
-                          </div>
-                          <div>
-                            <span className="block text-sm font-bold text-on-surface">
-                              {device.name}
-                            </span>
-                            <span className="block text-[10px] font-medium text-on-surface-variant">
-                              {device.model ?? 'Ready to pair'}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="ui-found-add">
-                          <Icon name="plus" className="h-4 w-4" />
-                        </div>
-                      </div>
-                    </button>
-                  ))
-                )}
-              </div>
-            </section>
-
-            <div className="ui-help">
-              <button
-                className="ui-help-chip"
-                disabled={bridgeDisabled}
-                onClick={() => {
-                  setSettingsOpen((current) => !current);
-                }}
-              >
-                Settings
-              </button>
-              <button
-                className="ui-help-chip"
-                disabled={bridgeDisabled}
-                onClick={() => {
-                  void handleScanDevices(false);
-                }}
-              >
-                Don&apos;t see your device?
-              </button>
-              <button
-                className="ui-help-chip ui-help-chip-danger"
-                disabled={bridgeDisabled}
-                onClick={() => {
-                  void handleResetState();
-                }}
-              >
-                Reset App State
-              </button>
-            </div>
-
-            {settingsOpen ? (
-              <section className="ui-glass-sheet mt-4">
-                <div className="ui-section-row">
-                  <h2 className="ui-section-heading">Settings</h2>
-                  <button
-                    className="rounded-full px-4 py-2 text-sm text-on-surface-variant"
-                    onClick={() => {
-                      setSettingsOpen(false);
-                    }}
-                  >
-                    Close
-                  </button>
-                </div>
-                <p className="ui-copy">App version: {updaterStatus.currentVersion}</p>
-                <p className="ui-copy">
-                  Latest: {updaterStatus.latestVersion ?? 'unknown'} • {updaterStatus.message}
-                </p>
-                {updaterStatus.inProgress ? (
-                  <div className="w-full">
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-surface-soft">
-                      <div
-                        className="h-full bg-primary transition-all"
-                        style={{ width: `${String(updaterStatus.progressPercent ?? 12)}%` }}
-                      />
-                    </div>
-                    <p className="mt-2 text-xs text-on-surface-variant">
-                      Stage: {updaterStatus.stage}
-                      {updaterStatus.etaSeconds !== undefined
-                        ? ` • ETA ~${String(updaterStatus.etaSeconds)}s`
-                        : ''}
-                    </p>
-                  </div>
-                ) : null}
                 <button
-                  className="ui-primary-button"
-                  disabled={bridgeDisabled || updaterStatus.inProgress}
+                  className="ui-help-chip ui-help-chip-danger"
+                  disabled={bridgeDisabled}
                   onClick={() => {
-                    void handleCheckForUpdates();
+                    void handleResetState();
                   }}
                 >
-                  {updaterStatus.inProgress ? 'Checking…' : 'Check for Updates'}
+                  Reset App State
                 </button>
-              </section>
-            ) : null}
+              </div>
+            </div>
+
+            <div className="ui-devices-footer">{renderUpdaterPanel()}</div>
 
             {bootstrap.deviceState.status === 'error' || !bridgeReady ? (
               <div className="ui-alert">
@@ -1502,6 +1541,8 @@ function App() {
                 </div>
               </div>
             </section>
+
+            <section className="px-6 pb-2">{renderUpdaterPanel()}</section>
 
             <footer className="ui-footer-bar">
               <button className="ui-footer-item" disabled={busy} onClick={openDevicePicker}>

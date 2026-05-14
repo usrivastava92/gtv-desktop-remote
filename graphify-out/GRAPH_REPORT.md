@@ -1,11 +1,11 @@
 # Graph Report - gtv-desktop-remote  (2026-05-14)
 
 ## Corpus Check
-- 38 files · ~46,238 words
+- 38 files · ~47,789 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 290 nodes · 588 edges · 28 communities detected
+- 295 nodes · 600 edges · 28 communities detected
 - Extraction: 88% EXTRACTED · 12% INFERRED · 0% AMBIGUOUS · INFERRED: 71 edges (avg confidence: 0.81)
 - Token cost: 0 input · 0 output
 
@@ -46,7 +46,7 @@
 4. `GoogleTvAdapter` - 20 edges
 5. `NoopCommandMetricsStore` - 17 edges
 6. `NativeRemoteClient` - 16 edges
-7. `getDesktopApi()` - 15 edges
+7. `getDesktopApi()` - 16 edges
 8. `checkForMacUpdate()` - 12 edges
 9. `readDevices()` - 12 edges
 10. `writeDevices()` - 10 edges
@@ -58,9 +58,9 @@
   public/favicon.svg → assets/icons/gtv-remote-icon.svg
 - `setUpdaterStatus()` --calls--> `initialize()`  [INFERRED]
   src/main/updater.ts → src/renderer/App.tsx
-- `setUpdaterStatus()` --calls--> `handleCheckForUpdates()`  [INFERRED]
-  src/main/updater.ts → src/renderer/App.tsx
-- `installMacUpdateFromZip()` --calls--> `logInfo()`  [INFERRED]
+- `readUpdateState()` --calls--> `getAppDataPath()`  [INFERRED]
+  src/main/updater.ts → src/main/logger.ts
+- `writeUpdateState()` --calls--> `getAppDataPath()`  [INFERRED]
   src/main/updater.ts → src/main/logger.ts
 
 ## Hyperedges (group relationships)
@@ -72,19 +72,19 @@
 
 ### Community 0 - "Community 0"
 Cohesion: 0.13
-Nodes (13): getLegacyUserDataPaths(), GoogleTvAdapter, clearDeviceStore(), getDeviceStorePath(), getStorePath(), readDevices(), writeDevices(), getLoggerPath() (+5 more)
+Nodes (14): getLegacyUserDataPaths(), GoogleTvAdapter, clearDeviceStore(), getDeviceStorePath(), getStorePath(), readDevices(), writeDevices(), getAppDataPath() (+6 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.12
-Nodes (24): createCommandRequest(), enqueueCommand(), flushQueuedCommands(), getDesktopApi(), handleCheckForUpdates(), handleCommand(), handleConnect(), handleDisconnect() (+16 more)
+Cohesion: 0.11
+Nodes (28): clearAssistantLongPressTimer(), convertFloat32ToPcm16(), createCommandRequest(), downsampleTo8kMono(), enqueueCommand(), flushQueuedCommands(), getDesktopApi(), handleCommand() (+20 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.17
-Nodes (14): NativeRemoteClient, createImeBatchEditMessage(), createRemoteConfigure(), createRemoteKeyInject(), createRemoteKeyInjectRaw(), createRemoteMessage(), createRemotePingResponse(), createRemoteSetActive() (+6 more)
+Nodes (5): AndroidTvRemoteBridge, isCertificateRejectedError(), normalizeRemoteError(), toError(), generateCertificate()
 
 ### Community 3 - "Community 3"
 Cohesion: 0.17
-Nodes (5): AndroidTvRemoteBridge, isCertificateRejectedError(), normalizeRemoteError(), toError(), generateCertificate()
+Nodes (14): NativeRemoteClient, createImeBatchEditMessage(), createRemoteConfigure(), createRemoteKeyInject(), createRemoteKeyInjectRaw(), createRemoteMessage(), createRemotePingResponse(), createRemoteSetActive() (+6 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.12
@@ -95,12 +95,12 @@ Cohesion: 0.21
 Nodes (1): CommandMetricsStore
 
 ### Community 6 - "Community 6"
-Cohesion: 0.25
+Cohesion: 0.26
 Nodes (19): applyApplicationIcon(), attachWindowDiagnostics(), bootstrapApp(), buildApplicationMenu(), buildContextMenu(), createTrayImage(), createWindow(), ensureWindow() (+11 more)
 
 ### Community 7 - "Community 7"
-Cohesion: 0.32
-Nodes (16): getAppDataPath(), checkForMacUpdate(), checkForUpdatesInBackground(), checkForUpdatesManually(), compareVersions(), downloadFile(), findBestMacAsset(), getBundlePathFromExecPath() (+8 more)
+Cohesion: 0.35
+Nodes (15): checkForMacUpdate(), checkForUpdatesInBackground(), checkForUpdatesManually(), compareVersions(), downloadFile(), findBestMacAsset(), getBundlePathFromExecPath(), getUpdaterStatus() (+7 more)
 
 ### Community 8 - "Community 8"
 Cohesion: 0.28
@@ -219,10 +219,10 @@ Nodes (1): graphify knowledge graph config
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `logInfo()` connect `Community 0` to `Community 3`, `Community 5`, `Community 6`, `Community 7`?**
-  _High betweenness centrality (0.422) - this node is a cross-community bridge._
+- **Why does `logInfo()` connect `Community 0` to `Community 2`, `Community 5`, `Community 6`, `Community 7`?**
+  _High betweenness centrality (0.412) - this node is a cross-community bridge._
 - **Why does `setUpdaterStatus()` connect `Community 7` to `Community 1`?**
-  _High betweenness centrality (0.139) - this node is a cross-community bridge._
+  _High betweenness centrality (0.155) - this node is a cross-community bridge._
 - **Are the 19 inferred relationships involving `logInfo()` (e.g. with `bootstrapApp()` and `installMacUpdateFromZip()`) actually correct?**
   _`logInfo()` has 19 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `GTV Desktop Remote`, `Network Scan`, `Encrypted Pairing Protocol` to the rest of the system?**
@@ -230,6 +230,6 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.13 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.12 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.11 - nodes in this community are weakly interconnected._
 - **Should `Community 4` be split into smaller, more focused modules?**
   _Cohesion score 0.12 - nodes in this community are weakly interconnected._
