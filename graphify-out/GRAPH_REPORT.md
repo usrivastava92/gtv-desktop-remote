@@ -1,12 +1,12 @@
 # Graph Report - gtv-desktop-remote  (2026-05-14)
 
 ## Corpus Check
-- 38 files · ~44,271 words
+- 38 files · ~46,238 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 272 nodes · 537 edges · 28 communities detected
-- Extraction: 88% EXTRACTED · 12% INFERRED · 0% AMBIGUOUS · INFERRED: 63 edges (avg confidence: 0.81)
+- 290 nodes · 588 edges · 28 communities detected
+- Extraction: 88% EXTRACTED · 12% INFERRED · 0% AMBIGUOUS · INFERRED: 71 edges (avg confidence: 0.81)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
@@ -40,13 +40,13 @@
 - [[_COMMUNITY_Community 37|Community 37]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `CommandMetricsStore` - 22 edges
-2. `logInfo()` - 19 edges
-3. `NoopCommandMetricsStore` - 17 edges
-4. `AndroidTvRemoteBridge` - 17 edges
-5. `GoogleTvAdapter` - 16 edges
-6. `getDesktopApi()` - 15 edges
-7. `NativeRemoteClient` - 13 edges
+1. `logInfo()` - 22 edges
+2. `CommandMetricsStore` - 22 edges
+3. `AndroidTvRemoteBridge` - 21 edges
+4. `GoogleTvAdapter` - 20 edges
+5. `NoopCommandMetricsStore` - 17 edges
+6. `NativeRemoteClient` - 16 edges
+7. `getDesktopApi()` - 15 edges
 8. `checkForMacUpdate()` - 12 edges
 9. `readDevices()` - 12 edges
 10. `writeDevices()` - 10 edges
@@ -56,11 +56,11 @@
   README.md → scripts/reset-app-state.mjs
 - `Favicon SVG - Google TV Remote Outlined Icon` --semantically_similar_to--> `GTV Remote Icon SVG - Google TV Remote Streamline Outlined Material Icon`  [EXTRACTED] [semantically similar]
   public/favicon.svg → assets/icons/gtv-remote-icon.svg
-- `initialize()` --calls--> `setUpdaterStatus()`  [INFERRED]
-  src/renderer/App.tsx → src/main/updater.ts
-- `handleCheckForUpdates()` --calls--> `setUpdaterStatus()`  [INFERRED]
-  src/renderer/App.tsx → src/main/updater.ts
-- `readUpdateState()` --calls--> `getAppDataPath()`  [INFERRED]
+- `setUpdaterStatus()` --calls--> `initialize()`  [INFERRED]
+  src/main/updater.ts → src/renderer/App.tsx
+- `setUpdaterStatus()` --calls--> `handleCheckForUpdates()`  [INFERRED]
+  src/main/updater.ts → src/renderer/App.tsx
+- `installMacUpdateFromZip()` --calls--> `logInfo()`  [INFERRED]
   src/main/updater.ts → src/main/logger.ts
 
 ## Hyperedges (group relationships)
@@ -71,20 +71,20 @@
 ## Communities
 
 ### Community 0 - "Community 0"
-Cohesion: 0.15
-Nodes (14): getLegacyUserDataPaths(), GoogleTvAdapter, clearDeviceStore(), getDeviceStorePath(), getStorePath(), readDevices(), writeDevices(), getAppDataPath() (+6 more)
+Cohesion: 0.13
+Nodes (13): getLegacyUserDataPaths(), GoogleTvAdapter, clearDeviceStore(), getDeviceStorePath(), getStorePath(), readDevices(), writeDevices(), getLoggerPath() (+5 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.12
 Nodes (24): createCommandRequest(), enqueueCommand(), flushQueuedCommands(), getDesktopApi(), handleCheckForUpdates(), handleCommand(), handleConnect(), handleDisconnect() (+16 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.2
-Nodes (5): AndroidTvRemoteBridge, isCertificateRejectedError(), normalizeRemoteError(), toError(), generateCertificate()
+Cohesion: 0.17
+Nodes (14): NativeRemoteClient, createImeBatchEditMessage(), createRemoteConfigure(), createRemoteKeyInject(), createRemoteKeyInjectRaw(), createRemoteMessage(), createRemotePingResponse(), createRemoteSetActive() (+6 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.18
-Nodes (10): NativeRemoteClient, createImeBatchEditMessage(), createRemoteConfigure(), createRemoteKeyInject(), createRemoteMessage(), createRemotePingResponse(), createRemoteSetActive(), decodeRemoteMessage() (+2 more)
+Cohesion: 0.17
+Nodes (5): AndroidTvRemoteBridge, isCertificateRejectedError(), normalizeRemoteError(), toError(), generateCertificate()
 
 ### Community 4 - "Community 4"
 Cohesion: 0.12
@@ -95,20 +95,20 @@ Cohesion: 0.21
 Nodes (1): CommandMetricsStore
 
 ### Community 6 - "Community 6"
-Cohesion: 0.29
-Nodes (17): applyApplicationIcon(), attachWindowDiagnostics(), bootstrapApp(), buildApplicationMenu(), buildContextMenu(), createTrayImage(), createWindow(), ensureWindow() (+9 more)
+Cohesion: 0.25
+Nodes (19): applyApplicationIcon(), attachWindowDiagnostics(), bootstrapApp(), buildApplicationMenu(), buildContextMenu(), createTrayImage(), createWindow(), ensureWindow() (+11 more)
 
 ### Community 7 - "Community 7"
-Cohesion: 0.35
-Nodes (15): checkForMacUpdate(), checkForUpdatesInBackground(), checkForUpdatesManually(), compareVersions(), downloadFile(), findBestMacAsset(), getBundlePathFromExecPath(), getUpdaterStatus() (+7 more)
+Cohesion: 0.32
+Nodes (16): getAppDataPath(), checkForMacUpdate(), checkForUpdatesInBackground(), checkForUpdatesManually(), compareVersions(), downloadFile(), findBestMacAsset(), getBundlePathFromExecPath() (+8 more)
 
 ### Community 8 - "Community 8"
 Cohesion: 0.28
 Nodes (11): base64UrlToHex(), createPairingConfiguration(), createPairingOption(), createPairingRequest(), createPairingSecret(), decodeHex(), encodePairingMessage(), getCertificateKeyMaterialFromX509() (+3 more)
 
 ### Community 9 - "Community 9"
-Cohesion: 0.56
-Nodes (8): browseServiceInstances(), buildDiscoveredId(), decodeDnsSdValue(), discoverGoogleTvDevices(), parseTxtRecord(), resolveHostToIp(), resolveService(), runDnsSd()
+Cohesion: 0.51
+Nodes (9): browseServiceInstances(), buildDeviceFingerprint(), buildDiscoveredId(), decodeDnsSdValue(), discoverGoogleTvDevices(), parseTxtRecord(), resolveHostToIp(), resolveService() (+1 more)
 
 ### Community 10 - "Community 10"
 Cohesion: 0.5
@@ -219,14 +219,16 @@ Nodes (1): graphify knowledge graph config
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `logInfo()` connect `Community 0` to `Community 2`, `Community 5`, `Community 6`, `Community 7`?**
-  _High betweenness centrality (0.401) - this node is a cross-community bridge._
+- **Why does `logInfo()` connect `Community 0` to `Community 3`, `Community 5`, `Community 6`, `Community 7`?**
+  _High betweenness centrality (0.422) - this node is a cross-community bridge._
 - **Why does `setUpdaterStatus()` connect `Community 7` to `Community 1`?**
-  _High betweenness centrality (0.142) - this node is a cross-community bridge._
-- **Are the 16 inferred relationships involving `logInfo()` (e.g. with `bootstrapApp()` and `installMacUpdateFromZip()`) actually correct?**
-  _`logInfo()` has 16 INFERRED edges - model-reasoned connections that need verification._
+  _High betweenness centrality (0.139) - this node is a cross-community bridge._
+- **Are the 19 inferred relationships involving `logInfo()` (e.g. with `bootstrapApp()` and `installMacUpdateFromZip()`) actually correct?**
+  _`logInfo()` has 19 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `GTV Desktop Remote`, `Network Scan`, `Encrypted Pairing Protocol` to the rest of the system?**
   _17 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `Community 0` be split into smaller, more focused modules?**
+  _Cohesion score 0.13 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
   _Cohesion score 0.12 - nodes in this community are weakly interconnected._
 - **Should `Community 4` be split into smaller, more focused modules?**
