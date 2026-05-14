@@ -622,29 +622,6 @@ function App() {
     setDevicePickerOpen(false);
   }
 
-  async function handleStartPairing(deviceId = selectedPairedDeviceId) {
-    if (!deviceId) {
-      return;
-    }
-
-    setBusy(true);
-    try {
-      await startPairingFlow(deviceId);
-    } catch (error) {
-      setPairingReady(false);
-      setDevicePickerOpen(true);
-      setBootstrap((current) => ({
-        ...current,
-        deviceState: {
-          status: 'error',
-          message: (error as Error).message,
-        },
-      }));
-    } finally {
-      setBusy(false);
-    }
-  }
-
   async function handleSelectSavedDevice(deviceId: string) {
     setTextInputOpen(false);
     setPairCode('');
@@ -968,28 +945,6 @@ function App() {
     }
   }
 
-  async function handleCheckForUpdates() {
-    try {
-      setUpdaterStatus((current) => ({
-        ...current,
-        inProgress: true,
-        stage: 'checking',
-        progressPercent: 0,
-        etaSeconds: undefined,
-        message: 'Checking for updates...',
-      }));
-      const nextStatus = await getDesktopApi().checkForUpdates();
-      setUpdaterStatus(nextStatus);
-    } catch (error) {
-      setUpdaterStatus((current) => ({
-        ...current,
-        inProgress: false,
-        stage: 'failed',
-        message: (error as Error).message,
-      }));
-    }
-  }
-
   useEffect(() => {
     if (!bridgeReady) {
       return;
@@ -1085,20 +1040,14 @@ function App() {
       );
     }
 
-    return (
-      <button
-        className="ui-update-check mt-4"
-        disabled={bridgeDisabled || updaterStatus.inProgress}
-        onClick={() => {
-          void handleCheckForUpdates();
-        }}
-      >
-        {updaterStatus.inProgress || updaterStatus.stage === 'checking'
-          ? 'Checking for updates…'
-          : 'Check for Updates'}
-      </button>
-    );
+    if (updaterStatus.inProgress || updaterStatus.stage === 'checking') {
+      return <div className="ui-update-check mt-4">Checking for updates…</div>;
+    }
+
+    return null;
   }
+
+  const updaterPanel = renderUpdaterPanel();
 
   return (
     <main className="ui-shell">
@@ -1272,7 +1221,7 @@ function App() {
               </div>
             </div>
 
-            <div className="ui-devices-footer">{renderUpdaterPanel()}</div>
+            {updaterPanel ? <div className="ui-devices-footer">{updaterPanel}</div> : null}
 
             {bootstrap.deviceState.status === 'error' || !bridgeReady ? (
               <div className="ui-alert">
@@ -1531,10 +1480,13 @@ function App() {
                       className="ui-media-button"
                       disabled={remoteDisabled}
                       onClick={() => {
-                        void handleStartPairing(currentRemoteDevice?.id);
+                        handleCommand('assistant_press');
+                        window.setTimeout(() => {
+                          handleCommand('assistant_release');
+                        }, 120);
                       }}
                     >
-                      <Icon name="remote" className="h-5 w-5" />
+                      <Icon name="assistant" className="h-5 w-5" />
                     </button>
                     <button
                       className="ui-media-button ui-media-danger"
@@ -1549,8 +1501,6 @@ function App() {
                 </div>
               </div>
             </section>
-
-            <section className="px-6 pb-2">{renderUpdaterPanel()}</section>
 
             <footer className="ui-footer-bar">
               <button className="ui-footer-item" disabled={busy} onClick={openDevicePicker}>
