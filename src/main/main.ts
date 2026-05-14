@@ -302,6 +302,18 @@ function registerIpc() {
   });
   ipcMain.handle('metrics:snapshot', () => commandMetricsStore.getSnapshot());
   ipcMain.handle('device:text', async (_event, text: string) => adapter.sendText(text));
+  ipcMain.handle('device:assistantVoiceStart', async () => adapter.startAssistantVoice());
+  ipcMain.handle(
+    'device:assistantVoiceChunk',
+    async (_event, sessionId: number, chunkBase64: string) =>
+      adapter.sendAssistantVoiceChunk(sessionId, chunkBase64)
+  );
+  ipcMain.handle('device:assistantVoiceStop', async (_event, sessionId: number) =>
+    adapter.stopAssistantVoice(sessionId)
+  );
+  ipcMain.handle('device:assistantVoicePending', async () =>
+    adapter.hasPendingAssistantVoiceSession()
+  );
   ipcMain.handle('device:capabilities', async () => adapter.getCapabilities());
   ipcMain.handle('updater:check', async () => checkForUpdatesManually());
   ipcMain.handle('updater:status', () => getUpdaterStatus());

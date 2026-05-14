@@ -19,6 +19,15 @@ function buildDiscoveredId(host: string, name: string): string {
   return createHash('sha1').update(`${host}:${name}`).digest('hex').slice(0, 12);
 }
 
+function buildDeviceFingerprint(name: string, model?: string): string | undefined {
+  const normalizedName = name.trim().toLowerCase();
+  const normalizedModel = model?.trim().toLowerCase();
+  if (!normalizedName || !normalizedModel) {
+    return undefined;
+  }
+  return `${normalizedName}::${normalizedModel}`;
+}
+
 function runDnsSd(args: string[], timeoutMs: number): Promise<string> {
   return new Promise((resolve, reject) => {
     const child = spawn('dns-sd', args, {
@@ -226,9 +235,11 @@ export async function discoverGoogleTvDevices(): Promise<DiscoveredDevice[]> {
       id: buildDiscoveredId(service.host, name),
       name,
       host: service.host,
+      networkHostName: service.hostName,
       remotePort: service.port,
       pairingPort: 6467,
       macAddress: service.txt.bt,
+      deviceFingerprint: buildDeviceFingerprint(name),
       source: 'androidtvremote',
     });
   }
@@ -248,11 +259,16 @@ export async function discoverGoogleTvDevices(): Promise<DiscoveredDevice[]> {
       id: existing?.id ?? buildDiscoveredId(service.host, name),
       name: existing?.name ?? name,
       host: service.host,
+      networkHostName: existing?.networkHostName ?? service.hostName ?? remoteService?.hostName,
       remotePort: existing?.remotePort ?? remoteService?.port,
       adbPort: connectService?.port,
       pairingPort: existing?.pairingPort ?? pairService?.port,
       macAddress: existing?.macAddress ?? remoteService?.txt.bt,
+      castDeviceId: service.txt.id || existing?.castDeviceId,
       model: service.txt.md || existing?.model,
+      deviceFingerprint:
+        existing?.deviceFingerprint ??
+        buildDeviceFingerprint(existing?.name ?? name, service.txt.md),
       source: existing?.source ?? (connectService || pairService ? 'adb' : 'googlecast'),
     });
   }
