@@ -9,6 +9,7 @@ import type {
   RemoteCommand,
   RemoteCommandSource,
   SavedDevice,
+  UpdaterStatus,
 } from '../shared/types';
 
 const initialDraft: DeviceDraft = {
@@ -38,12 +39,6 @@ const keyboardCommandMap: Partial<Record<string, RemoteCommand>> = {
   p: 'power',
   P: 'power',
 };
-
-const ASSISTANT_LONG_PRESS_MS = 320;
-const ASSISTANT_VOICE_SAMPLE_RATE = 8_000;
-const ASSISTANT_VOICE_MIN_CHUNK_BYTES = 8 * 1024;
-const ASSISTANT_VOICE_INITIAL_CHUNK_BYTES = 8 * 1024;
-const ASSISTANT_VOICE_STREAM_CHUNK_BYTES = 20 * 1024;
 
 const burstSensitiveCommands = new Set<RemoteCommand>(['up', 'down', 'left', 'right', 'select']);
 const MAX_QUEUED_COMMANDS = 100;
@@ -78,10 +73,10 @@ type IconName =
   | 'settings'
   | 'play'
   | 'power'
-  | 'assistant'
   | 'volumeUp'
   | 'volumeDown'
-  | 'remote';
+  | 'remote'
+  | 'assistant';
 
 function getDesktopApi() {
   const api = window.gtvRemote;
@@ -124,52 +119,6 @@ function shouldRestartPairingFlow(message: string): boolean {
   return /invalid pairing code|request a new code|no pairing session is active|pairing failed/i.test(
     message
   );
-}
-
-function convertFloat32ToPcm16(source: Float32Array): Int16Array {
-  const output = new Int16Array(source.length);
-  for (let index = 0; index < source.length; index += 1) {
-    const sample = Math.max(-1, Math.min(1, source[index] ?? 0));
-    output[index] = sample < 0 ? Math.round(sample * 0x8000) : Math.round(sample * 0x7fff);
-  }
-  return output;
-}
-
-function downsampleTo8kMono(source: Float32Array, inputSampleRate: number): Uint8Array {
-  if (inputSampleRate <= ASSISTANT_VOICE_SAMPLE_RATE) {
-    return new Uint8Array(convertFloat32ToPcm16(source).buffer);
-  }
-
-  const ratio = inputSampleRate / ASSISTANT_VOICE_SAMPLE_RATE;
-  const outputLength = Math.max(1, Math.floor(source.length / ratio));
-  const output = new Float32Array(outputLength);
-  let outputIndex = 0;
-  let sourceIndex = 0;
-
-  while (outputIndex < outputLength) {
-    const nextSourceIndex = Math.min(source.length, Math.round((outputIndex + 1) * ratio));
-    let total = 0;
-    let count = 0;
-
-    for (let index = Math.floor(sourceIndex); index < nextSourceIndex; index += 1) {
-      total += source[index] ?? 0;
-      count += 1;
-    }
-
-    output[outputIndex] = count > 0 ? total / count : 0;
-    outputIndex += 1;
-    sourceIndex = nextSourceIndex;
-  }
-
-  return new Uint8Array(convertFloat32ToPcm16(output).buffer);
-}
-
-function toBase64(bytes: Uint8Array): string {
-  let binary = '';
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
-  }
-  return btoa(binary);
 }
 
 function Icon({ name, className }: { name: IconName; className?: string }) {
@@ -336,15 +285,6 @@ function Icon({ name, className }: { name: IconName; className?: string }) {
           <path d="M7.2 6.5A6.5 6.5 0 1 0 16.8 6.5" />
         </svg>
       );
-    case 'assistant':
-      return (
-        <svg className={className} viewBox="0 0 28 24" fill="none" aria-hidden>
-          <circle cx="8" cy="12" r="6" fill="#4285F4" />
-          <circle cx="16.4" cy="10.3" r="3.9" fill="#EA4335" />
-          <circle cx="16.4" cy="17" r="4.5" fill="#FBBC05" />
-          <circle cx="21.5" cy="7" r="2.1" fill="#34A853" />
-        </svg>
-      );
     case 'volumeUp':
       return (
         <svg {...props}>
@@ -368,6 +308,16 @@ function Icon({ name, className }: { name: IconName; className?: string }) {
           <path d="M7 3C9.2 1.2 14.8 1.2 17 3" />
           <path d="M5 6C8.2 3.8 15.8 3.8 19 6" />
           <circle cx="12" cy="16" r="0.9" fill="currentColor" stroke="none" />
+        </svg>
+      );
+    case 'assistant':
+      return (
+        <svg {...props}>
+          <circle cx="12" cy="12" r="3" />
+          <path d="M12 2.75V5.25" />
+          <path d="M12 18.75V21.25" />
+          <path d="M2.75 12H5.25" />
+          <path d="M18.75 12H21.25" />
         </svg>
       );
     default:
@@ -398,24 +348,19 @@ function App() {
   const [scanning, setScanning] = useState(false);
   const [bridgeReady, setBridgeReady] = useState(false);
   const [pairingReady, setPairingReady] = useState(false);
-  const [assistantStatus, setAssistantStatus] = useState<'idle' | 'arming' | 'active' | 'error'>(
-    'idle'
-  );
+  const [updaterStatus, setUpdaterStatus] = useState<UpdaterStatus>({
+    inProgress: false,
+    stage: 'idle',
+    currentVersion: 'unknown',
+    message: 'Loading update status...',
+    updateAvailable: false,
+    updateInstallable: false,
+  });
+  const [dismissedUpdateVersion, setDismissedUpdateVersion] = useState<string | null>(null);
   const pairCodeInputRef = useRef<HTMLInputElement>(null);
   const commandQueueRef = useRef<QueuedCommandBatch[]>([]);
   const queuedCommandCountRef = useRef(0);
   const isProcessingQueueRef = useRef(false);
-  const assistantLongPressTimerRef = useRef<number | null>(null);
-  const assistantActiveRef = useRef(false);
-  const assistantVoiceSessionIdRef = useRef<number | null>(null);
-  const assistantAudioContextRef = useRef<AudioContext | null>(null);
-  const assistantMediaStreamRef = useRef<MediaStream | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-deprecated
-  const assistantProcessorRef = useRef<ScriptProcessorNode | null>(null);
-  const assistantAudioBufferRef = useRef<Uint8Array>(new Uint8Array(0));
-  const assistantChunkQueueRef = useRef<Promise<void>>(Promise.resolve());
-  const assistantChunkCountRef = useRef(0);
-  const assistantFirstChunkSentRef = useRef(false);
 
   const discoveredByHost = new Map(discoveredDevices.map((device) => [device.host, device]));
   const discoveredByMac = new Map(
@@ -423,45 +368,12 @@ function App() {
       .filter((device) => device.macAddress)
       .map((device) => [device.macAddress!, device])
   );
-  const discoveredByCastDeviceId = new Map(
-    discoveredDevices
-      .filter((device) => device.castDeviceId)
-      .map((device) => [device.castDeviceId!, device])
-  );
-  const discoveredByNetworkHostName = new Map(
-    discoveredDevices
-      .filter((device) => device.networkHostName)
-      .map((device) => [device.networkHostName!, device])
-  );
-  const discoveredByFingerprint = new Map(
-    discoveredDevices
-      .filter((device) => device.deviceFingerprint)
-      .map((device) => [device.deviceFingerprint!, device])
-  );
 
-  function findDiscoveredForSaved(savedDevice: {
-    host: string;
-    macAddress?: string;
-    castDeviceId?: string;
-    networkHostName?: string;
-    deviceFingerprint?: string;
-  }) {
-    // Prefer stable identifiers (MAC, Cast ID, mDNS host, fingerprint), fall back to host.
+  function findDiscoveredForSaved(savedDevice: { host: string; macAddress?: string }) {
+    // Prefer MAC-based match (stable across IP changes), fall back to host
     if (savedDevice.macAddress) {
       const byMac = discoveredByMac.get(savedDevice.macAddress);
       if (byMac) return byMac;
-    }
-    if (savedDevice.castDeviceId) {
-      const byCastDeviceId = discoveredByCastDeviceId.get(savedDevice.castDeviceId);
-      if (byCastDeviceId) return byCastDeviceId;
-    }
-    if (savedDevice.networkHostName) {
-      const byNetworkHostName = discoveredByNetworkHostName.get(savedDevice.networkHostName);
-      if (byNetworkHostName) return byNetworkHostName;
-    }
-    if (savedDevice.deviceFingerprint) {
-      const byFingerprint = discoveredByFingerprint.get(savedDevice.deviceFingerprint);
-      if (byFingerprint) return byFingerprint;
     }
     return discoveredByHost.get(savedDevice.host);
   }
@@ -475,40 +387,12 @@ function App() {
     }));
   const unpairedNetworkDevices = discoveredDevices.filter(
     (discoveredDevice) =>
-      !bootstrap.devices.some((savedDevice) => {
-        if (!savedDevice.isPaired) {
-          return false;
-        }
-        if (savedDevice.host === discoveredDevice.host) {
-          return true;
-        }
-        if (
-          savedDevice.macAddress != null &&
-          discoveredDevice.macAddress != null &&
-          savedDevice.macAddress === discoveredDevice.macAddress
-        ) {
-          return true;
-        }
-        if (
-          savedDevice.castDeviceId != null &&
-          discoveredDevice.castDeviceId != null &&
-          savedDevice.castDeviceId === discoveredDevice.castDeviceId
-        ) {
-          return true;
-        }
-        if (
-          savedDevice.networkHostName != null &&
-          discoveredDevice.networkHostName != null &&
-          savedDevice.networkHostName === discoveredDevice.networkHostName
-        ) {
-          return true;
-        }
-        return (
-          savedDevice.deviceFingerprint != null &&
-          discoveredDevice.deviceFingerprint != null &&
-          savedDevice.deviceFingerprint === discoveredDevice.deviceFingerprint
-        );
-      })
+      !bootstrap.devices.some(
+        (savedDevice) =>
+          savedDevice.isPaired &&
+          (savedDevice.host === discoveredDevice.host ||
+            (savedDevice.macAddress && savedDevice.macAddress === discoveredDevice.macAddress))
+      )
   );
 
   const selectedDevice: DevicePickerSelection | undefined = (() => {
@@ -633,11 +517,13 @@ function App() {
   useEffect(() => {
     async function initialize() {
       try {
-        const [nextBootstrap, nextCapabilities] = await Promise.all([
+        const [nextBootstrap, nextCapabilities, nextUpdaterStatus] = await Promise.all([
           refreshState(),
           getDesktopApi().capabilities(),
+          getDesktopApi().getUpdaterStatus(),
         ]);
         setCapabilities(nextCapabilities);
+        setUpdaterStatus(nextUpdaterStatus);
         setBridgeReady(true);
         setDevicePickerOpen(!nextBootstrap.deviceState.activeDeviceId);
         await handleScanDevices(
@@ -672,235 +558,6 @@ function App() {
     }
   }, [pairingReady]);
 
-  function clearAssistantLongPressTimer() {
-    if (assistantLongPressTimerRef.current !== null) {
-      window.clearTimeout(assistantLongPressTimerRef.current);
-      assistantLongPressTimerRef.current = null;
-    }
-  }
-
-  async function stopAssistantSession() {
-    clearAssistantLongPressTimer();
-
-    if (assistantStatus === 'arming') {
-      setAssistantStatus('idle');
-    }
-
-    if (!assistantActiveRef.current) {
-      return;
-    }
-
-    assistantActiveRef.current = false;
-    setAssistantStatus('idle');
-
-    const sessionId = assistantVoiceSessionIdRef.current;
-    assistantVoiceSessionIdRef.current = null;
-    const sentChunks = assistantChunkCountRef.current;
-    assistantChunkCountRef.current = 0;
-    assistantFirstChunkSentRef.current = false;
-
-    const processor = assistantProcessorRef.current;
-    if (processor) {
-      // eslint-disable-next-line @typescript-eslint/no-deprecated
-      processor.onaudioprocess = null;
-      processor.disconnect();
-      assistantProcessorRef.current = null;
-    }
-
-    const stream = assistantMediaStreamRef.current;
-    if (stream) {
-      for (const track of stream.getTracks()) {
-        track.stop();
-      }
-      assistantMediaStreamRef.current = null;
-    }
-
-    const context = assistantAudioContextRef.current;
-    if (context) {
-      await context.close();
-      assistantAudioContextRef.current = null;
-    }
-
-    if (sessionId !== null && assistantAudioBufferRef.current.length > 0) {
-      const remaining = assistantAudioBufferRef.current;
-      const finalSize = Math.max(ASSISTANT_VOICE_MIN_CHUNK_BYTES, remaining.length);
-      const padded = new Uint8Array(finalSize);
-      padded.set(remaining.subarray(0, finalSize));
-      assistantAudioBufferRef.current = new Uint8Array(0);
-      assistantChunkQueueRef.current = assistantChunkQueueRef.current.then(async () => {
-        await getDesktopApi().sendAssistantVoiceChunk(sessionId, toBase64(padded));
-      });
-    }
-
-    if (sessionId !== null) {
-      try {
-        await assistantChunkQueueRef.current;
-        await getDesktopApi().stopAssistantVoice(sessionId);
-        setBootstrap((current) => ({
-          ...current,
-          deviceState: {
-            ...current.deviceState,
-            message: `Assistant voice sent (${String(sentChunks)} chunk${sentChunks === 1 ? '' : 's'}).`,
-          },
-        }));
-      } catch (error) {
-        setBootstrap((current) => ({
-          ...current,
-          deviceState: {
-            ...current.deviceState,
-            status: 'error',
-            message: (error as Error).message,
-          },
-        }));
-      }
-    }
-  }
-
-  async function startAssistantSession() {
-    if (assistantActiveRef.current || remoteDisabled || currentView !== 'remote') {
-      return;
-    }
-
-    assistantActiveRef.current = true;
-    setAssistantStatus('active');
-
-    try {
-      const sessionId = await getDesktopApi().startAssistantVoice();
-      assistantVoiceSessionIdRef.current = sessionId;
-      assistantFirstChunkSentRef.current = false;
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          channelCount: 1,
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false,
-        },
-      });
-      assistantMediaStreamRef.current = mediaStream;
-
-      const audioContext = new AudioContext();
-      assistantAudioContextRef.current = audioContext;
-      await audioContext.resume();
-      if (audioContext.state !== 'running') {
-        throw new Error('Microphone audio context could not start.');
-      }
-      const source = audioContext.createMediaStreamSource(mediaStream);
-      // eslint-disable-next-line @typescript-eslint/no-deprecated
-      const processor = audioContext.createScriptProcessor(4096, 1, 1);
-      assistantProcessorRef.current = processor;
-
-      // eslint-disable-next-line @typescript-eslint/no-deprecated
-      processor.onaudioprocess = (event) => {
-        if (!assistantActiveRef.current || assistantVoiceSessionIdRef.current === null) {
-          return;
-        }
-
-        // eslint-disable-next-line @typescript-eslint/no-deprecated
-        const input = event.inputBuffer.getChannelData(0);
-        const downsampled = downsampleTo8kMono(input, audioContext.sampleRate);
-        if (downsampled.length === 0) {
-          return;
-        }
-
-        const previous = assistantAudioBufferRef.current;
-        const merged = new Uint8Array(previous.length + downsampled.length);
-        merged.set(previous);
-        merged.set(downsampled, previous.length);
-        assistantAudioBufferRef.current = merged;
-
-        while (
-          assistantAudioBufferRef.current.length >=
-          (assistantFirstChunkSentRef.current
-            ? ASSISTANT_VOICE_STREAM_CHUNK_BYTES
-            : ASSISTANT_VOICE_INITIAL_CHUNK_BYTES)
-        ) {
-          const nextChunkSize = assistantFirstChunkSentRef.current
-            ? ASSISTANT_VOICE_STREAM_CHUNK_BYTES
-            : ASSISTANT_VOICE_INITIAL_CHUNK_BYTES;
-          const chunk = assistantAudioBufferRef.current.subarray(0, nextChunkSize);
-          assistantAudioBufferRef.current = assistantAudioBufferRef.current.subarray(nextChunkSize);
-          const activeSessionId = assistantVoiceSessionIdRef.current;
-
-          const payload = new Uint8Array(chunk);
-          assistantChunkQueueRef.current = assistantChunkQueueRef.current.then(async () => {
-            await getDesktopApi().sendAssistantVoiceChunk(activeSessionId, toBase64(payload));
-            assistantChunkCountRef.current += 1;
-            assistantFirstChunkSentRef.current = true;
-          });
-        }
-      };
-
-      source.connect(processor);
-      processor.connect(audioContext.destination);
-    } catch (error) {
-      assistantActiveRef.current = false;
-      setAssistantStatus('error');
-      setBootstrap((current) => ({
-        ...current,
-        deviceState: {
-          ...current.deviceState,
-          status: 'error',
-          message: (error as Error).message,
-        },
-      }));
-      await stopAssistantSession();
-    }
-  }
-
-  useEffect(() => {
-    if (!bridgeReady || !isConnected || currentView !== 'remote' || assistantActiveRef.current) {
-      return;
-    }
-
-    const intervalId = window.setInterval(() => {
-      if (assistantActiveRef.current) {
-        return;
-      }
-
-      void getDesktopApi()
-        .hasPendingAssistantVoiceSession()
-        .then((pending) => {
-          if (pending && !assistantActiveRef.current) {
-            void startAssistantSession();
-          }
-        })
-        .catch(() => {
-          // Ignore polling failures and retry on next interval.
-        });
-    }, 300);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, [bridgeReady, isConnected, currentView]);
-
-  useEffect(() => {
-    if (!bridgeReady || !isConnected || currentView !== 'remote') {
-      return;
-    }
-
-    const intervalId = window.setInterval(() => {
-      if (!assistantActiveRef.current) {
-        return;
-      }
-
-      void getDesktopApi()
-        .hasPendingAssistantVoiceSession()
-        .then((pending) => {
-          if (!pending && assistantActiveRef.current) {
-            void stopAssistantSession();
-          }
-        })
-        .catch(() => {
-          // Ignore polling failures and retry on next interval.
-        });
-    }, 300);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, [bridgeReady, isConnected, currentView]);
-
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (!bridgeReady || !isConnected || currentView !== 'remote') {
@@ -915,38 +572,6 @@ function App() {
         return;
       }
 
-      if (event.key === 'Enter' && assistantActiveRef.current) {
-        event.preventDefault();
-        void stopAssistantSession();
-        return;
-      }
-
-      if ((event.key === 'Escape' || event.key === 'Esc') && assistantActiveRef.current) {
-        event.preventDefault();
-        void stopAssistantSession();
-        return;
-      }
-
-      if (event.key === 'g' || event.key === 'G') {
-        event.preventDefault();
-
-        if (
-          event.repeat ||
-          assistantLongPressTimerRef.current !== null ||
-          assistantActiveRef.current
-        ) {
-          return;
-        }
-
-        setAssistantStatus('arming');
-
-        assistantLongPressTimerRef.current = window.setTimeout(() => {
-          assistantLongPressTimerRef.current = null;
-          void startAssistantSession();
-        }, ASSISTANT_LONG_PRESS_MS);
-        return;
-      }
-
       const command = keyboardCommandMap[event.key];
       if (!command) {
         return;
@@ -956,28 +581,11 @@ function App() {
       handleCommand(command, 'keyboard');
     }
 
-    function onKeyUp(event: KeyboardEvent) {
-      if (event.key !== 'g' && event.key !== 'G') {
-        return;
-      }
-
-      if (isEditableTarget(event.target)) {
-        return;
-      }
-
-      event.preventDefault();
-      void stopAssistantSession();
-    }
-
     window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('keyup', onKeyUp);
     return () => {
       window.removeEventListener('keydown', onKeyDown);
-      window.removeEventListener('keyup', onKeyUp);
-      clearAssistantLongPressTimer();
-      void stopAssistantSession();
     };
-  }, [bridgeReady, isConnected, currentView, remoteDisabled]);
+  }, [bridgeReady, isConnected, currentView]);
 
   async function saveDiscoveredDevice(device: DiscoveredDevice): Promise<SavedDevice> {
     const devices = await getDesktopApi().saveDevice({
@@ -985,42 +593,8 @@ function App() {
       host: device.host,
       adbPort: device.adbPort ?? initialDraft.adbPort,
       pairingPort: device.pairingPort,
-      macAddress: device.macAddress,
-      castDeviceId: device.castDeviceId,
-      networkHostName: device.networkHostName,
-      deviceFingerprint: device.deviceFingerprint,
     });
-    const savedDevice = devices.find((item: SavedDevice) => {
-      if (item.host === device.host) {
-        return true;
-      }
-      if (
-        item.macAddress != null &&
-        device.macAddress != null &&
-        item.macAddress === device.macAddress
-      ) {
-        return true;
-      }
-      if (
-        item.castDeviceId != null &&
-        device.castDeviceId != null &&
-        item.castDeviceId === device.castDeviceId
-      ) {
-        return true;
-      }
-      if (
-        item.networkHostName != null &&
-        device.networkHostName != null &&
-        item.networkHostName === device.networkHostName
-      ) {
-        return true;
-      }
-      return (
-        item.deviceFingerprint != null &&
-        device.deviceFingerprint != null &&
-        item.deviceFingerprint === device.deviceFingerprint
-      );
-    });
+    const savedDevice = devices.find((item: SavedDevice) => item.host === device.host);
 
     if (!savedDevice) {
       throw new Error('Saved device could not be resolved after saving.');
@@ -1046,6 +620,29 @@ function App() {
     setPairingDeviceId(deviceId);
     setPairingReady(true);
     setDevicePickerOpen(false);
+  }
+
+  async function handleStartPairing(deviceId = selectedPairedDeviceId) {
+    if (!deviceId) {
+      return;
+    }
+
+    setBusy(true);
+    try {
+      await startPairingFlow(deviceId);
+    } catch (error) {
+      setPairingReady(false);
+      setDevicePickerOpen(true);
+      setBootstrap((current) => ({
+        ...current,
+        deviceState: {
+          status: 'error',
+          message: (error as Error).message,
+        },
+      }));
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function handleSelectSavedDevice(deviceId: string) {
@@ -1357,6 +954,63 @@ function App() {
     }
   }
 
+  async function handleInstallUpdate() {
+    try {
+      const nextStatus = await getDesktopApi().installAvailableUpdate();
+      setUpdaterStatus(nextStatus);
+    } catch (error) {
+      setUpdaterStatus((current) => ({
+        ...current,
+        inProgress: false,
+        stage: 'failed',
+        message: (error as Error).message,
+      }));
+    }
+  }
+
+  async function handleCheckForUpdates() {
+    try {
+      setUpdaterStatus((current) => ({
+        ...current,
+        inProgress: true,
+        stage: 'checking',
+        progressPercent: 0,
+        etaSeconds: undefined,
+        message: 'Checking for updates...',
+      }));
+      const nextStatus = await getDesktopApi().checkForUpdates();
+      setUpdaterStatus(nextStatus);
+    } catch (error) {
+      setUpdaterStatus((current) => ({
+        ...current,
+        inProgress: false,
+        stage: 'failed',
+        message: (error as Error).message,
+      }));
+    }
+  }
+
+  useEffect(() => {
+    if (!bridgeReady) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      void getDesktopApi()
+        .getUpdaterStatus()
+        .then((status) => {
+          setUpdaterStatus(status);
+        })
+        .catch(() => {
+          // Ignore polling failures; existing state remains visible.
+        });
+    }, 1500);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [bridgeReady]);
+
   function openDevicePicker() {
     setTextInputOpen(false);
     setPairingReady(false);
@@ -1374,6 +1028,76 @@ function App() {
     }
 
     return 'Offline';
+  }
+
+  function renderUpdaterPanel() {
+    const isDismissed =
+      updaterStatus.updateInstallable &&
+      updaterStatus.latestVersion &&
+      dismissedUpdateVersion === updaterStatus.latestVersion;
+
+    if (updaterStatus.updateInstallable && !isDismissed) {
+      return (
+        <section className="ui-update-panel mt-4">
+          <div className="ui-update-head">
+            <span className="ui-card-title ui-update-title-centered">Update Available</span>
+            <button
+              className="ui-update-close"
+              onClick={() => {
+                setDismissedUpdateVersion(updaterStatus.latestVersion ?? null);
+              }}
+              aria-label="Close update panel"
+            >
+              ✕
+            </button>
+          </div>
+          <p className="ui-copy ui-update-copy">
+            {updaterStatus.currentVersion} → {updaterStatus.latestVersion}
+          </p>
+          {updaterStatus.inProgress ? (
+            <div className="mt-2 w-full">
+              <div className="ui-update-progress-track">
+                <div
+                  className="ui-update-progress-fill"
+                  style={{ width: `${String(updaterStatus.progressPercent ?? 12)}%` }}
+                />
+              </div>
+              <p className="ui-update-meta">
+                {updaterStatus.progressPercent !== undefined
+                  ? `${String(updaterStatus.progressPercent)}%`
+                  : 'Updating'}
+                {updaterStatus.etaSeconds !== undefined
+                  ? ` • ETA ~${String(updaterStatus.etaSeconds)}s`
+                  : ''}
+              </p>
+            </div>
+          ) : null}
+          <button
+            className="ui-update-action"
+            disabled={bridgeDisabled || updaterStatus.inProgress}
+            onClick={() => {
+              void handleInstallUpdate();
+            }}
+          >
+            {updaterStatus.inProgress ? 'Updating…' : 'Update'}
+          </button>
+        </section>
+      );
+    }
+
+    return (
+      <button
+        className="ui-update-check mt-4"
+        disabled={bridgeDisabled || updaterStatus.inProgress}
+        onClick={() => {
+          void handleCheckForUpdates();
+        }}
+      >
+        {updaterStatus.inProgress || updaterStatus.stage === 'checking'
+          ? 'Checking for updates…'
+          : 'Check for Updates'}
+      </button>
+    );
   }
 
   return (
@@ -1419,129 +1143,136 @@ function App() {
 
         {currentView === 'devices' ? (
           <div className="ui-screen-scroll">
-            <section className="ui-section">
-              <div className="ui-section-row">
-                <h2 className="ui-section-heading">Known Devices</h2>
-                <span className="ui-live-dot" />
-              </div>
-              <div className="ui-list">
-                {pairedNetworkDevices.length === 0 ? (
-                  <div className="ui-empty">No paired devices yet.</div>
-                ) : (
-                  pairedNetworkDevices.map((option) => {
-                    const status = renderStatusLabel(option.savedDevice, option.discoveredDevice);
-                    const displayName = option.discoveredDevice?.name ?? option.savedDevice.name;
-                    const subtitle = option.discoveredDevice?.model ?? option.savedDevice.host;
-                    const isActive = bootstrap.deviceState.activeDeviceId === option.savedDevice.id;
+            <div className="ui-devices-content">
+              <section className="ui-section">
+                <div className="ui-section-row">
+                  <h2 className="ui-section-heading">Known Devices</h2>
+                  <span className="ui-live-dot" />
+                </div>
+                <div className="ui-list">
+                  {pairedNetworkDevices.length === 0 ? (
+                    <div className="ui-empty">No paired devices yet.</div>
+                  ) : (
+                    pairedNetworkDevices.map((option) => {
+                      const status = renderStatusLabel(option.savedDevice, option.discoveredDevice);
+                      const displayName = option.discoveredDevice?.name ?? option.savedDevice.name;
+                      const subtitle = option.discoveredDevice?.model ?? option.savedDevice.host;
+                      const isActive =
+                        bootstrap.deviceState.activeDeviceId === option.savedDevice.id;
 
-                    return (
+                      return (
+                        <button
+                          key={option.key}
+                          className={classes('ui-card', isActive && 'ui-card-active')}
+                          disabled={bridgeDisabled}
+                          onClick={() => {
+                            void handleSelectSavedDevice(option.savedDevice.id);
+                          }}
+                        >
+                          <div className="ui-card-row">
+                            <div className={classes('ui-avatar', isActive && 'ui-avatar-active')}>
+                              <Icon name="tv" className="h-[1.2rem] w-[1.2rem]" />
+                            </div>
+                            <div className="ui-card-copy">
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="ui-card-title">{displayName}</span>
+                                <span
+                                  className={classes('ui-badge', isActive && 'ui-badge-active')}
+                                >
+                                  {status}
+                                </span>
+                              </div>
+                              <span className="ui-card-meta">{subtitle}</span>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </section>
+
+              <section className="ui-section">
+                <div className="ui-section-row">
+                  <h2 className="ui-section-heading">New Devices Found</h2>
+                  <button
+                    className="ui-icon-button"
+                    disabled={bridgeDisabled || scanning}
+                    onClick={() => {
+                      void handleScanDevices(false);
+                    }}
+                  >
+                    <Icon
+                      name="refresh"
+                      className={`h-5 w-5 ${scanning ? 'animate-spin' : ''}`}
+                    />{' '}
+                  </button>
+                </div>
+                <div className="ui-list">
+                  {unpairedNetworkDevices.length === 0 ? (
+                    <div className="ui-empty ui-empty-recessed">
+                      No new devices detected right now.
+                    </div>
+                  ) : (
+                    unpairedNetworkDevices.map((device) => (
                       <button
-                        key={option.key}
-                        className={classes('ui-card', isActive && 'ui-card-active')}
+                        key={device.id}
+                        className="ui-found-row"
                         disabled={bridgeDisabled}
                         onClick={() => {
-                          void handleSelectSavedDevice(option.savedDevice.id);
+                          void handleSelectDiscoveredDevice(device);
                         }}
                       >
-                        <div className="ui-card-row">
-                          <div className={classes('ui-avatar', isActive && 'ui-avatar-active')}>
-                            <Icon name="tv" className="h-[1.2rem] w-[1.2rem]" />
-                          </div>
-                          <div className="ui-card-copy">
-                            <div className="flex items-center justify-between gap-3">
-                              <span className="ui-card-title">{displayName}</span>
-                              <span className={classes('ui-badge', isActive && 'ui-badge-active')}>
-                                {status}
+                        <div className="ui-found-content">
+                          <div className="ui-found-main">
+                            <div className="ui-found-icon">
+                              <Icon
+                                name={device.source === 'googlecast' ? 'cast' : 'devices'}
+                                className="h-[1.2rem] w-[1.2rem]"
+                              />
+                            </div>
+                            <div>
+                              <span className="block text-sm font-bold text-on-surface">
+                                {device.name}
+                              </span>
+                              <span className="block text-[10px] font-medium text-on-surface-variant">
+                                {device.model ?? 'Ready to pair'}
                               </span>
                             </div>
-                            <span className="ui-card-meta">{subtitle}</span>
+                          </div>
+                          <div className="ui-found-add">
+                            <Icon name="plus" className="h-4 w-4" />
                           </div>
                         </div>
                       </button>
-                    );
-                  })
-                )}
-              </div>
-            </section>
+                    ))
+                  )}
+                </div>
+              </section>
 
-            <section className="ui-section">
-              <div className="ui-section-row">
-                <h2 className="ui-section-heading">New Devices Found</h2>
+              <div className="ui-help">
                 <button
-                  className="ui-icon-button"
-                  disabled={bridgeDisabled || scanning}
+                  className="ui-help-chip"
+                  disabled={bridgeDisabled}
                   onClick={() => {
                     void handleScanDevices(false);
                   }}
                 >
-                  <Icon
-                    name="refresh"
-                    className={`h-5 w-5 ${scanning ? 'animate-spin' : ''}`}
-                  />{' '}
+                  Don&apos;t see your device?
+                </button>
+                <button
+                  className="ui-help-chip ui-help-chip-danger"
+                  disabled={bridgeDisabled}
+                  onClick={() => {
+                    void handleResetState();
+                  }}
+                >
+                  Reset App State
                 </button>
               </div>
-              <div className="ui-list">
-                {unpairedNetworkDevices.length === 0 ? (
-                  <div className="ui-empty ui-empty-recessed">
-                    No new devices detected right now.
-                  </div>
-                ) : (
-                  unpairedNetworkDevices.map((device) => (
-                    <button
-                      key={device.id}
-                      className="ui-found-row"
-                      disabled={bridgeDisabled}
-                      onClick={() => {
-                        void handleSelectDiscoveredDevice(device);
-                      }}
-                    >
-                      <div className="ui-found-content">
-                        <div className="ui-found-main">
-                          <div className="ui-found-icon">
-                            <Icon
-                              name={device.source === 'googlecast' ? 'cast' : 'devices'}
-                              className="h-[1.2rem] w-[1.2rem]"
-                            />
-                          </div>
-                          <div>
-                            <span className="block text-sm font-bold text-on-surface">
-                              {device.name}
-                            </span>
-                            <span className="block text-[10px] font-medium text-on-surface-variant">
-                              {device.model ?? 'Ready to pair'}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="ui-found-add">
-                          <Icon name="plus" className="h-4 w-4" />
-                        </div>
-                      </div>
-                    </button>
-                  ))
-                )}
-              </div>
-            </section>
-
-            <div className="ui-help">
-              <button
-                className="ui-help-chip"
-                disabled={bridgeDisabled}
-                onClick={() => {
-                  void handleScanDevices(false);
-                }}
-              >
-                Don&apos;t see your device?
-              </button>
-              <button
-                className="ui-help-chip ui-help-chip-danger"
-                disabled={bridgeDisabled}
-                onClick={() => {
-                  void handleResetState();
-                }}
-              >
-                Reset App State
-              </button>
             </div>
+
+            <div className="ui-devices-footer">{renderUpdaterPanel()}</div>
 
             {bootstrap.deviceState.status === 'error' || !bridgeReady ? (
               <div className="ui-alert">
@@ -1679,15 +1410,6 @@ function App() {
               </div>
             </section>
 
-            {assistantStatus === 'active' ? (
-              <div className="ui-assistant-wave" aria-label="Assistant listening">
-                <span className="ui-assistant-dot ui-assistant-dot-blue" />
-                <span className="ui-assistant-dot ui-assistant-dot-red" />
-                <span className="ui-assistant-dot ui-assistant-dot-yellow" />
-                <span className="ui-assistant-dot ui-assistant-dot-green" />
-              </div>
-            ) : null}
-
             <section className="ui-nav-well">
               <div className="ui-nav-grid">
                 <button
@@ -1806,30 +1528,13 @@ function App() {
                   </button>
                   <div className="ui-media-subgrid">
                     <button
-                      className={classes(
-                        'ui-media-button',
-                        assistantStatus === 'active' && 'ui-media-button-assistant-active'
-                      )}
+                      className="ui-media-button"
                       disabled={remoteDisabled}
-                      onMouseDown={() => {
-                        void startAssistantSession();
-                      }}
-                      onMouseUp={() => {
-                        void stopAssistantSession();
-                      }}
-                      onMouseLeave={() => {
-                        void stopAssistantSession();
-                      }}
-                      onTouchStart={(event) => {
-                        event.preventDefault();
-                        void startAssistantSession();
-                      }}
-                      onTouchEnd={(event) => {
-                        event.preventDefault();
-                        void stopAssistantSession();
+                      onClick={() => {
+                        void handleStartPairing(currentRemoteDevice?.id);
                       }}
                     >
-                      <Icon name="assistant" className="h-10 w-10" />
+                      <Icon name="remote" className="h-5 w-5" />
                     </button>
                     <button
                       className="ui-media-button ui-media-danger"
@@ -1844,6 +1549,8 @@ function App() {
                 </div>
               </div>
             </section>
+
+            <section className="px-6 pb-2">{renderUpdaterPanel()}</section>
 
             <footer className="ui-footer-bar">
               <button className="ui-footer-item" disabled={busy} onClick={openDevicePicker}>

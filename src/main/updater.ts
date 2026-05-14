@@ -31,11 +31,18 @@ interface UpdateState {
 const RELEASE_OWNER = 'usrivastava92';
 const RELEASE_REPO = 'gtv-desktop-remote';
 const CHECK_TIMEOUT_MS = 15_000;
+const DEV_UPDATER_ENABLED = process.env.GTV_UPDATER_DEV === '1';
+
+let cachedRelease: ReleasePayload | undefined;
+let cachedAsset: ReleaseAsset | undefined;
+
 const updaterStatus: UpdaterStatus = {
   inProgress: false,
   stage: 'idle',
   currentVersion: app.getVersion(),
   message: 'No update check has run yet.',
+  updateAvailable: false,
+  updateInstallable: false,
 };
 
 function setUpdaterStatus(next: Partial<UpdaterStatus>) {
@@ -49,14 +56,10 @@ function normalizeVersion(value: string) {
 function compareVersions(a: string, b: string) {
   const aParts = normalizeVersion(a)
     .split('.')
-    .map((part) => {
-      return Number.parseInt(part, 10) || 0;
-    });
+    .map((part) => Number.parseInt(part, 10) || 0);
   const bParts = normalizeVersion(b)
     .split('.')
-    .map((part) => {
-      return Number.parseInt(part, 10) || 0;
-    });
+    .map((part) => Number.parseInt(part, 10) || 0);
 
   const max = Math.max(aParts.length, bParts.length);
   for (let i = 0; i < max; i += 1) {
@@ -110,17 +113,26 @@ async function requestJson<T>(url: string): Promise<T> {
   }
 }
 
+function isZipAsset(asset: ReleaseAsset) {
+  return asset.name.endsWith('.zip');
+}
+
+function isDmgAsset(asset: ReleaseAsset) {
+  return asset.name.endsWith('.dmg');
+}
+
 function findBestMacAsset(assets: ReleaseAsset[]) {
   const arch = process.arch;
-  const preferredSuffix = `-mac-${arch}.zip`;
+  const preferredZip = assets.find((asset) => asset.name.endsWith(`-mac-${arch}.zip`));
+  if (preferredZip) return preferredZip;
 
-  const preferred = assets.find((asset) => asset.name.endsWith(preferredSuffix));
-  if (preferred) return preferred;
+  const anyZip = assets.find((asset) => asset.name.includes('-mac-') && isZipAsset(asset));
+  if (anyZip) return anyZip;
 
-  const fallbackZip = assets.find(
-    (asset) => asset.name.includes('-mac-') && asset.name.endsWith('.zip')
-  );
-  return fallbackZip;
+  const preferredDmg = assets.find((asset) => asset.name.endsWith(`-mac-${arch}.dmg`));
+  if (preferredDmg) return preferredDmg;
+
+  return assets.find((asset) => asset.name.includes('-mac-') && isDmgAsset(asset));
 }
 
 function getBundlePathFromExecPath() {
@@ -144,6 +156,11 @@ async function installMacUpdateFromZip(zipPath: string) {
 
   await logInfo('updater', 'Installing update bundle', { sourceBundle, targetBundle });
 
+  if (DEV_UPDATER_ENABLED && !app.isPackaged) {
+    await logInfo('updater', 'Dev mode update install skipped', { sourceBundle, targetBundle });
+    return;
+  }
+
   await execFile('ditto', [sourceBundle, targetBundle]);
   await execFile('xattr', ['-dr', 'com.apple.quarantine', targetBundle]);
 }
@@ -163,6 +180,7 @@ async function downloadFile(
   if (!response.ok || !response.body) {
     throw new Error(`Failed to download update: ${String(response.status)} ${response.statusText}`);
   }
+
   const totalBytes = Number.parseInt(response.headers.get('content-length') ?? '0', 10) || 0;
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];
@@ -170,9 +188,7 @@ async function downloadFile(
 
   for (;;) {
     const nextChunk = await reader.read();
-    if (nextChunk.done) {
-      break;
-    }
+    if (nextChunk.done) break;
 
     const value = nextChunk.value;
     chunks.push(value);
@@ -183,42 +199,183 @@ async function downloadFile(
   await fs.writeFile(destinationPath, Buffer.concat(chunks));
 }
 
-async function promptAndInstallMacUpdate(
-  release: ReleasePayload,
-  asset: ReleaseAsset,
-  version: string
-) {
-  const { response } = await dialog.showMessageBox({
+async function checkForMacUpdate() {
+  setUpdaterStatus({
+    inProgress: true,
+    stage: 'checking',
+    lastCheckedAt: new Date().toISOString(),
+    message: 'Checking for updates...',
+    updateAvailable: false,
+    updateInstallable: false,
+  });
+
+  const updatesAllowed = app.isPackaged || DEV_UPDATER_ENABLED;
+
+  if (!updatesAllowed) {
+    await logInfo('updater', 'Skipping updater in development mode');
+    setUpdaterStatus({
+      inProgress: false,
+      stage: 'idle',
+      message: 'Update checks are disabled in development mode. Set GTV_UPDATER_DEV=1 to test.',
+    });
+    return;
+  }
+
+  if (process.platform !== 'darwin') {
+    setUpdaterStatus({
+      inProgress: false,
+      stage: 'idle',
+      message: `Updates are not configured for ${process.platform}.`,
+    });
+    return;
+  }
+
+  const release = await requestJson<ReleasePayload>(
+    `https://api.github.com/repos/${RELEASE_OWNER}/${RELEASE_REPO}/releases/latest`
+  );
+
+  const latestVersion = normalizeVersion(release.tag_name);
+  const currentVersion = normalizeVersion(app.getVersion());
+
+  if (compareVersions(latestVersion, currentVersion) <= 0) {
+    cachedRelease = undefined;
+    cachedAsset = undefined;
+    setUpdaterStatus({
+      inProgress: false,
+      stage: 'completed',
+      latestVersion,
+      progressPercent: 100,
+      etaSeconds: 0,
+      updateAvailable: false,
+      updateInstallable: false,
+      message: `You're up to date (${currentVersion}).`,
+    });
+    return;
+  }
+
+  const state = await readUpdateState();
+  if (state.skippedVersion && normalizeVersion(state.skippedVersion) === latestVersion) {
+    cachedRelease = undefined;
+    cachedAsset = undefined;
+    setUpdaterStatus({
+      inProgress: false,
+      stage: 'completed',
+      latestVersion,
+      progressPercent: 100,
+      etaSeconds: 0,
+      updateAvailable: false,
+      updateInstallable: false,
+      message: `Update ${latestVersion} was skipped.`,
+    });
+    return;
+  }
+
+  const selectedAsset = findBestMacAsset(release.assets);
+  if (!selectedAsset) {
+    cachedRelease = undefined;
+    cachedAsset = undefined;
+    setUpdaterStatus({
+      inProgress: false,
+      stage: 'failed',
+      latestVersion,
+      updateAvailable: true,
+      updateInstallable: false,
+      message: `Release ${latestVersion} has no compatible macOS asset.`,
+    });
+    return;
+  }
+
+  cachedRelease = release;
+  cachedAsset = selectedAsset;
+  setUpdaterStatus({
+    inProgress: false,
+    stage: 'completed',
+    latestVersion,
+    updateAvailable: true,
+    updateInstallable: true,
+    message: `Update ${latestVersion} is available.`,
+  });
+}
+
+export async function checkForUpdatesInBackground() {
+  try {
+    await checkForMacUpdate();
+  } catch (error) {
+    await logError('updater', 'Update check failed', error);
+    setUpdaterStatus({
+      inProgress: false,
+      stage: 'failed',
+      progressPercent: undefined,
+      etaSeconds: undefined,
+      updateAvailable: false,
+      updateInstallable: false,
+      message: 'Update check failed. See logs for details.',
+    });
+  }
+}
+
+export async function checkForUpdatesManually() {
+  await checkForUpdatesInBackground();
+  return getUpdaterStatus();
+}
+
+export async function installAvailableUpdate() {
+  if (!cachedRelease || !cachedAsset || !updaterStatus.latestVersion) {
+    setUpdaterStatus({
+      inProgress: false,
+      stage: 'failed',
+      message: 'No installable update is currently available.',
+    });
+    return getUpdaterStatus();
+  }
+
+  const version = updaterStatus.latestVersion;
+
+  const choice = await dialog.showMessageBox({
     type: 'info',
     buttons: ['Update now', 'Skip this version', 'Later'],
     defaultId: 0,
     cancelId: 2,
     title: 'Update available',
     message: `Version ${version} is available. You are on ${app.getVersion()}.`,
-    detail: 'The update will be downloaded and installed now.',
+    detail: isZipAsset(cachedAsset)
+      ? 'The update will be downloaded and installed now.'
+      : 'This update is available as DMG and will open in your browser for manual install.',
   });
 
-  if (response === 1) {
+  if (choice.response === 1) {
     await writeUpdateState({ skippedVersion: version });
-    await logInfo('updater', 'User skipped version', { version });
-    return;
+    cachedRelease = undefined;
+    cachedAsset = undefined;
+    setUpdaterStatus({
+      updateAvailable: false,
+      updateInstallable: false,
+      message: `Update ${version} was skipped.`,
+    });
+    return getUpdaterStatus();
   }
 
-  if (response === 2) {
-    await logInfo('updater', 'User postponed update', { version });
-    return;
+  if (choice.response === 2) {
+    return getUpdaterStatus();
   }
 
-  const tmpZipPath = path.join(os.tmpdir(), asset.name);
+  if (isDmgAsset(cachedAsset)) {
+    await shell.openExternal(cachedAsset.browser_download_url);
+    await dialog.showMessageBox({
+      type: 'info',
+      buttons: ['OK'],
+      defaultId: 0,
+      title: 'Manual install',
+      message: 'DMG opened in your browser.',
+      detail:
+        'Open the DMG, drag the app to Applications, then if macOS blocks launch use Privacy & Security > Open Anyway.',
+    });
+    return getUpdaterStatus();
+  }
+
+  const tmpZipPath = path.join(os.tmpdir(), cachedAsset.name);
 
   try {
-    await logInfo('updater', 'Downloading update asset', {
-      version,
-      asset: asset.name,
-      bytes: asset.size,
-      url: asset.browser_download_url,
-    });
-
     setUpdaterStatus({
       inProgress: true,
       stage: 'downloading',
@@ -228,47 +385,69 @@ async function promptAndInstallMacUpdate(
     });
 
     const downloadStartTime = Date.now();
-    await downloadFile(asset.browser_download_url, tmpZipPath, (downloadedBytes, totalBytes) => {
-      const elapsedSeconds = Math.max(1, (Date.now() - downloadStartTime) / 1000);
-      const bytesPerSecond = downloadedBytes / elapsedSeconds;
-      const remainingBytes = Math.max(0, totalBytes - downloadedBytes);
-      const etaSeconds =
-        bytesPerSecond > 0 && totalBytes > 0
-          ? Math.ceil(remainingBytes / bytesPerSecond)
-          : undefined;
-      const progressPercent =
-        totalBytes > 0
-          ? Math.min(100, Math.floor((downloadedBytes / totalBytes) * 100))
-          : undefined;
+    await downloadFile(
+      cachedAsset.browser_download_url,
+      tmpZipPath,
+      (downloadedBytes, totalBytes) => {
+        const elapsedSeconds = Math.max(1, (Date.now() - downloadStartTime) / 1000);
+        const bytesPerSecond = downloadedBytes / elapsedSeconds;
+        const remainingBytes = Math.max(0, totalBytes - downloadedBytes);
+        const etaSeconds =
+          bytesPerSecond > 0 && totalBytes > 0
+            ? Math.ceil(remainingBytes / bytesPerSecond)
+            : undefined;
+        const progressPercent =
+          totalBytes > 0
+            ? Math.min(100, Math.floor((downloadedBytes / totalBytes) * 100))
+            : undefined;
 
-      setUpdaterStatus({
-        inProgress: true,
-        stage: 'downloading',
-        progressPercent,
-        etaSeconds,
-        message:
-          progressPercent !== undefined
-            ? `Downloading update ${version}... ${String(progressPercent)}%`
-            : `Downloading update ${version}...`,
-      });
-    });
+        setUpdaterStatus({
+          inProgress: true,
+          stage: 'downloading',
+          progressPercent,
+          etaSeconds,
+          message:
+            progressPercent !== undefined
+              ? `Downloading update ${version}... ${String(progressPercent)}%`
+              : `Downloading update ${version}...`,
+        });
+      }
+    );
 
     setUpdaterStatus({
       inProgress: true,
       stage: 'installing',
-      progressPercent: 92,
-      etaSeconds: 20,
+      progressPercent: 95,
+      etaSeconds: 10,
       message: 'Installing update...',
     });
+
     await installMacUpdateFromZip(tmpZipPath);
 
     setUpdaterStatus({
-      inProgress: true,
-      stage: 'installing',
+      inProgress: false,
+      stage: 'completed',
       progressPercent: 100,
       etaSeconds: 0,
-      message: 'Installation complete. Awaiting relaunch.',
+      updateAvailable: false,
+      updateInstallable: false,
+      message:
+        DEV_UPDATER_ENABLED && !app.isPackaged
+          ? 'Dev mode: install step skipped.'
+          : `Update ${version} installed.`,
     });
+
+    if (DEV_UPDATER_ENABLED && !app.isPackaged) {
+      await dialog.showMessageBox({
+        type: 'info',
+        buttons: ['OK'],
+        defaultId: 0,
+        title: 'Dev updater test',
+        message: 'Download/install flow completed in dev mode.',
+        detail: 'Relaunch is skipped in development override mode.',
+      });
+      return getUpdaterStatus();
+    }
 
     const relaunchChoice = await dialog.showMessageBox({
       type: 'info',
@@ -293,146 +472,10 @@ async function promptAndInstallMacUpdate(
       etaSeconds: undefined,
       message: 'Update failed during download or install.',
     });
-
-    await dialog
-      .showMessageBox({
-        type: 'warning',
-        buttons: ['Open release page', 'Open Privacy & Security', 'Close'],
-        defaultId: 0,
-        cancelId: 2,
-        title: 'Update failed',
-        message: 'The app could not install the update automatically.',
-        detail:
-          'You can install manually from GitHub. If macOS blocks opening, use Privacy & Security > Open Anyway.',
-      })
-      .then(async (choice) => {
-        if (choice.response === 0) {
-          await shell.openExternal(release.html_url);
-        }
-
-        if (choice.response === 1) {
-          await shell.openExternal(
-            'x-apple.systempreferences:com.apple.preference.security?General'
-          );
-        }
-      });
   } finally {
     await fs.rm(tmpZipPath, { force: true });
   }
-}
 
-async function checkForMacUpdate() {
-  setUpdaterStatus({
-    inProgress: true,
-    stage: 'checking',
-    lastCheckedAt: new Date().toISOString(),
-    message: 'Checking for updates...',
-  });
-
-  if (!app.isPackaged) {
-    await logInfo('updater', 'Skipping updater in development mode');
-    setUpdaterStatus({
-      inProgress: false,
-      stage: 'idle',
-      message: 'Update checks are disabled in development mode.',
-    });
-    return;
-  }
-
-  if (process.platform !== 'darwin') {
-    await logInfo('updater', 'Skipping updater on unsupported platform', {
-      platform: process.platform,
-    });
-    setUpdaterStatus({
-      inProgress: false,
-      stage: 'idle',
-      message: `Updates are not configured for ${process.platform}.`,
-    });
-    return;
-  }
-
-  const release = await requestJson<ReleasePayload>(
-    `https://api.github.com/repos/${RELEASE_OWNER}/${RELEASE_REPO}/releases/latest`
-  );
-
-  const latestVersion = normalizeVersion(release.tag_name);
-  const currentVersion = normalizeVersion(app.getVersion());
-
-  if (compareVersions(latestVersion, currentVersion) <= 0) {
-    await logInfo('updater', 'No newer release found', { latestVersion, currentVersion });
-    setUpdaterStatus({
-      inProgress: false,
-      stage: 'completed',
-      latestVersion,
-      progressPercent: 100,
-      etaSeconds: 0,
-      message: `You're up to date (${currentVersion}).`,
-    });
-    return;
-  }
-
-  const state = await readUpdateState();
-  if (state.skippedVersion && normalizeVersion(state.skippedVersion) === latestVersion) {
-    await logInfo('updater', 'Latest version was skipped previously', { latestVersion });
-    setUpdaterStatus({
-      inProgress: false,
-      stage: 'completed',
-      latestVersion,
-      progressPercent: 100,
-      etaSeconds: 0,
-      message: `Update ${latestVersion} was skipped.`,
-    });
-    return;
-  }
-
-  const selectedAsset = findBestMacAsset(release.assets);
-  if (!selectedAsset) {
-    await logError('updater', 'No suitable macOS zip asset in latest release', {
-      latestVersion,
-      assets: release.assets.map((asset) => asset.name),
-    });
-    setUpdaterStatus({
-      inProgress: false,
-      stage: 'failed',
-      latestVersion,
-      progressPercent: undefined,
-      etaSeconds: undefined,
-      message: `Release ${latestVersion} has no compatible macOS asset.`,
-    });
-    return;
-  }
-
-  setUpdaterStatus({
-    latestVersion,
-    message: `Update ${latestVersion} is available.`,
-  });
-  await promptAndInstallMacUpdate(release, selectedAsset, latestVersion);
-  setUpdaterStatus({
-    inProgress: false,
-    stage: 'completed',
-    progressPercent: 100,
-    etaSeconds: 0,
-    message: `Checked updates. Latest: ${latestVersion}.`,
-  });
-}
-
-export async function checkForUpdatesInBackground() {
-  try {
-    await checkForMacUpdate();
-  } catch (error) {
-    await logError('updater', 'Update check failed', error);
-    setUpdaterStatus({
-      inProgress: false,
-      stage: 'failed',
-      progressPercent: undefined,
-      etaSeconds: undefined,
-      message: 'Update check failed. See logs for details.',
-    });
-  }
-}
-
-export async function checkForUpdatesManually() {
-  await checkForUpdatesInBackground();
   return getUpdaterStatus();
 }
 

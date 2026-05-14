@@ -45,6 +45,7 @@ const api = {
   capabilities: (): Promise<DeviceCapabilities> => ipcRenderer.invoke('device:capabilities'),
   checkForUpdates: (): Promise<UpdaterStatus> => ipcRenderer.invoke('updater:check'),
   getUpdaterStatus: (): Promise<UpdaterStatus> => ipcRenderer.invoke('updater:status'),
+  installAvailableUpdate: (): Promise<UpdaterStatus> => ipcRenderer.invoke('updater:install'),
 };
 
 contextBridge.exposeInMainWorld('gtvRemote', api);

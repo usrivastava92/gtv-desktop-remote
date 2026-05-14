@@ -23,7 +23,12 @@ import type {
 import { GoogleTvAdapter } from './device/googleTvAdapter';
 import { getLoggerPath, logError, logInfo } from './logger';
 import { commandMetricsStore } from './metrics';
-import { checkForUpdatesInBackground, checkForUpdatesManually, getUpdaterStatus } from './updater';
+import {
+  checkForUpdatesInBackground,
+  installAvailableUpdate,
+  checkForUpdatesManually,
+  getUpdaterStatus,
+} from './updater';
 
 declare const _MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 
@@ -291,14 +296,21 @@ async function showUpdaterResultDialog(status: UpdaterStatus) {
   }
 
   if (status.updateInstallable) {
-    await dialog.showMessageBox({
+    const choice = await dialog.showMessageBox({
       type: 'info',
-      buttons: ['OK'],
+      buttons: ['Update now', 'Later'],
       defaultId: 0,
+      cancelId: 1,
+      icon: loadPngIcon(128),
       title: 'Update Available',
       message: `Version ${status.latestVersion ?? 'unknown'} is available.`,
-      detail: 'Open the app window to install from the Update section.',
+      detail: 'Install now or update later.',
     });
+
+    if (choice.response === 0) {
+      await installAvailableUpdate();
+    }
+
     return;
   }
 
@@ -380,6 +392,7 @@ function registerIpc() {
   ipcMain.handle('device:capabilities', async () => adapter.getCapabilities());
   ipcMain.handle('updater:check', async () => checkForUpdatesManually());
   ipcMain.handle('updater:status', () => getUpdaterStatus());
+  ipcMain.handle('updater:install', async () => installAvailableUpdate());
 }
 
 void app.whenReady().then(async () => {
