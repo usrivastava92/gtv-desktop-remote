@@ -74,7 +74,8 @@ type IconName =
   | 'power'
   | 'volumeUp'
   | 'volumeDown'
-  | 'remote';
+  | 'remote'
+  | 'assistant';
 
 function getDesktopApi() {
   const api = window.gtvRemote;
@@ -306,6 +307,18 @@ function Icon({ name, className }: { name: IconName; className?: string }) {
           <path d="M7 3C9.2 1.2 14.8 1.2 17 3" />
           <path d="M5 6C8.2 3.8 15.8 3.8 19 6" />
           <circle cx="12" cy="16" r="0.9" fill="currentColor" stroke="none" />
+        </svg>
+      );
+    case 'assistant':
+      return (
+        <svg {...props}>
+          <path d="M12 4V8" />
+          <path d="M10 6H14" />
+          <path d="M12 16V20" />
+          <path d="M10 18H14" />
+          <path d="M4 12H8" />
+          <path d="M16 12H20" />
+          <circle cx="12" cy="12" r="2.5" />
         </svg>
       );
     default:
@@ -1128,7 +1141,7 @@ function App() {
         {currentView === 'pairing' ? (
           <div className="ui-pair-screen">
             <div className="ui-pair-icon">
-              <Icon name="remote" className="h-8 w-8 text-primary" />
+              <Icon name="assistant" className="h-8 w-8 text-primary" />
             </div>
             <h1 className="mb-2 text-3xl font-bold tracking-tight text-on-surface">Enter Code</h1>
             <p className="mb-12 text-sm text-on-surface-variant">
