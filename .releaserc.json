@@ -18,7 +18,10 @@
     [
       "@semantic-release/github",
       {
-        "assets": [{ "path": "dmg-artifacts/*.dmg", "label": "macOS DMG" }],
+        "assets": [
+          { "path": "dmg-artifacts/*.dmg", "label": "macOS DMG" },
+          { "path": "zip-artifacts/*.zip", "label": "macOS ZIP" }
+        ],
         "successComment": false,
         "failComment": false
       }

@@ -4,10 +4,10 @@ name: Release
 #
 # Job 1 (build-macos): runs semantic-release --dry-run to find out if this
 #   push warrants a new version. If yes, patches package.json with the next
-#   version, builds the macOS DMG, and uploads it as a workflow artifact.
+#   version, builds the macOS DMG + ZIP, and uploads them as workflow artifacts.
 #
-# Job 2 (release): runs the real semantic-release, downloads the DMG artifact,
-#   and attaches it to the GitHub Release.
+# Job 2 (release): runs the real semantic-release, downloads the DMG + ZIP artifacts,
+#   and attaches them to the GitHub Release.
 #
 # GITHUB_TOKEN is provided automatically by GitHub Actions — no secret needed.
 
@@ -25,9 +25,9 @@ permissions:
   contents: write
 
 jobs:
-  # ── Job 1: build macOS DMG ────────────────────────────────────────────────
+  # ── Job 1: build macOS artifacts ──────────────────────────────────────────
   build-macos:
-    name: Build macOS DMG
+    name: Build macOS artifacts
     runs-on: macos-latest
     outputs:
       next-version: ${{ steps.dry-run.outputs.version }}
@@ -65,7 +65,7 @@ jobs:
             echo "will_release=true"  >> "$GITHUB_OUTPUT"
           else
             echo "will_release=false" >> "$GITHUB_OUTPUT"
-            echo "No releasable commits — skipping DMG build"
+            echo "No releasable commits — skipping macOS artifact build"
           fi
 
       - name: Patch package.json to next version
@@ -86,9 +86,9 @@ jobs:
         if: steps.dry-run.outputs.will_release == 'true'
         run: npm run build
 
-      - name: Package macOS DMG
+      - name: Package macOS DMG + ZIP
         if: steps.dry-run.outputs.will_release == 'true'
-        run: npx electron-builder --mac dmg --publish never
+        run: npx electron-builder --mac dmg zip --publish never
 
       - name: Upload DMG artifact
         if: steps.dry-run.outputs.will_release == 'true'
@@ -96,6 +96,15 @@ jobs:
         with:
           name: macos-dmg
           path: release/*.dmg
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Upload ZIP artifact
+        if: steps.dry-run.outputs.will_release == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: macos-zip
+          path: release/*.zip
           if-no-files-found: error
           retention-days: 1
 
@@ -121,6 +130,11 @@ jobs:
         with:
           name: macos-dmg
           path: dmg-artifacts
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: macos-zip
+          path: zip-artifacts
 
       - name: Release
         env:
