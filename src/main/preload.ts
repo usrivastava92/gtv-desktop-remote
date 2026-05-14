@@ -34,6 +34,13 @@ const api = {
     ipcRenderer.invoke('metrics:rendererDrop', report),
   getMetricsSnapshot: (): Promise<CommandMetricsSnapshot> => ipcRenderer.invoke('metrics:snapshot'),
   sendText: (text: string): Promise<void> => ipcRenderer.invoke('device:text', text),
+  startAssistantVoice: (): Promise<number> => ipcRenderer.invoke('device:assistantVoiceStart'),
+  sendAssistantVoiceChunk: (sessionId: number, chunkBase64: string): Promise<void> =>
+    ipcRenderer.invoke('device:assistantVoiceChunk', sessionId, chunkBase64),
+  stopAssistantVoice: (sessionId: number): Promise<void> =>
+    ipcRenderer.invoke('device:assistantVoiceStop', sessionId),
+  hasPendingAssistantVoiceSession: (): Promise<boolean> =>
+    ipcRenderer.invoke('device:assistantVoicePending'),
   capabilities: (): Promise<DeviceCapabilities> => ipcRenderer.invoke('device:capabilities'),
 };
 

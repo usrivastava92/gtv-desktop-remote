@@ -39,6 +39,11 @@ export class GoogleTvAdapter implements DeviceAdapter {
 
   private scanPromise: Promise<DiscoveredDevice[]> | undefined;
 
+  private assistantVoiceStats = new Map<
+    number,
+    { chunks: number; bytes: number; startedAt: number }
+  >();
+
   async listDevices(): Promise<SavedDevice[]> {
     return readDevices();
   }
@@ -64,23 +69,65 @@ export class GoogleTvAdapter implements DeviceAdapter {
     // Auto-update saved device hosts when a device is found by MAC but on a new IP
     const savedDevices = await readDevices();
     const updatedDevices = savedDevices.map((saved) => {
-      if (!saved.macAddress) return saved;
-      const match = discovered.find(
-        (d) => d.macAddress && d.macAddress === saved.macAddress && d.host !== saved.host
-      );
+      const fingerprintMatches =
+        saved.deviceFingerprint &&
+        discovered.filter((d) => d.deviceFingerprint === saved.deviceFingerprint);
+      const match = discovered.find((d) => {
+        if (saved.macAddress && d.macAddress) {
+          return d.macAddress === saved.macAddress;
+        }
+        if (saved.castDeviceId && d.castDeviceId) {
+          return d.castDeviceId === saved.castDeviceId;
+        }
+        if (saved.networkHostName && d.networkHostName) {
+          return d.networkHostName === saved.networkHostName;
+        }
+        if (fingerprintMatches && fingerprintMatches.length === 1) {
+          return d.id === fingerprintMatches[0]?.id;
+        }
+        return d.host === saved.host;
+      });
       if (!match) return saved;
+      if (match.host === saved.host) {
+        return {
+          ...saved,
+          macAddress: saved.macAddress ?? match.macAddress,
+          castDeviceId: saved.castDeviceId ?? match.castDeviceId,
+          networkHostName: saved.networkHostName ?? match.networkHostName,
+          deviceFingerprint: saved.deviceFingerprint ?? match.deviceFingerprint,
+        };
+      }
       void logInfo('adapter', 'Device IP changed — updating host', {
         deviceId: saved.id,
         name: saved.name,
         oldHost: saved.host,
         newHost: match.host,
         macAddress: saved.macAddress,
+        castDeviceId: saved.castDeviceId,
+        networkHostName: saved.networkHostName,
+        deviceFingerprint: saved.deviceFingerprint,
       });
-      return { ...saved, host: match.host };
+      return {
+        ...saved,
+        host: match.host,
+        macAddress: saved.macAddress ?? match.macAddress,
+        castDeviceId: saved.castDeviceId ?? match.castDeviceId,
+        networkHostName: saved.networkHostName ?? match.networkHostName,
+        deviceFingerprint: saved.deviceFingerprint ?? match.deviceFingerprint,
+      };
     });
 
-    const updatedHosts = updatedDevices.some((d, i) => d.host !== savedDevices[i]?.host);
-    if (updatedHosts) {
+    const updatedDevicesChanged = updatedDevices.some((updated, i) => {
+      const previous = savedDevices[i];
+      return (
+        updated.host !== previous.host ||
+        updated.macAddress !== previous.macAddress ||
+        updated.castDeviceId !== previous.castDeviceId ||
+        updated.networkHostName !== previous.networkHostName ||
+        updated.deviceFingerprint !== previous.deviceFingerprint
+      );
+    });
+    if (updatedDevicesChanged) {
       await writeDevices(updatedDevices);
       // Migrate any IP-keyed cert files to MAC-keyed cert files for updated devices
       for (let i = 0; i < savedDevices.length; i++) {
@@ -99,17 +146,44 @@ export class GoogleTvAdapter implements DeviceAdapter {
     await logInfo('adapter', 'Saving device', { draft });
     const devices = await readDevices();
     const normalizedHost = draft.host.trim();
+    const normalizedMac = draft.macAddress?.trim();
+    const normalizedCastDeviceId = draft.castDeviceId?.trim();
+    const normalizedNetworkHostName = draft.networkHostName?.trim();
+    const normalizedDeviceFingerprint = draft.deviceFingerprint?.trim();
+    const existingDevice = devices.find((device) => {
+      if (normalizedMac && device.macAddress) {
+        return device.macAddress === normalizedMac;
+      }
+      if (normalizedCastDeviceId && device.castDeviceId) {
+        return device.castDeviceId === normalizedCastDeviceId;
+      }
+      if (normalizedNetworkHostName && device.networkHostName) {
+        return device.networkHostName === normalizedNetworkHostName;
+      }
+      if (normalizedDeviceFingerprint && device.deviceFingerprint) {
+        return device.deviceFingerprint === normalizedDeviceFingerprint;
+      }
+      return device.host === normalizedHost;
+    });
 
     const nextDevice: SavedDevice = {
-      id: randomUUID(),
-      isPaired: false,
+      id: existingDevice?.id ?? randomUUID(),
+      isPaired: existingDevice?.isPaired ?? false,
       name: draft.name.trim() || normalizedHost,
       host: normalizedHost,
       adbPort: draft.adbPort,
       pairingPort: draft.pairingPort,
+      macAddress: normalizedMac ?? existingDevice?.macAddress,
+      castDeviceId: normalizedCastDeviceId ?? existingDevice?.castDeviceId,
+      networkHostName: normalizedNetworkHostName ?? existingDevice?.networkHostName,
+      deviceFingerprint: normalizedDeviceFingerprint ?? existingDevice?.deviceFingerprint,
+      lastConnectedAt: existingDevice?.lastConnectedAt,
     };
 
-    const nextDevices = [...devices.filter((device) => device.host !== normalizedHost), nextDevice];
+    const nextDevices = [
+      ...devices.filter((device) => device.id !== existingDevice?.id),
+      nextDevice,
+    ];
     await writeDevices(nextDevices);
     this.deviceState = {
       ...this.deviceState,
@@ -335,6 +409,93 @@ export class GoogleTvAdapter implements DeviceAdapter {
     await androidTvRemoteBridge.sendText(
       this.activeDevice.host,
       text,
+      this.activeDevice.macAddress
+    );
+  }
+
+  async startAssistantVoice(): Promise<number> {
+    if (!this.activeDevice) {
+      throw new Error('No active device connected.');
+    }
+
+    const sessionId = await androidTvRemoteBridge.startAssistantVoice(
+      this.activeDevice.host,
+      this.activeDevice.macAddress
+    );
+    await logInfo('adapter', 'Assistant voice session started', {
+      deviceId: this.activeDevice.id,
+      host: this.activeDevice.host,
+      sessionId,
+    });
+    this.assistantVoiceStats.set(sessionId, { chunks: 0, bytes: 0, startedAt: Date.now() });
+    return sessionId;
+  }
+
+  async sendAssistantVoiceChunk(sessionId: number, chunkBase64: string): Promise<void> {
+    if (!this.activeDevice) {
+      throw new Error('No active device connected.');
+    }
+
+    const chunk = Buffer.from(chunkBase64, 'base64');
+    await androidTvRemoteBridge.sendAssistantVoiceChunk(
+      this.activeDevice.host,
+      sessionId,
+      chunk,
+      this.activeDevice.macAddress
+    );
+
+    const stats = this.assistantVoiceStats.get(sessionId);
+    if (stats) {
+      stats.chunks += 1;
+      stats.bytes += chunk.length;
+      if (stats.chunks % 10 === 0) {
+        await logInfo('adapter', 'Assistant voice chunk progress', {
+          deviceId: this.activeDevice.id,
+          host: this.activeDevice.host,
+          sessionId,
+          chunks: stats.chunks,
+          bytes: stats.bytes,
+        });
+      }
+    } else {
+      await logInfo('adapter', 'Assistant voice chunk sent without tracked session', {
+        deviceId: this.activeDevice.id,
+        host: this.activeDevice.host,
+        sessionId,
+        bytes: chunk.length,
+      });
+    }
+  }
+
+  async stopAssistantVoice(sessionId: number): Promise<void> {
+    if (!this.activeDevice) {
+      throw new Error('No active device connected.');
+    }
+
+    await androidTvRemoteBridge.stopAssistantVoice(
+      this.activeDevice.host,
+      sessionId,
+      this.activeDevice.macAddress
+    );
+    const stats = this.assistantVoiceStats.get(sessionId);
+    this.assistantVoiceStats.delete(sessionId);
+    await logInfo('adapter', 'Assistant voice session ended', {
+      deviceId: this.activeDevice.id,
+      host: this.activeDevice.host,
+      sessionId,
+      chunks: stats?.chunks ?? 0,
+      bytes: stats?.bytes ?? 0,
+      durationMs: stats ? Date.now() - stats.startedAt : undefined,
+    });
+  }
+
+  async hasPendingAssistantVoiceSession(): Promise<boolean> {
+    if (!this.activeDevice) {
+      return false;
+    }
+
+    return androidTvRemoteBridge.hasPendingAssistantVoiceSession(
+      this.activeDevice.host,
       this.activeDevice.macAddress
     );
   }

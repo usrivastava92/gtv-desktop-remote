@@ -51,7 +51,9 @@ enum RemoteKeyCode {
   KEYCODE_VOLUME_UP = 24;
   KEYCODE_VOLUME_DOWN = 25;
   KEYCODE_POWER = 26;
+  KEYCODE_SEARCH = 84;
   KEYCODE_MEDIA_PLAY_PAUSE = 85;
+  KEYCODE_VOICE_ASSIST = 231;
 }
 
 enum RemoteDirection {
@@ -96,6 +98,19 @@ message RemoteStart {
   bool started = 1;
 }
 
+message RemoteVoiceBegin {
+  int32 session_id = 1;
+}
+
+message RemoteVoicePayload {
+  int32 session_id = 1;
+  bytes samples = 2;
+}
+
+message RemoteVoiceEnd {
+  int32 session_id = 1;
+}
+
 message RemoteSetVolumeLevel {
   uint32 volume_level = 7;
   bool volume_muted = 8;
@@ -110,6 +125,9 @@ message RemoteMessage {
   RemoteImeKeyInject remote_ime_key_inject = 20;
   RemoteImeBatchEdit remote_ime_batch_edit = 21;
   RemoteImeShowRequest remote_ime_show_request = 22;
+  RemoteVoiceBegin remote_voice_begin = 30;
+  RemoteVoicePayload remote_voice_payload = 31;
+  RemoteVoiceEnd remote_voice_end = 32;
   RemoteStart remote_start = 40;
   RemoteSetVolumeLevel remote_set_volume_level = 50;
 }`;
@@ -133,6 +151,24 @@ const keyMap: Record<RemoteCommand, keyof typeof remoteKeyCode> = {
   volume_up: 'KEYCODE_VOLUME_UP',
   volume_down: 'KEYCODE_VOLUME_DOWN',
   power: 'KEYCODE_POWER',
+  assistant_press: 'KEYCODE_VOICE_ASSIST',
+  assistant_release: 'KEYCODE_VOICE_ASSIST',
+};
+
+const directionMap: Record<RemoteCommand, keyof typeof remoteDirection> = {
+  up: 'SHORT',
+  down: 'SHORT',
+  left: 'SHORT',
+  right: 'SHORT',
+  select: 'SHORT',
+  home: 'SHORT',
+  back: 'SHORT',
+  play_pause: 'SHORT',
+  volume_up: 'SHORT',
+  volume_down: 'SHORT',
+  power: 'SHORT',
+  assistant_press: 'START_LONG',
+  assistant_release: 'END_LONG',
 };
 
 function createRemoteMessage(payload: Record<string, unknown>): Buffer {
@@ -150,6 +186,8 @@ function decodeRemoteMessage(buffer: Buffer) {
     remotePingRequest?: { val1?: number };
     remoteImeKeyInject?: { appInfo?: { appPackage?: string } };
     remoteImeBatchEdit?: { fieldCounter?: number; imeCounter?: number };
+    remoteVoiceBegin?: { sessionId?: number };
+    remoteVoiceEnd?: { sessionId?: number };
     remoteSetVolumeLevel?: { volumeLevel?: number; volumeMuted?: boolean };
     remoteStart?: { started?: boolean };
   };
@@ -194,9 +232,39 @@ export function createRemotePingResponse(val1: number): Buffer {
 export function createRemoteKeyInject(command: RemoteCommand): Buffer {
   return createRemoteMessage({
     remoteKeyInject: {
-      direction: remoteDirection.SHORT,
+      direction: remoteDirection[directionMap[command]],
       keyCode: remoteKeyCode[keyMap[command]],
     },
+  });
+}
+
+export function createRemoteKeyInjectRaw(
+  keyCode: keyof typeof remoteKeyCode,
+  direction: keyof typeof remoteDirection = 'SHORT'
+): Buffer {
+  return createRemoteMessage({
+    remoteKeyInject: {
+      direction: remoteDirection[direction],
+      keyCode: remoteKeyCode[keyCode],
+    },
+  });
+}
+
+export function createRemoteVoiceBegin(sessionId: number): Buffer {
+  return createRemoteMessage({
+    remoteVoiceBegin: { sessionId },
+  });
+}
+
+export function createRemoteVoicePayload(sessionId: number, samples: Buffer): Buffer {
+  return createRemoteMessage({
+    remoteVoicePayload: { sessionId, samples },
+  });
+}
+
+export function createRemoteVoiceEnd(sessionId: number): Buffer {
+  return createRemoteMessage({
+    remoteVoiceEnd: { sessionId },
   });
 }
 
