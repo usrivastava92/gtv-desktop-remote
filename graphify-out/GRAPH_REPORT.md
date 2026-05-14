@@ -1,12 +1,12 @@
 # Graph Report - gtv-desktop-remote  (2026-05-14)
 
 ## Corpus Check
-- 38 files · ~48,481 words
+- 38 files · ~47,789 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 298 nodes · 611 edges · 28 communities detected
-- Extraction: 88% EXTRACTED · 12% INFERRED · 0% AMBIGUOUS · INFERRED: 72 edges (avg confidence: 0.81)
+- 295 nodes · 600 edges · 28 communities detected
+- Extraction: 88% EXTRACTED · 12% INFERRED · 0% AMBIGUOUS · INFERRED: 71 edges (avg confidence: 0.81)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
@@ -40,16 +40,16 @@
 - [[_COMMUNITY_Community 37|Community 37]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `CommandMetricsStore` - 22 edges
-2. `logInfo()` - 21 edges
+1. `logInfo()` - 22 edges
+2. `CommandMetricsStore` - 22 edges
 3. `AndroidTvRemoteBridge` - 21 edges
 4. `GoogleTvAdapter` - 20 edges
 5. `NoopCommandMetricsStore` - 17 edges
-6. `getDesktopApi()` - 17 edges
-7. `NativeRemoteClient` - 16 edges
-8. `readDevices()` - 12 edges
-9. `checkForMacUpdate()` - 11 edges
-10. `installAvailableUpdate()` - 11 edges
+6. `NativeRemoteClient` - 16 edges
+7. `getDesktopApi()` - 16 edges
+8. `checkForMacUpdate()` - 12 edges
+9. `readDevices()` - 12 edges
+10. `writeDevices()` - 10 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Encrypted Pairing Protocol` --semantically_similar_to--> `androidtvremote (pairing certs dir)`  [INFERRED] [semantically similar]
@@ -58,9 +58,9 @@
   public/favicon.svg → assets/icons/gtv-remote-icon.svg
 - `setUpdaterStatus()` --calls--> `initialize()`  [INFERRED]
   src/main/updater.ts → src/renderer/App.tsx
-- `handleInstallUpdate()` --calls--> `setUpdaterStatus()`  [INFERRED]
-  src/renderer/App.tsx → src/main/updater.ts
 - `readUpdateState()` --calls--> `getAppDataPath()`  [INFERRED]
+  src/main/updater.ts → src/main/logger.ts
+- `writeUpdateState()` --calls--> `getAppDataPath()`  [INFERRED]
   src/main/updater.ts → src/main/logger.ts
 
 ## Hyperedges (group relationships)
@@ -76,7 +76,7 @@ Nodes (14): getLegacyUserDataPaths(), GoogleTvAdapter, clearDeviceStore(), getDe
 
 ### Community 1 - "Community 1"
 Cohesion: 0.11
-Nodes (29): clearAssistantLongPressTimer(), convertFloat32ToPcm16(), createCommandRequest(), downsampleTo8kMono(), enqueueCommand(), flushQueuedCommands(), getDesktopApi(), handleCommand() (+21 more)
+Nodes (28): clearAssistantLongPressTimer(), convertFloat32ToPcm16(), createCommandRequest(), downsampleTo8kMono(), enqueueCommand(), flushQueuedCommands(), getDesktopApi(), handleCommand() (+20 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.17
@@ -99,8 +99,8 @@ Cohesion: 0.26
 Nodes (19): applyApplicationIcon(), attachWindowDiagnostics(), bootstrapApp(), buildApplicationMenu(), buildContextMenu(), createTrayImage(), createWindow(), ensureWindow() (+11 more)
 
 ### Community 7 - "Community 7"
-Cohesion: 0.31
-Nodes (17): checkForMacUpdate(), checkForUpdatesInBackground(), checkForUpdatesManually(), compareVersions(), downloadFile(), findBestMacAsset(), getBundlePathFromExecPath(), getUpdaterStatus() (+9 more)
+Cohesion: 0.35
+Nodes (15): checkForMacUpdate(), checkForUpdatesInBackground(), checkForUpdatesManually(), compareVersions(), downloadFile(), findBestMacAsset(), getBundlePathFromExecPath(), getUpdaterStatus() (+7 more)
 
 ### Community 8 - "Community 8"
 Cohesion: 0.28
@@ -220,11 +220,11 @@ Nodes (1): graphify knowledge graph config
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `logInfo()` connect `Community 0` to `Community 2`, `Community 5`, `Community 6`, `Community 7`?**
-  _High betweenness centrality (0.396) - this node is a cross-community bridge._
+  _High betweenness centrality (0.412) - this node is a cross-community bridge._
 - **Why does `setUpdaterStatus()` connect `Community 7` to `Community 1`?**
-  _High betweenness centrality (0.158) - this node is a cross-community bridge._
-- **Are the 18 inferred relationships involving `logInfo()` (e.g. with `bootstrapApp()` and `installMacUpdateFromZip()`) actually correct?**
-  _`logInfo()` has 18 INFERRED edges - model-reasoned connections that need verification._
+  _High betweenness centrality (0.155) - this node is a cross-community bridge._
+- **Are the 19 inferred relationships involving `logInfo()` (e.g. with `bootstrapApp()` and `installMacUpdateFromZip()`) actually correct?**
+  _`logInfo()` has 19 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `GTV Desktop Remote`, `Network Scan`, `Encrypted Pairing Protocol` to the rest of the system?**
   _17 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
