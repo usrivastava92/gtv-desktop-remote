@@ -9,7 +9,9 @@ export type RemoteCommand =
   | 'play_pause'
   | 'volume_up'
   | 'volume_down'
-  | 'power';
+  | 'power'
+  | 'assistant_press'
+  | 'assistant_release';
 
 export type RemoteCommandSource = 'keyboard' | 'button';
 
@@ -119,6 +121,9 @@ export interface SavedDevice {
   adbPort?: number;
   pairingPort?: number;
   macAddress?: string;
+  castDeviceId?: string;
+  networkHostName?: string;
+  deviceFingerprint?: string;
   lastConnectedAt?: string;
 }
 
@@ -130,6 +135,9 @@ export interface DiscoveredDevice {
   pairingPort?: number;
   remotePort?: number;
   macAddress?: string;
+  castDeviceId?: string;
+  networkHostName?: string;
+  deviceFingerprint?: string;
   model?: string;
   source: 'googlecast' | 'adb' | 'androidtvremote';
 }
@@ -139,6 +147,7 @@ export interface PairingRequest {
   host: string;
   code: string;
   macAddress?: string;
+  castDeviceId?: string;
 }
 
 export interface DeviceDraft {
@@ -146,6 +155,10 @@ export interface DeviceDraft {
   host: string;
   adbPort: number;
   pairingPort?: number;
+  macAddress?: string;
+  castDeviceId?: string;
+  networkHostName?: string;
+  deviceFingerprint?: string;
 }
 
 export interface DeviceState {
@@ -176,6 +189,10 @@ export interface DeviceAdapter {
   disconnect(): Promise<DeviceState>;
   sendCommand(request: CommandDispatchRequest): Promise<void>;
   sendText(text: string): Promise<void>;
+  startAssistantVoice(): Promise<number>;
+  sendAssistantVoiceChunk(sessionId: number, chunkBase64: string): Promise<void>;
+  stopAssistantVoice(sessionId: number): Promise<void>;
+  hasPendingAssistantVoiceSession(): Promise<boolean>;
   getCapabilities(): Promise<DeviceCapabilities>;
   getBootstrapState(): Promise<BootstrapState>;
 }

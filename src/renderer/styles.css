@@ -789,6 +789,60 @@ p {
   gap: 0.5rem;
 }
 
+.ui-assistant-wave {
+  margin: -0.1rem auto 0.45rem;
+  width: fit-content;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.36rem;
+  min-height: 0.95rem;
+}
+
+.ui-assistant-dot {
+  border-radius: 999px;
+  animation: ui-assistant-pulse 820ms ease-in-out infinite;
+}
+
+.ui-assistant-dot-blue {
+  width: 0.34rem;
+  height: 0.34rem;
+  background: #4285f4;
+  animation-delay: 0ms;
+}
+
+.ui-assistant-dot-red {
+  width: 0.52rem;
+  height: 0.52rem;
+  background: #ea4335;
+  animation-delay: 120ms;
+}
+
+.ui-assistant-dot-yellow {
+  width: 0.44rem;
+  height: 0.44rem;
+  background: #fbbc05;
+  animation-delay: 220ms;
+}
+
+.ui-assistant-dot-green {
+  width: 0.28rem;
+  height: 0.28rem;
+  background: #34a853;
+  animation-delay: 320ms;
+}
+
+@keyframes ui-assistant-pulse {
+  0%,
+  100% {
+    transform: translateY(0) scale(0.9);
+    opacity: 0.75;
+  }
+  50% {
+    transform: translateY(-0.28rem) scale(1.12);
+    opacity: 1;
+  }
+}
+
 .ui-media-button {
   min-height: 3.5rem;
   display: flex;
@@ -804,6 +858,11 @@ p {
 
 .ui-media-button:hover {
   background: var(--surface-bright);
+}
+
+.ui-media-button-assistant-active {
+  background: linear-gradient(135deg, rgba(84, 183, 255, 0.35), rgba(63, 134, 255, 0.45));
+  box-shadow: 0 0 0 1px rgba(119, 205, 255, 0.65);
 }
 
 .ui-media-button-block {
