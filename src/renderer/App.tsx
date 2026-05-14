@@ -1056,12 +1056,20 @@ function App() {
           </p>
           {updaterStatus.inProgress ? (
             <div className="mt-2 w-full">
-              <div className="h-2 w-full overflow-hidden rounded-full bg-surface-soft">
+              <div className="ui-update-progress-track">
                 <div
-                  className="h-full bg-primary transition-all"
+                  className="ui-update-progress-fill"
                   style={{ width: `${String(updaterStatus.progressPercent ?? 12)}%` }}
                 />
               </div>
+              <p className="ui-update-meta">
+                {updaterStatus.progressPercent !== undefined
+                  ? `${String(updaterStatus.progressPercent)}%`
+                  : 'Updating'}
+                {updaterStatus.etaSeconds !== undefined
+                  ? ` • ETA ~${String(updaterStatus.etaSeconds)}s`
+                  : ''}
+              </p>
             </div>
           ) : null}
           <button
