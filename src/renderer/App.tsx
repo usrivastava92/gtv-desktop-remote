@@ -75,7 +75,8 @@ type IconName =
   | 'power'
   | 'volumeUp'
   | 'volumeDown'
-  | 'remote';
+  | 'remote'
+  | 'assistant';
 
 function getDesktopApi() {
   const api = window.gtvRemote;
@@ -309,6 +310,15 @@ function Icon({ name, className }: { name: IconName; className?: string }) {
           <circle cx="12" cy="16" r="0.9" fill="currentColor" stroke="none" />
         </svg>
       );
+    case 'assistant':
+      return (
+        <svg {...props}>
+          <rect x="9" y="3" width="6" height="10.5" rx="3" />
+          <path d="M7.5 10.5A4.5 4.5 0 0 0 16.5 10.5" />
+          <path d="M12 13.5V19.5" />
+          <path d="M9 19.5H15" />
+        </svg>
+      );
     default:
       return null;
   }
@@ -348,6 +358,7 @@ function App() {
   const commandQueueRef = useRef<QueuedCommandBatch[]>([]);
   const queuedCommandCountRef = useRef(0);
   const isProcessingQueueRef = useRef(false);
+  const assistantKeyHeldRef = useRef(false);
 
   const discoveredByHost = new Map(discoveredDevices.map((device) => [device.host, device]));
   const discoveredByMac = new Map(
@@ -559,6 +570,15 @@ function App() {
         return;
       }
 
+      if (event.key === 'g' || event.key === 'G') {
+        if (!event.repeat && !assistantKeyHeldRef.current) {
+          assistantKeyHeldRef.current = true;
+          event.preventDefault();
+          handleCommand('assistant_press', 'keyboard');
+        }
+        return;
+      }
+
       const command = keyboardCommandMap[event.key];
       if (!command) {
         return;
@@ -568,9 +588,48 @@ function App() {
       handleCommand(command, 'keyboard');
     }
 
+    function onKeyUp(event: KeyboardEvent) {
+      if (
+        event.key !== 'g' &&
+        event.key !== 'G' &&
+        !(event.code === 'KeyG' && assistantKeyHeldRef.current)
+      ) {
+        return;
+      }
+
+      if (!bridgeReady || !isConnected || currentView !== 'remote') {
+        assistantKeyHeldRef.current = false;
+        return;
+      }
+
+      if (!assistantKeyHeldRef.current) {
+        return;
+      }
+
+      assistantKeyHeldRef.current = false;
+      event.preventDefault();
+      handleCommand('assistant_release', 'keyboard');
+    }
+
+    function onWindowBlur() {
+      if (!assistantKeyHeldRef.current) {
+        return;
+      }
+
+      assistantKeyHeldRef.current = false;
+      if (bridgeReady && isConnected && currentView === 'remote') {
+        handleCommand('assistant_release', 'keyboard');
+      }
+    }
+
     window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', onWindowBlur);
     return () => {
       window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', onWindowBlur);
+      assistantKeyHeldRef.current = false;
     };
   }, [bridgeReady, isConnected, currentView]);
 

@@ -1,13 +1,23 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { app, BrowserWindow, globalShortcut, ipcMain, Menu, nativeImage, Tray } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  globalShortcut,
+  ipcMain,
+  Menu,
+  nativeImage,
+  Tray,
+} from 'electron';
 
 import type {
   CommandDispatchRequest,
   CommandDropReport,
   DeviceDraft,
   PairingRequest,
+  UpdaterStatus,
 } from '../shared/types';
 
 import { GoogleTvAdapter } from './device/googleTvAdapter';
@@ -124,6 +134,7 @@ async function createWindow(): Promise<BrowserWindow> {
   if (process.platform === 'darwin') {
     window.setWindowButtonVisibility(false);
   }
+  window.setSkipTaskbar(true);
 
   attachWindowDiagnostics(window);
 
@@ -201,7 +212,7 @@ function buildContextMenu() {
     {
       label: 'Check for Updates…',
       click: () => {
-        void checkForUpdatesManually();
+        void handleManualUpdateCheckFromMenu();
       },
     },
     { type: 'separator' },
@@ -231,7 +242,7 @@ function buildApplicationMenu() {
         {
           label: 'Check for Updates…',
           click: () => {
-            void checkForUpdatesManually();
+            void handleManualUpdateCheckFromMenu();
           },
         },
         { type: 'separator' },
@@ -255,10 +266,50 @@ function buildApplicationMenu() {
   Menu.setApplicationMenu(appMenu);
 }
 
+async function showUpdaterResultDialog(status: UpdaterStatus) {
+  if (status.stage === 'failed') {
+    await dialog.showMessageBox({
+      type: 'warning',
+      buttons: ['OK'],
+      defaultId: 0,
+      title: 'Update Check',
+      message: status.message,
+    });
+    return;
+  }
+
+  if (status.updateInstallable) {
+    await dialog.showMessageBox({
+      type: 'info',
+      buttons: ['OK'],
+      defaultId: 0,
+      title: 'Update Available',
+      message: `Version ${status.latestVersion ?? 'unknown'} is available.`,
+      detail: 'Open the app window to install from the Update section.',
+    });
+    return;
+  }
+
+  await dialog.showMessageBox({
+    type: 'info',
+    buttons: ['OK'],
+    defaultId: 0,
+    title: 'Update Check',
+    message: status.message,
+  });
+}
+
+async function handleManualUpdateCheckFromMenu() {
+  const status = await checkForUpdatesManually();
+  await showUpdaterResultDialog(status);
+}
+
 async function bootstrapApp() {
   buildApplicationMenu();
+  if (process.platform === 'darwin') {
+    app.dock?.hide();
+  }
   windowRef = await createWindow();
-  await showWindow();
   tray = new Tray(createTrayImage());
   tray.setToolTip(appName);
   tray.setContextMenu(buildContextMenu());

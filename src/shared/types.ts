@@ -185,6 +185,7 @@ export interface UpdaterStatus {
   lastCheckedAt?: string;
   currentVersion: string;
   latestVersion?: string;
+  updateInstallable?: boolean;
   message: string;
 }
 
