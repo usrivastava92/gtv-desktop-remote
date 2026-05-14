@@ -9,6 +9,7 @@ import type {
   RemoteCommand,
   RemoteCommandSource,
   SavedDevice,
+  UpdaterStatus,
 } from '../shared/types';
 
 const initialDraft: DeviceDraft = {
@@ -349,6 +350,13 @@ function App() {
   const [scanning, setScanning] = useState(false);
   const [bridgeReady, setBridgeReady] = useState(false);
   const [pairingReady, setPairingReady] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [updaterStatus, setUpdaterStatus] = useState<UpdaterStatus>({
+    inProgress: false,
+    stage: 'idle',
+    currentVersion: 'unknown',
+    message: 'Loading update status...',
+  });
   const pairCodeInputRef = useRef<HTMLInputElement>(null);
   const commandQueueRef = useRef<QueuedCommandBatch[]>([]);
   const queuedCommandCountRef = useRef(0);
@@ -509,11 +517,13 @@ function App() {
   useEffect(() => {
     async function initialize() {
       try {
-        const [nextBootstrap, nextCapabilities] = await Promise.all([
+        const [nextBootstrap, nextCapabilities, nextUpdaterStatus] = await Promise.all([
           refreshState(),
           getDesktopApi().capabilities(),
+          getDesktopApi().getUpdaterStatus(),
         ]);
         setCapabilities(nextCapabilities);
+        setUpdaterStatus(nextUpdaterStatus);
         setBridgeReady(true);
         setDevicePickerOpen(!nextBootstrap.deviceState.activeDeviceId);
         await handleScanDevices(
@@ -944,6 +954,52 @@ function App() {
     }
   }
 
+  async function handleCheckForUpdates() {
+    try {
+      setUpdaterStatus((current) => ({
+        ...current,
+        inProgress: true,
+        stage: 'checking',
+        progressPercent: 0,
+        etaSeconds: undefined,
+        message: 'Checking for updates...',
+      }));
+      const nextStatus = await getDesktopApi().checkForUpdates();
+      setUpdaterStatus(nextStatus);
+    } catch (error) {
+      setUpdaterStatus((current) => ({
+        ...current,
+        inProgress: false,
+        message: (error as Error).message,
+      }));
+    }
+  }
+
+  useEffect(() => {
+    if (!bridgeReady) {
+      return;
+    }
+
+    if (!updaterStatus.inProgress) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      void getDesktopApi()
+        .getUpdaterStatus()
+        .then((status) => {
+          setUpdaterStatus(status);
+        })
+        .catch(() => {
+          // Ignore polling failures; existing state remains visible.
+        });
+    }, 800);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [bridgeReady, updaterStatus.inProgress]);
+
   function openDevicePicker() {
     setTextInputOpen(false);
     setPairingReady(false);
@@ -1114,6 +1170,15 @@ function App() {
                 className="ui-help-chip"
                 disabled={bridgeDisabled}
                 onClick={() => {
+                  setSettingsOpen((current) => !current);
+                }}
+              >
+                Settings
+              </button>
+              <button
+                className="ui-help-chip"
+                disabled={bridgeDisabled}
+                onClick={() => {
                   void handleScanDevices(false);
                 }}
               >
@@ -1129,6 +1194,51 @@ function App() {
                 Reset App State
               </button>
             </div>
+
+            {settingsOpen ? (
+              <section className="ui-glass-sheet mt-4">
+                <div className="ui-section-row">
+                  <h2 className="ui-section-heading">Settings</h2>
+                  <button
+                    className="rounded-full px-4 py-2 text-sm text-on-surface-variant"
+                    onClick={() => {
+                      setSettingsOpen(false);
+                    }}
+                  >
+                    Close
+                  </button>
+                </div>
+                <p className="ui-copy">App version: {updaterStatus.currentVersion}</p>
+                <p className="ui-copy">
+                  Latest: {updaterStatus.latestVersion ?? 'unknown'} • {updaterStatus.message}
+                </p>
+                {updaterStatus.inProgress ? (
+                  <div className="w-full">
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-surface-soft">
+                      <div
+                        className="h-full bg-primary transition-all"
+                        style={{ width: `${String(updaterStatus.progressPercent ?? 12)}%` }}
+                      />
+                    </div>
+                    <p className="mt-2 text-xs text-on-surface-variant">
+                      Stage: {updaterStatus.stage}
+                      {updaterStatus.etaSeconds !== undefined
+                        ? ` • ETA ~${String(updaterStatus.etaSeconds)}s`
+                        : ''}
+                    </p>
+                  </div>
+                ) : null}
+                <button
+                  className="ui-primary-button"
+                  disabled={bridgeDisabled || updaterStatus.inProgress}
+                  onClick={() => {
+                    void handleCheckForUpdates();
+                  }}
+                >
+                  {updaterStatus.inProgress ? 'Checking…' : 'Check for Updates'}
+                </button>
+              </section>
+            ) : null}
 
             {bootstrap.deviceState.status === 'error' || !bridgeReady ? (
               <div className="ui-alert">

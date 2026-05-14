@@ -11,6 +11,7 @@ import type {
   DiscoveredDevice,
   PairingRequest,
   SavedDevice,
+  UpdaterStatus,
 } from '../shared/types';
 
 const api = {
@@ -35,6 +36,8 @@ const api = {
   getMetricsSnapshot: (): Promise<CommandMetricsSnapshot> => ipcRenderer.invoke('metrics:snapshot'),
   sendText: (text: string): Promise<void> => ipcRenderer.invoke('device:text', text),
   capabilities: (): Promise<DeviceCapabilities> => ipcRenderer.invoke('device:capabilities'),
+  checkForUpdates: (): Promise<UpdaterStatus> => ipcRenderer.invoke('updater:check'),
+  getUpdaterStatus: (): Promise<UpdaterStatus> => ipcRenderer.invoke('updater:status'),
 };
 
 contextBridge.exposeInMainWorld('gtvRemote', api);

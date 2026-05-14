@@ -13,6 +13,7 @@ import type {
 import { GoogleTvAdapter } from './device/googleTvAdapter';
 import { getLoggerPath, logError, logInfo } from './logger';
 import { commandMetricsStore } from './metrics';
+import { checkForUpdatesInBackground, checkForUpdatesManually, getUpdaterStatus } from './updater';
 
 declare const _MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 
@@ -198,6 +199,13 @@ function buildContextMenu() {
     },
     { type: 'separator' },
     {
+      label: 'Check for Updates…',
+      click: () => {
+        void checkForUpdatesManually();
+      },
+    },
+    { type: 'separator' },
+    {
       label: 'Quit',
       click: () => {
         app.quit();
@@ -206,7 +214,49 @@ function buildContextMenu() {
   ]);
 }
 
+function buildApplicationMenu() {
+  if (process.platform !== 'darwin') {
+    return;
+  }
+
+  const appMenu = Menu.buildFromTemplate([
+    {
+      label: app.name,
+      submenu: [
+        {
+          label: 'About GTV Remote',
+          role: 'about',
+        },
+        { type: 'separator' },
+        {
+          label: 'Check for Updates…',
+          click: () => {
+            void checkForUpdatesManually();
+          },
+        },
+        { type: 'separator' },
+        {
+          label: 'Hide GTV Remote',
+          role: 'hide',
+        },
+        {
+          label: 'Hide Others',
+          role: 'hideOthers',
+        },
+        { type: 'separator' },
+        {
+          label: 'Quit GTV Remote',
+          role: 'quit',
+        },
+      ],
+    },
+  ]);
+
+  Menu.setApplicationMenu(appMenu);
+}
+
 async function bootstrapApp() {
+  buildApplicationMenu();
   windowRef = await createWindow();
   await showWindow();
   tray = new Tray(createTrayImage());
@@ -220,6 +270,10 @@ async function bootstrapApp() {
     void toggleWindow();
   });
   await logInfo('main', 'Application bootstrap complete', { shortcut, logPath: getLoggerPath() });
+
+  setTimeout(() => {
+    void checkForUpdatesInBackground();
+  }, 5_000);
 }
 
 app.setName(appName);
@@ -249,6 +303,8 @@ function registerIpc() {
   ipcMain.handle('metrics:snapshot', () => commandMetricsStore.getSnapshot());
   ipcMain.handle('device:text', async (_event, text: string) => adapter.sendText(text));
   ipcMain.handle('device:capabilities', async () => adapter.getCapabilities());
+  ipcMain.handle('updater:check', async () => checkForUpdatesManually());
+  ipcMain.handle('updater:status', () => getUpdaterStatus());
 }
 
 void app.whenReady().then(async () => {
