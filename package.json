@@ -61,7 +61,10 @@
         "zip"
       ],
       "category": "public.app-category.utilities",
-      "icon": "taskbar-icon.icns"
+      "icon": "taskbar-icon.icns",
+      "extendInfo": {
+        "LSUIElement": true
+      }
     },
     "dmg": {
       "icon": "taskbar-icon.icns"

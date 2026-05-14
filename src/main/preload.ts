@@ -11,6 +11,7 @@ import type {
   DiscoveredDevice,
   PairingRequest,
   SavedDevice,
+  UpdaterStatus,
 } from '../shared/types';
 
 const api = {
@@ -42,6 +43,8 @@ const api = {
   hasPendingAssistantVoiceSession: (): Promise<boolean> =>
     ipcRenderer.invoke('device:assistantVoicePending'),
   capabilities: (): Promise<DeviceCapabilities> => ipcRenderer.invoke('device:capabilities'),
+  checkForUpdates: (): Promise<UpdaterStatus> => ipcRenderer.invoke('updater:check'),
+  getUpdaterStatus: (): Promise<UpdaterStatus> => ipcRenderer.invoke('updater:status'),
 };
 
 contextBridge.exposeInMainWorld('gtvRemote', api);

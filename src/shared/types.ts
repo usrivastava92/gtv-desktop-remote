@@ -177,6 +177,18 @@ export interface DeviceCapabilities {
   powerToggle: boolean;
 }
 
+export interface UpdaterStatus {
+  inProgress: boolean;
+  stage: 'idle' | 'checking' | 'downloading' | 'installing' | 'completed' | 'failed';
+  progressPercent?: number;
+  etaSeconds?: number;
+  lastCheckedAt?: string;
+  currentVersion: string;
+  latestVersion?: string;
+  updateInstallable?: boolean;
+  message: string;
+}
+
 export interface DeviceAdapter {
   listDevices(): Promise<SavedDevice[]>;
   scanForDevices(): Promise<DiscoveredDevice[]>;

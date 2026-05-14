@@ -1,18 +1,29 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { app, BrowserWindow, globalShortcut, ipcMain, Menu, nativeImage, Tray } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  globalShortcut,
+  ipcMain,
+  Menu,
+  nativeImage,
+  Tray,
+} from 'electron';
 
 import type {
   CommandDispatchRequest,
   CommandDropReport,
   DeviceDraft,
   PairingRequest,
+  UpdaterStatus,
 } from '../shared/types';
 
 import { GoogleTvAdapter } from './device/googleTvAdapter';
 import { getLoggerPath, logError, logInfo } from './logger';
 import { commandMetricsStore } from './metrics';
+import { checkForUpdatesInBackground, checkForUpdatesManually, getUpdaterStatus } from './updater';
 
 declare const _MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 
@@ -123,6 +134,7 @@ async function createWindow(): Promise<BrowserWindow> {
   if (process.platform === 'darwin') {
     window.setWindowButtonVisibility(false);
   }
+  window.setSkipTaskbar(true);
 
   attachWindowDiagnostics(window);
 
@@ -198,6 +210,13 @@ function buildContextMenu() {
     },
     { type: 'separator' },
     {
+      label: 'Check for Updates…',
+      click: () => {
+        void handleManualUpdateCheckFromMenu();
+      },
+    },
+    { type: 'separator' },
+    {
       label: 'Quit',
       click: () => {
         app.quit();
@@ -206,9 +225,103 @@ function buildContextMenu() {
   ]);
 }
 
+function buildApplicationMenu() {
+  if (process.platform !== 'darwin') {
+    return;
+  }
+
+  const appMenu = Menu.buildFromTemplate([
+    {
+      label: app.name,
+      submenu: [
+        {
+          label: 'About GTV Remote',
+          role: 'about',
+        },
+        { type: 'separator' },
+        {
+          label: 'Check for Updates…',
+          click: () => {
+            void handleManualUpdateCheckFromMenu();
+          },
+        },
+        { type: 'separator' },
+        {
+          label: 'Hide GTV Remote',
+          role: 'hide',
+        },
+        {
+          label: 'Hide Others',
+          role: 'hideOthers',
+        },
+        { type: 'separator' },
+        {
+          label: 'Quit GTV Remote',
+          role: 'quit',
+        },
+      ],
+    },
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'selectAll' },
+      ],
+    },
+  ]);
+
+  Menu.setApplicationMenu(appMenu);
+}
+
+async function showUpdaterResultDialog(status: UpdaterStatus) {
+  if (status.stage === 'failed') {
+    await dialog.showMessageBox({
+      type: 'warning',
+      buttons: ['OK'],
+      defaultId: 0,
+      title: 'Update Check',
+      message: status.message,
+    });
+    return;
+  }
+
+  if (status.updateInstallable) {
+    await dialog.showMessageBox({
+      type: 'info',
+      buttons: ['OK'],
+      defaultId: 0,
+      title: 'Update Available',
+      message: `Version ${status.latestVersion ?? 'unknown'} is available.`,
+      detail: 'Open the app window to install from the Update section.',
+    });
+    return;
+  }
+
+  await dialog.showMessageBox({
+    type: 'info',
+    buttons: ['OK'],
+    defaultId: 0,
+    title: 'Update Check',
+    message: status.message,
+  });
+}
+
+async function handleManualUpdateCheckFromMenu() {
+  const status = await checkForUpdatesManually();
+  await showUpdaterResultDialog(status);
+}
+
 async function bootstrapApp() {
+  buildApplicationMenu();
+  if (process.platform === 'darwin') {
+    app.dock?.hide();
+  }
   windowRef = await createWindow();
-  await showWindow();
   tray = new Tray(createTrayImage());
   tray.setToolTip(appName);
   tray.setContextMenu(buildContextMenu());
@@ -220,6 +333,10 @@ async function bootstrapApp() {
     void toggleWindow();
   });
   await logInfo('main', 'Application bootstrap complete', { shortcut, logPath: getLoggerPath() });
+
+  setTimeout(() => {
+    void checkForUpdatesInBackground();
+  }, 5_000);
 }
 
 app.setName(appName);
@@ -261,6 +378,8 @@ function registerIpc() {
     adapter.hasPendingAssistantVoiceSession()
   );
   ipcMain.handle('device:capabilities', async () => adapter.getCapabilities());
+  ipcMain.handle('updater:check', async () => checkForUpdatesManually());
+  ipcMain.handle('updater:status', () => getUpdaterStatus());
 }
 
 void app.whenReady().then(async () => {

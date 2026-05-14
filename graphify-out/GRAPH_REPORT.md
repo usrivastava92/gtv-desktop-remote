@@ -1,12 +1,12 @@
 # Graph Report - gtv-desktop-remote  (2026-05-14)
 
 ## Corpus Check
-- 37 files · ~44,699 words
+- 38 files · ~47,789 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 291 nodes · 563 edges · 28 communities detected
-- Extraction: 89% EXTRACTED · 11% INFERRED · 0% AMBIGUOUS · INFERRED: 61 edges (avg confidence: 0.81)
+- 295 nodes · 600 edges · 28 communities detected
+- Extraction: 88% EXTRACTED · 12% INFERRED · 0% AMBIGUOUS · INFERRED: 71 edges (avg confidence: 0.81)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
@@ -40,28 +40,28 @@
 - [[_COMMUNITY_Community 37|Community 37]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `CommandMetricsStore` - 22 edges
-2. `AndroidTvRemoteBridge` - 21 edges
-3. `GoogleTvAdapter` - 20 edges
-4. `logInfo()` - 19 edges
+1. `logInfo()` - 22 edges
+2. `CommandMetricsStore` - 22 edges
+3. `AndroidTvRemoteBridge` - 21 edges
+4. `GoogleTvAdapter` - 20 edges
 5. `NoopCommandMetricsStore` - 17 edges
 6. `NativeRemoteClient` - 16 edges
 7. `getDesktopApi()` - 16 edges
-8. `readDevices()` - 12 edges
-9. `writeDevices()` - 10 edges
-10. `createRemoteMessage()` - 10 edges
+8. `checkForMacUpdate()` - 12 edges
+9. `readDevices()` - 12 edges
+10. `writeDevices()` - 10 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Encrypted Pairing Protocol` --semantically_similar_to--> `androidtvremote (pairing certs dir)`  [INFERRED] [semantically similar]
   README.md → scripts/reset-app-state.mjs
 - `Favicon SVG - Google TV Remote Outlined Icon` --semantically_similar_to--> `GTV Remote Icon SVG - Google TV Remote Streamline Outlined Material Icon`  [EXTRACTED] [semantically similar]
   public/favicon.svg → assets/icons/gtv-remote-icon.svg
-- `logInfo()` --calls--> `bootstrapApp()`  [INFERRED]
-  src/main/logger.ts → src/main/main.ts
-- `getLoggerPath()` --calls--> `bootstrapApp()`  [INFERRED]
-  src/main/logger.ts → src/main/main.ts
-- `Favicon 16x16 - GTV Remote` --semantically_similar_to--> `Favicon SVG - Google TV Remote Outlined Icon`  [INFERRED] [semantically similar]
-  public/favicon-16.png → public/favicon.svg
+- `setUpdaterStatus()` --calls--> `initialize()`  [INFERRED]
+  src/main/updater.ts → src/renderer/App.tsx
+- `readUpdateState()` --calls--> `getAppDataPath()`  [INFERRED]
+  src/main/updater.ts → src/main/logger.ts
+- `writeUpdateState()` --calls--> `getAppDataPath()`  [INFERRED]
+  src/main/updater.ts → src/main/logger.ts
 
 ## Hyperedges (group relationships)
 - **Command Dispatch Pipeline** — app_handlecommand, app_enqueuecommand, app_flushqueuedcommands, app_gtvremote_bridge [INFERRED 0.90]
@@ -83,7 +83,7 @@ Cohesion: 0.17
 Nodes (5): AndroidTvRemoteBridge, isCertificateRejectedError(), normalizeRemoteError(), toError(), generateCertificate()
 
 ### Community 3 - "Community 3"
-Cohesion: 0.16
+Cohesion: 0.17
 Nodes (14): NativeRemoteClient, createImeBatchEditMessage(), createRemoteConfigure(), createRemoteKeyInject(), createRemoteKeyInjectRaw(), createRemoteMessage(), createRemotePingResponse(), createRemoteSetActive() (+6 more)
 
 ### Community 4 - "Community 4"
@@ -95,11 +95,11 @@ Cohesion: 0.21
 Nodes (1): CommandMetricsStore
 
 ### Community 6 - "Community 6"
-Cohesion: 0.31
-Nodes (16): applyApplicationIcon(), attachWindowDiagnostics(), bootstrapApp(), buildContextMenu(), createTrayImage(), createWindow(), ensureWindow(), getAssetPath() (+8 more)
+Cohesion: 0.26
+Nodes (19): applyApplicationIcon(), attachWindowDiagnostics(), bootstrapApp(), buildApplicationMenu(), buildContextMenu(), createTrayImage(), createWindow(), ensureWindow() (+11 more)
 
 ### Community 7 - "Community 7"
-Cohesion: 0.27
+Cohesion: 0.35
 Nodes (15): checkForMacUpdate(), checkForUpdatesInBackground(), checkForUpdatesManually(), compareVersions(), downloadFile(), findBestMacAsset(), getBundlePathFromExecPath(), getUpdaterStatus() (+7 more)
 
 ### Community 8 - "Community 8"
@@ -107,7 +107,7 @@ Cohesion: 0.28
 Nodes (11): base64UrlToHex(), createPairingConfiguration(), createPairingOption(), createPairingRequest(), createPairingSecret(), decodeHex(), encodePairingMessage(), getCertificateKeyMaterialFromX509() (+3 more)
 
 ### Community 9 - "Community 9"
-Cohesion: 0.49
+Cohesion: 0.51
 Nodes (9): browseServiceInstances(), buildDeviceFingerprint(), buildDiscoveredId(), decodeDnsSdValue(), discoverGoogleTvDevices(), parseTxtRecord(), resolveHostToIp(), resolveService() (+1 more)
 
 ### Community 10 - "Community 10"
@@ -219,12 +219,12 @@ Nodes (1): graphify knowledge graph config
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `logInfo()` connect `Community 0` to `Community 2`, `Community 5`, `Community 6`?**
-  _High betweenness centrality (0.235) - this node is a cross-community bridge._
-- **Why does `CommandMetricsStore` connect `Community 5` to `Community 4`?**
-  _High betweenness centrality (0.086) - this node is a cross-community bridge._
-- **Are the 16 inferred relationships involving `logInfo()` (e.g. with `bootstrapApp()` and `.logMetric()`) actually correct?**
-  _`logInfo()` has 16 INFERRED edges - model-reasoned connections that need verification._
+- **Why does `logInfo()` connect `Community 0` to `Community 2`, `Community 5`, `Community 6`, `Community 7`?**
+  _High betweenness centrality (0.412) - this node is a cross-community bridge._
+- **Why does `setUpdaterStatus()` connect `Community 7` to `Community 1`?**
+  _High betweenness centrality (0.155) - this node is a cross-community bridge._
+- **Are the 19 inferred relationships involving `logInfo()` (e.g. with `bootstrapApp()` and `installMacUpdateFromZip()`) actually correct?**
+  _`logInfo()` has 19 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `GTV Desktop Remote`, `Network Scan`, `Encrypted Pairing Protocol` to the rest of the system?**
   _17 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
