@@ -16,6 +16,7 @@ import type {
   CommandDispatchRequest,
   CommandDropReport,
   DeviceDraft,
+  DeviceState,
   PairingRequest,
   UpdaterStatus,
 } from '../shared/types';
@@ -38,6 +39,10 @@ let windowRef: BrowserWindow | undefined;
 const adapter = new GoogleTvAdapter();
 const appName = 'GTV Remote';
 const shortcut = 'CommandOrControl+Shift+G';
+
+adapter.onDeviceStateChanged((state) => {
+  broadcastDeviceState(state);
+});
 
 function getAssetPath(...parts: string[]) {
   return path.join(app.getAppPath(), 'assets', 'icons', ...parts);
@@ -185,6 +190,14 @@ function hideWindow() {
   }
 
   windowRef.hide();
+}
+
+function broadcastDeviceState(state: DeviceState) {
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (!window.isDestroyed()) {
+      window.webContents.send('device:stateChanged', state);
+    }
+  }
 }
 
 async function toggleWindow() {

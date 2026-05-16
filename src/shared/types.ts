@@ -162,9 +162,14 @@ export interface DeviceDraft {
 }
 
 export interface DeviceState {
-  status: 'idle' | 'connecting' | 'connected' | 'error';
+  status: 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'lost' | 'error';
   message: string;
   activeDeviceId?: string;
+  transport?: {
+    host?: string;
+    lastActivityAt?: number;
+    lastError?: string;
+  };
 }
 
 export interface BootstrapState {

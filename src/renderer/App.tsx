@@ -12,6 +12,12 @@ import type {
   UpdaterStatus,
 } from '../shared/types';
 
+import {
+  canSendRemoteCommand,
+  isConnectedDeviceState,
+  shouldShowRemoteView,
+} from './deviceStateView';
+
 const initialDraft: DeviceDraft = {
   name: '',
   host: '',
@@ -499,16 +505,15 @@ function App() {
   const _selectedDeviceName =
     currentRemoteDeviceName ??
     (selectedDevice?.kind === 'discovered' ? selectedDevice.discoveredDevice.name : undefined);
-  const isConnected = bootstrap.deviceState.status === 'connected';
-  const currentView = pairingReady
-    ? 'pairing'
-    : !devicePickerOpen &&
-        currentRemoteDevice &&
-        (isConnected || bootstrap.deviceState.status === 'connecting')
-      ? 'remote'
-      : 'devices';
+  const isConnected = isConnectedDeviceState(bootstrap.deviceState);
+  const shouldShowRemote = shouldShowRemoteView(
+    bootstrap.deviceState,
+    Boolean(currentRemoteDevice),
+    devicePickerOpen
+  );
+  const currentView = pairingReady ? 'pairing' : shouldShowRemote ? 'remote' : 'devices';
   const bridgeDisabled = busy || !bridgeReady;
-  const remoteDisabled = bridgeDisabled || !isConnected;
+  const remoteDisabled = !canSendRemoteCommand(bootstrap.deviceState, bridgeReady, busy);
   const frameHeaderClassName = classes(
     'ui-header',
     currentView === 'devices'
@@ -523,6 +528,21 @@ function App() {
     setBootstrap(nextBootstrap);
     return nextBootstrap;
   }
+
+  useEffect(() => {
+    let removeListener: (() => void) | undefined;
+    try {
+      removeListener = getDesktopApi().onDeviceStateChanged((deviceState) => {
+        setBootstrap((current) => ({ ...current, deviceState }));
+      });
+    } catch {
+      setBridgeReady(false);
+    }
+
+    return () => {
+      removeListener?.();
+    };
+  }, []);
 
   async function handleScanDevices(
     silent = false,
@@ -1226,6 +1246,10 @@ function App() {
   }
 
   function handleCommand(command: RemoteCommand, source: RemoteCommandSource = 'button') {
+    if (remoteDisabled || currentView !== 'remote') {
+      return;
+    }
+
     const request = createCommandRequest(command, source);
 
     enqueueCommand(request);
@@ -1730,7 +1754,9 @@ function App() {
               </div>
             </section>
 
-            {bootstrap.deviceState.status === 'error' ? (
+            {bootstrap.deviceState.status === 'error' ||
+            bootstrap.deviceState.status === 'lost' ||
+            bootstrap.deviceState.status === 'reconnecting' ? (
               <div className="ui-alert mx-6 mb-3 mt-0">{bootstrap.deviceState.message}</div>
             ) : null}
 

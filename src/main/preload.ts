@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
+import type { IpcRendererEvent } from 'electron';
 
 import type {
   BootstrapState,
@@ -29,6 +30,15 @@ const api = {
   connect: (deviceId: string): Promise<DeviceState> =>
     ipcRenderer.invoke('device:connect', deviceId),
   disconnect: (): Promise<DeviceState> => ipcRenderer.invoke('device:disconnect'),
+  onDeviceStateChanged: (listener: (state: DeviceState) => void): (() => void) => {
+    const wrapped = (_event: IpcRendererEvent, state: DeviceState) => {
+      listener(state);
+    };
+    ipcRenderer.on('device:stateChanged', wrapped);
+    return () => {
+      ipcRenderer.removeListener('device:stateChanged', wrapped);
+    };
+  },
   sendCommand: (request: CommandDispatchRequest): Promise<void> =>
     ipcRenderer.invoke('device:command', request),
   recordCommandDrop: (report: CommandDropReport): Promise<void> =>

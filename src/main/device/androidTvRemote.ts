@@ -43,6 +43,29 @@ interface RemoteState {
   voiceSessionId?: number;
 }
 
+export type RemoteTransportEvent =
+  | { type: 'connected'; host: string; lastActivityAt: number }
+  | { type: 'stale'; host: string; lastActivityAt: number }
+  | { type: 'closed'; host: string; lastActivityAt: number }
+  | { type: 'error'; host: string; error: Error; lastActivityAt: number };
+
+export type RemoteTransportListener = (event: RemoteTransportEvent) => void;
+
+export interface RemoteConnectResult {
+  current_app?: string;
+  is_on?: boolean;
+  mac?: string;
+  name?: string;
+}
+
+interface RemoteClientOptions {
+  onLifecycleEvent?: RemoteTransportListener;
+}
+
+interface RemoteSessionOptions extends RemoteClientOptions {
+  forceNew?: boolean;
+}
+
 interface DeviceSession {
   certs: PemPair;
   pairingManager?: PairingManagerInstance;
@@ -125,7 +148,8 @@ class NativeRemoteClient {
 
   constructor(
     private readonly host: string,
-    private readonly certs: PemPair
+    private readonly certs: PemPair,
+    private readonly options: RemoteClientOptions = {}
   ) {}
 
   get snapshot(): RemoteState {
@@ -136,6 +160,18 @@ class NativeRemoteClient {
     return Boolean(this.socket && !this.socket.destroyed && this.protocolReady);
   }
 
+  get lastActivityAt(): number {
+    return this.state.lastActivityAt;
+  }
+
+  get isStale(): boolean {
+    return (
+      this.isConnected &&
+      this.state.lastActivityAt > 0 &&
+      Date.now() - this.state.lastActivityAt > REMOTE_STALE_AFTER_MS
+    );
+  }
+
   async connect(commandId?: string): Promise<void> {
     // After macOS suspends the app (e.g. 10 min in the background), the TLS socket
     // may become half-open: `this.socket` is still alive locally but the TV has already
@@ -143,13 +179,12 @@ class NativeRemoteClient {
     // event fires until we attempt to read. Detect this by checking how long it has
     // been since the last inbound message and force a reconnect if the connection
     // appears stale.
-    const isStale =
-      this.socket &&
-      !this.socket.destroyed &&
-      this.state.lastActivityAt > 0 &&
-      Date.now() - this.state.lastActivityAt > REMOTE_STALE_AFTER_MS;
-
-    if (isStale) {
+    if (this.isStale) {
+      this.emitLifecycleEvent({ type: 'stale' });
+      void logInfo('androidtvremote', 'transport_stale_detected', {
+        host: this.host,
+        lastActivityAt: this.state.lastActivityAt,
+      });
       this.disconnect();
     }
 
@@ -182,6 +217,7 @@ class NativeRemoteClient {
           reject(normalized);
         }
 
+        this.emitLifecycleEvent({ type: 'error', error: normalized });
         void logError('androidtvremote', 'Remote socket error', normalized);
       };
 
@@ -201,6 +237,11 @@ class NativeRemoteClient {
       socket.on('error', fail);
       socket.on('close', () => {
         commandMetricsStore.recordSocketClosed(this.host);
+        void logInfo('androidtvremote', 'transport_closed', {
+          host: this.host,
+          lastActivityAt: this.state.lastActivityAt,
+        });
+        this.emitLifecycleEvent({ type: 'closed' });
         this.socket = undefined;
         this.protocolReady = false;
         this.buffer = Buffer.alloc(0);
@@ -221,6 +262,8 @@ class NativeRemoteClient {
         if (commandId) {
           commandMetricsStore.recordConnectCompleted(this.host, commandId);
         }
+
+        this.emitLifecycleEvent({ type: 'connected' });
       };
 
       socket.once('remote-protocol-ready', finishProtocolHandshake);
@@ -253,6 +296,27 @@ class NativeRemoteClient {
     this.socket = undefined;
     this.protocolReady = false;
     this.buffer = Buffer.alloc(0);
+  }
+
+  private emitLifecycleEvent(
+    event: { type: 'connected' | 'stale' | 'closed' } | { type: 'error'; error: Error }
+  ): void {
+    const lastActivityAt = this.state.lastActivityAt;
+    if (event.type === 'error') {
+      this.options.onLifecycleEvent?.({
+        type: event.type,
+        host: this.host,
+        error: event.error,
+        lastActivityAt,
+      });
+      return;
+    }
+
+    this.options.onLifecycleEvent?.({
+      type: event.type,
+      host: this.host,
+      lastActivityAt,
+    });
   }
 
   sendCommand(request: CommandDispatchRequest): void {
@@ -635,9 +699,19 @@ class AndroidTvRemoteBridge {
     }
   }
 
-  async connect(host: string, certKey?: string): Promise<Record<string, unknown> | undefined> {
+  async connect(
+    host: string,
+    certKey?: string,
+    options: RemoteSessionOptions = {}
+  ): Promise<RemoteConnectResult | undefined> {
     const session = await this.getSession(host, certKey);
-    session.remoteClient ??= new NativeRemoteClient(host, session.certs);
+    if (options.forceNew) {
+      session.remoteClient?.disconnect();
+      session.remoteClient = undefined;
+    }
+    session.remoteClient ??= new NativeRemoteClient(host, session.certs, {
+      onLifecycleEvent: options.onLifecycleEvent,
+    });
 
     try {
       await session.remoteClient.connect();
@@ -667,6 +741,19 @@ class AndroidTvRemoteBridge {
     }
   }
 
+  isConnected(host: string): boolean {
+    return Boolean(this.sessions.get(host.trim())?.remoteClient?.isConnected);
+  }
+
+  isStale(host: string): boolean {
+    return Boolean(this.sessions.get(host.trim())?.remoteClient?.isStale);
+  }
+
+  getLastActivityAt(host: string): number | undefined {
+    const lastActivityAt = this.sessions.get(host.trim())?.remoteClient?.lastActivityAt;
+    return lastActivityAt && lastActivityAt > 0 ? lastActivityAt : undefined;
+  }
+
   async reset(): Promise<void> {
     for (const session of this.sessions.values()) {
       session.remoteClient?.disconnect();
@@ -683,10 +770,11 @@ class AndroidTvRemoteBridge {
   async sendCommand(
     host: string,
     request: CommandDispatchRequest,
-    certKey?: string
+    certKey?: string,
+    options: RemoteClientOptions = {}
   ): Promise<void> {
     const session = await this.getSession(host, certKey);
-    session.remoteClient ??= new NativeRemoteClient(host, session.certs);
+    session.remoteClient ??= new NativeRemoteClient(host, session.certs, options);
 
     commandMetricsStore.recordBridgeSendStart(request, host);
 
@@ -747,11 +835,14 @@ class AndroidTvRemoteBridge {
     session.remoteClient.stopVoiceSession(sessionId);
   }
 
-  async hasPendingAssistantVoiceSession(host: string, certKey?: string): Promise<boolean> {
-    const session = await this.getSession(host, certKey);
-    session.remoteClient ??= new NativeRemoteClient(host, session.certs);
-    await session.remoteClient.connect();
-    return Boolean(session.remoteClient.snapshot.voiceSessionId);
+  hasPendingAssistantVoiceSession(host: string, certKey?: string): Promise<boolean> {
+    void certKey;
+    const session = this.sessions.get(host.trim());
+    if (!session?.remoteClient?.isConnected) {
+      return Promise.resolve(false);
+    }
+
+    return Promise.resolve(Boolean(session.remoteClient.snapshot.voiceSessionId));
   }
 }
 
