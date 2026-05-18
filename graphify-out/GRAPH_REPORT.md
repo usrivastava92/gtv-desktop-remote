@@ -1,11 +1,11 @@
 # Graph Report - gtv-desktop-remote  (2026-05-18)
 
 ## Corpus Check
-- 39 files · ~50,307 words
+- 39 files · ~50,391 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 331 nodes · 707 edges · 29 communities detected
+- 331 nodes · 709 edges · 29 communities detected
 - Extraction: 89% EXTRACTED · 11% INFERRED · 0% AMBIGUOUS · INFERRED: 77 edges (avg confidence: 0.81)
 - Token cost: 0 input · 0 output
 
@@ -104,7 +104,7 @@ Cohesion: 0.21
 Nodes (1): CommandMetricsStore
 
 ### Community 8 - "Community 8"
-Cohesion: 0.26
+Cohesion: 0.27
 Nodes (19): applyApplicationIcon(), attachWindowDiagnostics(), bootstrapApp(), buildApplicationMenu(), buildContextMenu(), createTrayImage(), createWindow(), ensureWindow() (+11 more)
 
 ### Community 9 - "Community 9"
