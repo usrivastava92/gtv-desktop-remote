@@ -39,6 +39,7 @@ let windowRef: BrowserWindow | undefined;
 const adapter = new GoogleTvAdapter();
 const appName = 'GTV Remote';
 const shortcut = 'CommandOrControl+Shift+G';
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
 
 function getAssetPath(...parts: string[]) {
   return path.join(app.getAppPath(), 'assets', 'icons', ...parts);
@@ -177,6 +178,9 @@ async function ensureWindow(): Promise<BrowserWindow> {
 async function showWindow() {
   const window = await ensureWindow();
   window.show();
+  if (process.platform === 'darwin') {
+    app.focus({ steal: true });
+  }
   window.focus();
 }
 
@@ -196,8 +200,7 @@ async function toggleWindow() {
     return;
   }
 
-  window.show();
-  window.focus();
+  await showWindow();
 }
 
 function buildContextMenu() {
@@ -346,6 +349,7 @@ async function bootstrapApp() {
     void toggleWindow();
   });
   await logInfo('main', 'Application bootstrap complete', { shortcut, logPath: getLoggerPath() });
+  await showWindow();
 
   setTimeout(() => {
     void checkForUpdatesInBackground();
@@ -354,6 +358,18 @@ async function bootstrapApp() {
 
 app.setName(appName);
 process.title = appName;
+
+if (!hasSingleInstanceLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    void showWindow();
+  });
+
+  app.on('activate', () => {
+    void showWindow();
+  });
+}
 
 function registerIpc() {
   ipcMain.handle('device:bootstrap', async () => adapter.getBootstrapState());
@@ -397,15 +413,17 @@ function registerIpc() {
   ipcMain.handle('updater:rollback', async () => rollbackToPreviousVersion());
 }
 
-void app.whenReady().then(async () => {
-  try {
-    registerIpc();
-    await bootstrapApp();
-  } catch (error) {
-    await logError('main', 'Application bootstrap failed', error);
-    throw error;
-  }
-});
+if (hasSingleInstanceLock) {
+  void app.whenReady().then(async () => {
+    try {
+      registerIpc();
+      await bootstrapApp();
+    } catch (error) {
+      await logError('main', 'Application bootstrap failed', error);
+      throw error;
+    }
+  });
+}
 
 process.on('uncaughtException', (error) => {
   void logError('main', 'Uncaught exception', error);

@@ -62,6 +62,13 @@ GTV Desktop Remote lets you control any Google TV or Android TV device from your
 
 Download the latest `.dmg` from the [Releases](https://github.com/usrivastava92/gtv-desktop-remote/releases/latest) page, open it, and drag the app to your Applications folder.
 
+On first launch, macOS may block the app because it was downloaded from the internet. If that happens:
+
+1. Open **System Settings** → **Privacy & Security**.
+2. Scroll to the **Security** section.
+3. Click **Open Anyway** for GTV Remote.
+4. Confirm the prompt and launch the app again.
+
 Or install with Homebrew:
 
 ```bash
@@ -117,6 +124,13 @@ When the remote is focused and connected, your keyboard controls the TV directly
 
 - Start a fresh pairing session and enter the latest code shown on the TV screen.
 - If the device was previously saved, remove it and pair again.
+
+**App not opening or only showing the menubar icon?**
+
+- If macOS blocks launch, use **System Settings** → **Privacy & Security** → **Open Anyway**.
+- If the menubar icon appears but the window does not, click the menubar icon or press `Cmd+Shift+G`.
+- If it still fails, attach the app log from `~/Library/Application Support/GTV Remote/gtv-remote.log` to your issue.
+- Also include your macOS version, Mac model/processor, install method (`.dmg`, Homebrew, or source), and whether the menubar icon appears.
 
 ---
 
