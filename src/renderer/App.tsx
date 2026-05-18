@@ -406,6 +406,7 @@ function App() {
     message: 'Loading update status...',
     updateAvailable: false,
     updateInstallable: false,
+    rollbackAvailable: false,
   });
   const [dismissedUpdateVersion, setDismissedUpdateVersion] = useState<string | null>(null);
   const [updaterToast, setUpdaterToast] = useState<string | null>(null);
@@ -1334,6 +1335,20 @@ function App() {
     }
   }
 
+  async function handleRollbackUpdate() {
+    try {
+      const nextStatus = await getDesktopApi().rollbackToPreviousVersion();
+      setUpdaterStatus(nextStatus);
+    } catch (error) {
+      setUpdaterStatus((current) => ({
+        ...current,
+        inProgress: false,
+        stage: 'failed',
+        message: (error as Error).message,
+      }));
+    }
+  }
+
   useEffect(() => {
     if (!bridgeReady) {
       return;
@@ -1430,7 +1445,29 @@ function App() {
     }
 
     if (updaterStatus.inProgress || updaterStatus.stage === 'checking') {
-      return <div className="ui-update-check mt-4">Checking for updates…</div>;
+      return <div className="ui-update-check mt-4">{updaterStatus.message}</div>;
+    }
+
+    if (updaterStatus.rollbackAvailable && updaterStatus.rollbackVersion) {
+      return (
+        <section className="ui-update-panel mt-4">
+          <div className="ui-update-head">
+            <span className="ui-card-title ui-update-title-centered">Rollback Available</span>
+          </div>
+          <p className="ui-copy ui-update-copy">
+            Restore previous version {updaterStatus.rollbackVersion}
+          </p>
+          <button
+            className="ui-update-action"
+            disabled={bridgeDisabled}
+            onClick={() => {
+              void handleRollbackUpdate();
+            }}
+          >
+            Rollback to v{updaterStatus.rollbackVersion}
+          </button>
+        </section>
+      );
     }
 
     return (

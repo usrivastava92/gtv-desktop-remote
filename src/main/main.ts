@@ -28,6 +28,7 @@ import {
   installAvailableUpdate,
   checkForUpdatesManually,
   getUpdaterStatus,
+  rollbackToPreviousVersion,
 } from './updater';
 
 declare const _MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
@@ -391,8 +392,9 @@ function registerIpc() {
   );
   ipcMain.handle('device:capabilities', async () => adapter.getCapabilities());
   ipcMain.handle('updater:check', async () => checkForUpdatesManually());
-  ipcMain.handle('updater:status', () => getUpdaterStatus());
+  ipcMain.handle('updater:status', async () => getUpdaterStatus());
   ipcMain.handle('updater:install', async () => installAvailableUpdate());
+  ipcMain.handle('updater:rollback', async () => rollbackToPreviousVersion());
 }
 
 void app.whenReady().then(async () => {

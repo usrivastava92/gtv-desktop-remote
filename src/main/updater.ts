@@ -26,12 +26,16 @@ interface ReleasePayload {
 
 interface UpdateState {
   skippedVersion?: string;
+  rollbackVersion?: string;
+  rollbackCreatedAt?: string;
+  rollbackBundleName?: string;
 }
 
 const RELEASE_OWNER = 'usrivastava92';
 const RELEASE_REPO = 'gtv-desktop-remote';
 const CHECK_TIMEOUT_MS = 15_000;
 const DEV_UPDATER_ENABLED = process.env.GTV_UPDATER_DEV === '1';
+const ROLLBACK_DIR_NAME = 'rollback';
 
 let cachedRelease: ReleasePayload | undefined;
 let cachedAsset: ReleaseAsset | undefined;
@@ -43,6 +47,7 @@ const updaterStatus: UpdaterStatus = {
   message: 'No update check has run yet.',
   updateAvailable: false,
   updateInstallable: false,
+  rollbackAvailable: false,
 };
 
 function setUpdaterStatus(next: Partial<UpdaterStatus>) {
@@ -86,6 +91,74 @@ async function writeUpdateState(state: UpdateState) {
   const statePath = getAppDataPath('updater-state.json');
   await fs.mkdir(path.dirname(statePath), { recursive: true });
   await fs.writeFile(statePath, JSON.stringify(state, null, 2), 'utf8');
+}
+
+function getRollbackDirPath() {
+  return getAppDataPath(ROLLBACK_DIR_NAME);
+}
+
+function getRollbackBundlePath(state: UpdateState) {
+  if (!state.rollbackBundleName) {
+    return undefined;
+  }
+
+  return path.join(getRollbackDirPath(), state.rollbackBundleName);
+}
+
+async function rollbackBundleExists(state: UpdateState) {
+  const rollbackBundlePath = getRollbackBundlePath(state);
+  if (!rollbackBundlePath) {
+    return false;
+  }
+
+  try {
+    const stats = await fs.stat(rollbackBundlePath);
+    return stats.isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+function withoutRollbackState(state: UpdateState): UpdateState {
+  const nextState = { ...state };
+  delete nextState.rollbackVersion;
+  delete nextState.rollbackCreatedAt;
+  delete nextState.rollbackBundleName;
+  return nextState;
+}
+
+async function clearRollbackBackup(state?: UpdateState) {
+  const stateToPersist = state ?? (await readUpdateState());
+  await fs.rm(getRollbackDirPath(), { force: true, recursive: true });
+  await writeUpdateState(withoutRollbackState(stateToPersist));
+  setUpdaterStatus({
+    rollbackAvailable: false,
+    rollbackVersion: undefined,
+    rollbackCreatedAt: undefined,
+  });
+}
+
+async function syncRollbackStatus() {
+  const state = await readUpdateState();
+  const available =
+    Boolean(state.rollbackVersion && state.rollbackCreatedAt) &&
+    (await rollbackBundleExists(state));
+
+  if (!available) {
+    setUpdaterStatus({
+      rollbackAvailable: false,
+      rollbackVersion: undefined,
+      rollbackCreatedAt: undefined,
+    });
+    return state;
+  }
+
+  setUpdaterStatus({
+    rollbackAvailable: true,
+    rollbackVersion: state.rollbackVersion,
+    rollbackCreatedAt: state.rollbackCreatedAt,
+  });
+  return state;
 }
 
 async function requestJson<T>(url: string): Promise<T> {
@@ -139,6 +212,37 @@ function getBundlePathFromExecPath() {
   return path.resolve(process.execPath, '..', '..', '..');
 }
 
+async function createRollbackBackup(targetBundle: string) {
+  const state = await readUpdateState();
+  const rollbackDir = getRollbackDirPath();
+  const rollbackBundleName = path.basename(targetBundle);
+  const rollbackBundlePath = path.join(rollbackDir, rollbackBundleName);
+  const rollbackVersion = normalizeVersion(app.getVersion());
+  const rollbackCreatedAt = new Date().toISOString();
+
+  await logInfo('updater', 'Creating rollback backup', {
+    sourceBundle: targetBundle,
+    rollbackBundlePath,
+    rollbackVersion,
+  });
+
+  await fs.rm(rollbackDir, { force: true, recursive: true });
+  await fs.mkdir(rollbackDir, { recursive: true });
+  await execFile('ditto', [targetBundle, rollbackBundlePath]);
+
+  await writeUpdateState({
+    ...state,
+    rollbackVersion,
+    rollbackCreatedAt,
+    rollbackBundleName,
+  });
+  setUpdaterStatus({
+    rollbackAvailable: true,
+    rollbackVersion,
+    rollbackCreatedAt,
+  });
+}
+
 async function installMacUpdateFromZip(zipPath: string) {
   const unpackDir = path.join(os.tmpdir(), `gtv-update-unpack-${String(Date.now())}`);
   await fs.mkdir(unpackDir, { recursive: true });
@@ -161,6 +265,7 @@ async function installMacUpdateFromZip(zipPath: string) {
     return;
   }
 
+  await createRollbackBackup(targetBundle);
   await execFile('ditto', [sourceBundle, targetBundle]);
   await execFile('xattr', ['-dr', 'com.apple.quarantine', targetBundle]);
 }
@@ -316,7 +421,7 @@ export async function checkForUpdatesInBackground() {
 
 export async function checkForUpdatesManually() {
   await checkForUpdatesInBackground();
-  return getUpdaterStatus();
+  return await getUpdaterStatus();
 }
 
 export async function installAvailableUpdate() {
@@ -326,7 +431,7 @@ export async function installAvailableUpdate() {
       stage: 'failed',
       message: 'No installable update is currently available.',
     });
-    return getUpdaterStatus();
+    return await getUpdaterStatus();
   }
 
   const version = updaterStatus.latestVersion;
@@ -344,7 +449,8 @@ export async function installAvailableUpdate() {
   });
 
   if (choice.response === 1) {
-    await writeUpdateState({ skippedVersion: version });
+    const state = await readUpdateState();
+    await writeUpdateState({ ...state, skippedVersion: version });
     cachedRelease = undefined;
     cachedAsset = undefined;
     setUpdaterStatus({
@@ -352,11 +458,11 @@ export async function installAvailableUpdate() {
       updateInstallable: false,
       message: `Update ${version} was skipped.`,
     });
-    return getUpdaterStatus();
+    return await getUpdaterStatus();
   }
 
   if (choice.response === 2) {
-    return getUpdaterStatus();
+    return await getUpdaterStatus();
   }
 
   if (isDmgAsset(cachedAsset)) {
@@ -370,7 +476,7 @@ export async function installAvailableUpdate() {
       detail:
         'Open the DMG, drag the app to Applications, then if macOS blocks launch use Privacy & Security > Open Anyway.',
     });
-    return getUpdaterStatus();
+    return await getUpdaterStatus();
   }
 
   const tmpZipPath = path.join(os.tmpdir(), cachedAsset.name);
@@ -446,7 +552,7 @@ export async function installAvailableUpdate() {
         message: 'Download/install flow completed in dev mode.',
         detail: 'Relaunch is skipped in development override mode.',
       });
-      return getUpdaterStatus();
+      return await getUpdaterStatus();
     }
 
     const relaunchChoice = await dialog.showMessageBox({
@@ -476,9 +582,132 @@ export async function installAvailableUpdate() {
     await fs.rm(tmpZipPath, { force: true });
   }
 
-  return getUpdaterStatus();
+  return await getUpdaterStatus();
 }
 
-export function getUpdaterStatus(): UpdaterStatus {
+export async function rollbackToPreviousVersion() {
+  if (updaterStatus.inProgress) {
+    setUpdaterStatus({
+      message: 'Cannot roll back while another update operation is in progress.',
+    });
+    return await getUpdaterStatus();
+  }
+
+  const state = await syncRollbackStatus();
+  const rollbackBundlePath = getRollbackBundlePath(state);
+
+  if (!state.rollbackVersion || !rollbackBundlePath || !(await rollbackBundleExists(state))) {
+    setUpdaterStatus({
+      inProgress: false,
+      stage: 'failed',
+      rollbackAvailable: false,
+      rollbackVersion: undefined,
+      rollbackCreatedAt: undefined,
+      message: 'No previous version backup is available.',
+    });
+    return await getUpdaterStatus();
+  }
+
+  const choice = await dialog.showMessageBox({
+    type: 'warning',
+    buttons: ['Rollback now', 'Cancel'],
+    defaultId: 0,
+    cancelId: 1,
+    title: 'Rollback available',
+    message: `Roll back to version ${state.rollbackVersion}?`,
+    detail:
+      'The current app bundle will be replaced with the previous version saved before the last in-app update.',
+  });
+
+  if (choice.response === 1) {
+    return await getUpdaterStatus();
+  }
+
+  const targetBundle = getBundlePathFromExecPath();
+
+  try {
+    setUpdaterStatus({
+      inProgress: true,
+      stage: 'installing',
+      progressPercent: 20,
+      etaSeconds: undefined,
+      message: `Rolling back to ${state.rollbackVersion}...`,
+    });
+
+    await logInfo('updater', 'Restoring rollback backup', {
+      rollbackBundlePath,
+      targetBundle,
+      rollbackVersion: state.rollbackVersion,
+    });
+
+    if (DEV_UPDATER_ENABLED && !app.isPackaged) {
+      await logInfo('updater', 'Dev mode rollback restore skipped', {
+        rollbackBundlePath,
+        targetBundle,
+      });
+    } else {
+      await execFile('ditto', [rollbackBundlePath, targetBundle]);
+      await execFile('xattr', ['-dr', 'com.apple.quarantine', targetBundle]);
+    }
+
+    await clearRollbackBackup(state);
+    setUpdaterStatus({
+      inProgress: false,
+      stage: 'completed',
+      progressPercent: 100,
+      etaSeconds: 0,
+      rollbackAvailable: false,
+      rollbackVersion: undefined,
+      rollbackCreatedAt: undefined,
+      updateAvailable: false,
+      updateInstallable: false,
+      message:
+        DEV_UPDATER_ENABLED && !app.isPackaged
+          ? 'Dev mode: rollback restore skipped.'
+          : `Rolled back to ${state.rollbackVersion}.`,
+    });
+
+    if (DEV_UPDATER_ENABLED && !app.isPackaged) {
+      await dialog.showMessageBox({
+        type: 'info',
+        buttons: ['OK'],
+        defaultId: 0,
+        title: 'Dev rollback test',
+        message: 'Rollback flow completed in dev mode.',
+        detail: 'Restore and relaunch are skipped in development override mode.',
+      });
+      return await getUpdaterStatus();
+    }
+
+    const relaunchChoice = await dialog.showMessageBox({
+      type: 'info',
+      buttons: ['Relaunch now', 'Later'],
+      defaultId: 0,
+      cancelId: 1,
+      title: 'Rollback complete',
+      message: `Version ${state.rollbackVersion} was restored.`,
+      detail: 'Relaunch to start the restored app.',
+    });
+
+    if (relaunchChoice.response === 0) {
+      app.relaunch();
+      app.quit();
+    }
+  } catch (error) {
+    await logError('updater', 'Rollback failed', error);
+    setUpdaterStatus({
+      inProgress: false,
+      stage: 'failed',
+      progressPercent: undefined,
+      etaSeconds: undefined,
+      message: 'Rollback failed while restoring the previous version.',
+    });
+  }
+
+  return await getUpdaterStatus();
+}
+
+export async function getUpdaterStatus(): Promise<UpdaterStatus> {
+  await syncRollbackStatus();
   return { ...updaterStatus, currentVersion: app.getVersion() };
 }

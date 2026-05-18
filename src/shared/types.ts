@@ -187,6 +187,9 @@ export interface UpdaterStatus {
   latestVersion?: string;
   updateAvailable?: boolean;
   updateInstallable?: boolean;
+  rollbackAvailable?: boolean;
+  rollbackVersion?: string;
+  rollbackCreatedAt?: string;
   message: string;
 }
 

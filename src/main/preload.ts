@@ -46,6 +46,7 @@ const api = {
   checkForUpdates: (): Promise<UpdaterStatus> => ipcRenderer.invoke('updater:check'),
   getUpdaterStatus: (): Promise<UpdaterStatus> => ipcRenderer.invoke('updater:status'),
   installAvailableUpdate: (): Promise<UpdaterStatus> => ipcRenderer.invoke('updater:install'),
+  rollbackToPreviousVersion: (): Promise<UpdaterStatus> => ipcRenderer.invoke('updater:rollback'),
 };
 
 contextBridge.exposeInMainWorld('gtvRemote', api);
