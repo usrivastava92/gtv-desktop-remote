@@ -1,12 +1,12 @@
-# Graph Report - gtv-desktop-remote  (2026-05-19)
+# Graph Report - gtv-desktop-remote  (2026-05-18)
 
 ## Corpus Check
-- 39 files · ~50,834 words
+- 39 files · ~50,391 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 334 nodes · 722 edges · 29 communities detected
-- Extraction: 89% EXTRACTED · 11% INFERRED · 0% AMBIGUOUS · INFERRED: 80 edges (avg confidence: 0.81)
+- 331 nodes · 709 edges · 29 communities detected
+- Extraction: 89% EXTRACTED · 11% INFERRED · 0% AMBIGUOUS · INFERRED: 77 edges (avg confidence: 0.81)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
@@ -41,27 +41,27 @@
 - [[_COMMUNITY_Community 38|Community 38]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `logInfo()` - 24 edges
+1. `logInfo()` - 23 edges
 2. `ConnectionManager` - 23 edges
 3. `CommandMetricsStore` - 22 edges
-4. `AndroidTvRemoteBridge` - 22 edges
+4. `AndroidTvRemoteBridge` - 21 edges
 5. `GoogleTvAdapter` - 20 edges
-6. `getDesktopApi()` - 19 edges
+6. `getDesktopApi()` - 18 edges
 7. `NoopCommandMetricsStore` - 17 edges
 8. `NativeRemoteClient` - 16 edges
-9. `setUpdaterStatus()` - 14 edges
-10. `checkForMacUpdate()` - 12 edges
+9. `setUpdaterStatus()` - 12 edges
+10. `installAvailableUpdate()` - 12 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Encrypted Pairing Protocol` --semantically_similar_to--> `androidtvremote (pairing certs dir)`  [INFERRED] [semantically similar]
   README.md → scripts/reset-app-state.mjs
 - `Favicon SVG - Google TV Remote Outlined Icon` --semantically_similar_to--> `GTV Remote Icon SVG - Google TV Remote Streamline Outlined Material Icon`  [EXTRACTED] [semantically similar]
   public/favicon.svg → assets/icons/gtv-remote-icon.svg
-- `refreshUpdaterStatusInBackground()` --calls--> `setUpdaterStatus()`  [INFERRED]
-  src/renderer/App.tsx → src/main/updater.ts
 - `setUpdaterStatus()` --calls--> `initialize()`  [INFERRED]
   src/main/updater.ts → src/renderer/App.tsx
 - `setUpdaterStatus()` --calls--> `handleInstallUpdate()`  [INFERRED]
+  src/main/updater.ts → src/renderer/App.tsx
+- `setUpdaterStatus()` --calls--> `handleRollbackUpdate()`  [INFERRED]
   src/main/updater.ts → src/renderer/App.tsx
 
 ## Hyperedges (group relationships)
@@ -73,27 +73,27 @@
 
 ### Community 0 - "Community 0"
 Cohesion: 0.1
-Nodes (32): clearAssistantLongPressTimer(), convertFloat32ToPcm16(), createCommandRequest(), downsampleTo8kMono(), enqueueCommand(), flushQueuedCommands(), getDesktopApi(), handleCommand() (+24 more)
+Nodes (30): clearAssistantLongPressTimer(), convertFloat32ToPcm16(), createCommandRequest(), downsampleTo8kMono(), enqueueCommand(), flushQueuedCommands(), getDesktopApi(), handleCommand() (+22 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.2
-Nodes (31): getAppDataPath(), getLoggerPath(), getLogPath(), logError(), serializeErrorDetails(), write(), checkForMacUpdate(), checkForUpdatesInBackground() (+23 more)
+Cohesion: 0.13
+Nodes (13): getLegacyUserDataPaths(), GoogleTvAdapter, clearDeviceStore(), getDeviceStorePath(), getStorePath(), readDevices(), writeDevices(), getLoggerPath() (+5 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.16
-Nodes (8): getLegacyUserDataPaths(), GoogleTvAdapter, clearDeviceStore(), getDeviceStorePath(), getStorePath(), readDevices(), writeDevices(), logInfo()
+Cohesion: 0.13
+Nodes (17): isCertificateRejectedError(), NativeRemoteClient, normalizeRemoteError(), toError(), createImeBatchEditMessage(), createRemoteConfigure(), createRemoteKeyInject(), createRemoteKeyInjectRaw() (+9 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.16
-Nodes (14): NativeRemoteClient, createImeBatchEditMessage(), createRemoteConfigure(), createRemoteKeyInject(), createRemoteKeyInjectRaw(), createRemoteMessage(), createRemotePingResponse(), createRemoteSetActive() (+6 more)
+Cohesion: 0.26
+Nodes (26): getAppDataPath(), checkForMacUpdate(), checkForUpdatesInBackground(), checkForUpdatesManually(), clearRollbackBackup(), compareVersions(), createRollbackBackup(), downloadFile() (+18 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.17
-Nodes (5): AndroidTvRemoteBridge, isCertificateRejectedError(), normalizeRemoteError(), toError(), generateCertificate()
+Nodes (1): ConnectionManager
 
 ### Community 5 - "Community 5"
-Cohesion: 0.17
-Nodes (1): ConnectionManager
+Cohesion: 0.2
+Nodes (2): AndroidTvRemoteBridge, generateCertificate()
 
 ### Community 6 - "Community 6"
 Cohesion: 0.12
@@ -190,7 +190,9 @@ Nodes (1): graphify knowledge graph config
 ## Knowledge Gaps
 - **17 isolated node(s):** `GTV Desktop Remote`, `Network Scan`, `Encrypted Pairing Protocol`, `Keyboard Control`, `Global Shortcut CmdOrCtrl+Shift+G` (+12 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **Thin community `Community 5`** (24 nodes): `ConnectionManager`, `.active()`, `.applyLostState()`, `.connect()`, `.constructor()`, `.disconnect()`, `.emitState()`, `.ensureActiveTransport()`, `.hasPendingAssistantVoiceSession()`, `.onStateChanged()`, `.reconnect()`, `.requireActiveDevice()`, `.reset()`, `.sendAssistantVoiceChunk()`, `.sendCommand()`, `.sendText()`, `.setActiveDevice()`, `.setConnected()`, `.setIdle()`, `.setState()`, `.startAssistantVoice()`, `.state()`, `.stopAssistantVoice()`, `connectionManager.js`
+- **Thin community `Community 4`** (24 nodes): `ConnectionManager`, `.active()`, `.applyLostState()`, `.connect()`, `.constructor()`, `.disconnect()`, `.emitState()`, `.ensureActiveTransport()`, `.hasPendingAssistantVoiceSession()`, `.onStateChanged()`, `.reconnect()`, `.requireActiveDevice()`, `.reset()`, `.sendAssistantVoiceChunk()`, `.sendCommand()`, `.sendText()`, `.setActiveDevice()`, `.setConnected()`, `.setIdle()`, `.setState()`, `.startAssistantVoice()`, `.state()`, `.stopAssistantVoice()`, `connectionManager.js`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 5`** (23 nodes): `AndroidTvRemoteBridge`, `.clearHostSession()`, `.clearPersistedHostState()`, `.connect()`, `.disconnect()`, `.finishPairing()`, `.getFilesForCertKey()`, `.getFilesForHost()`, `.getSession()`, `.getStateDir()`, `.hasPendingAssistantVoiceSession()`, `.loadOrCreateCerts()`, `.migrateCerts()`, `.reset()`, `.sendAssistantVoiceChunk()`, `.sendCommand()`, `.sendText()`, `.startAssistantVoice()`, `.startPairing()`, `.stopAssistantVoice()`, `certificate.js`, `generateCertificate()`, `certificate.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 7`** (21 nodes): `CommandMetricsStore`, `.detectStalls()`, `.ensureCommand()`, `.getSnapshot()`, `.logMetric()`, `.pushWarning()`, `.recordAdapterDispatchCompleted()`, `.recordAdapterDispatchStart()`, `.recordBridgeSendStart()`, `.recordCommandFailed()`, `.recordCommandSucceeded()`, `.recordConnectCompleted()`, `.recordConnectFailed()`, `.recordConnectStarted()`, `.recordInboundMessage()`, `.recordIpcReceived()`, `.recordRendererDrop()`, `.recordSocketClosed()`, `.recordSocketDrain()`, `.recordSocketWrite()`, `.trimCommands()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
@@ -226,15 +228,17 @@ Nodes (1): graphify knowledge graph config
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `logInfo()` connect `Community 2` to `Community 8`, `Community 1`, `Community 4`, `Community 7`?**
-  _High betweenness centrality (0.349) - this node is a cross-community bridge._
-- **Why does `setUpdaterStatus()` connect `Community 1` to `Community 0`?**
-  _High betweenness centrality (0.143) - this node is a cross-community bridge._
-- **Are the 21 inferred relationships involving `logInfo()` (e.g. with `bootstrapApp()` and `createRollbackBackup()`) actually correct?**
-  _`logInfo()` has 21 INFERRED edges - model-reasoned connections that need verification._
+- **Why does `logInfo()` connect `Community 1` to `Community 8`, `Community 3`, `Community 5`, `Community 7`?**
+  _High betweenness centrality (0.347) - this node is a cross-community bridge._
+- **Why does `AndroidTvRemoteBridge` connect `Community 5` to `Community 2`?**
+  _High betweenness centrality (0.142) - this node is a cross-community bridge._
+- **Why does `setUpdaterStatus()` connect `Community 3` to `Community 0`?**
+  _High betweenness centrality (0.137) - this node is a cross-community bridge._
+- **Are the 20 inferred relationships involving `logInfo()` (e.g. with `bootstrapApp()` and `createRollbackBackup()`) actually correct?**
+  _`logInfo()` has 20 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `GTV Desktop Remote`, `Network Scan`, `Encrypted Pairing Protocol` to the rest of the system?**
   _17 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.1 - nodes in this community are weakly interconnected._
-- **Should `Community 6` be split into smaller, more focused modules?**
-  _Cohesion score 0.12 - nodes in this community are weakly interconnected._
+- **Should `Community 1` be split into smaller, more focused modules?**
+  _Cohesion score 0.13 - nodes in this community are weakly interconnected._
