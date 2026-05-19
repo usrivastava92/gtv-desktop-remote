@@ -1,9 +1,17 @@
 # Auto-rebuilds the Graphify knowledge graph when switching branches (code files only, no LLM needed).
 
+PREV_HEAD=$1
+NEW_HEAD=$2
 BRANCH_SWITCH=$3
 
 # Only run on branch switches, not file checkouts.
 [ "$BRANCH_SWITCH" != "1" ] && exit 0
+
+# Skip when HEAD did not actually move (e.g. `git checkout -b` on the current
+# commit, or `git checkout <current-branch>`). Rebuilding the graph in those
+# cases just dirties the working tree with regenerated artifacts that aren't
+# staged — and any subsequent `git commit --no-verify` strands them.
+[ "$PREV_HEAD" = "$NEW_HEAD" ] && exit 0
 
 # Only run if graphify-out/ exists.
 [ ! -d "graphify-out" ] && exit 0
