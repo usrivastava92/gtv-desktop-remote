@@ -44,6 +44,8 @@ const api = {
     ipcRenderer.invoke('device:assistantVoicePending'),
   capabilities: (): Promise<DeviceCapabilities> => ipcRenderer.invoke('device:capabilities'),
   checkForUpdates: (): Promise<UpdaterStatus> => ipcRenderer.invoke('updater:check'),
+  checkForUpdatesInBackground: (): Promise<UpdaterStatus> =>
+    ipcRenderer.invoke('updater:checkBackground'),
   getUpdaterStatus: (): Promise<UpdaterStatus> => ipcRenderer.invoke('updater:status'),
   installAvailableUpdate: (): Promise<UpdaterStatus> => ipcRenderer.invoke('updater:install'),
   rollbackToPreviousVersion: (): Promise<UpdaterStatus> => ipcRenderer.invoke('updater:rollback'),
