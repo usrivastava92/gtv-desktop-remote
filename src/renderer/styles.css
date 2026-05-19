@@ -614,6 +614,30 @@ p {
   filter: brightness(1.06);
 }
 
+.ui-update-secondary {
+  margin-top: 0.5rem;
+  width: 60%;
+  justify-self: center;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid rgba(187, 195, 255, 0.35);
+  color: rgba(241, 240, 255, 0.78);
+  padding: 0.45rem 0.85rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  transition:
+    background 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease;
+}
+
+.ui-update-secondary:hover {
+  background: rgba(187, 195, 255, 0.08);
+  color: #f1f0ff;
+  border-color: rgba(187, 195, 255, 0.6);
+}
+
 .ui-alert {
   margin-top: 1.5rem;
   border-radius: 1rem;
