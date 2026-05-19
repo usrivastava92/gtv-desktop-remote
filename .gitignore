@@ -1,9 +1,15 @@
 node_modules
 dist
 dist-electron
-release
+# electron-builder output directory — anchored & trailing slash so it only
+# matches the top-level build output, not files named "release" elsewhere
+# in the tree (e.g. bin/release).
+/release/
 build
 .DS_Store
+
+# Belt-and-braces: explicitly un-ignore the release helper script.
+!/bin/release
 
 # graphify - ignore generated outputs by default, then allow portable outputs
 graphify-out/*

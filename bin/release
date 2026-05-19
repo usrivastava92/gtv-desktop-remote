@@ -1,0 +1,219 @@
+#!/usr/bin/env bash
+# bin/release — Manually trigger the Release GitHub Actions workflow.
+#
+# The repo uses semantic-release with Conventional Commits. Previously the
+# workflow ran on every push to `main`, which produced a new release per commit.
+# Now releases are manual: you batch up commits on `main` and run this script
+# (or the corresponding `npm run release` alias) when you want to cut a release.
+#
+# What it does:
+#   1. Sanity-checks your local environment (git repo, clean tree, on main,
+#      and main is in sync with origin/main).
+#   2. Previews the next version semantic-release will compute from the
+#      Conventional Commits since the last tag (a local dry-run).
+#   3. Triggers the `Release` workflow on GitHub via `gh workflow run` (or
+#      prints the curl/REST equivalent if `gh` is not installed).
+#   4. Optionally tails the freshly started workflow run with `gh run watch`.
+#
+# Usage:
+#   bin/release                       # interactive, prompts for confirmation
+#   bin/release --yes                 # skip the confirmation prompt
+#   bin/release --ref <branch|sha>    # trigger on a non-main ref (rare)
+#   bin/release --dry-run             # only run the local dry-run, do not trigger CI
+#   bin/release --no-watch            # do not tail the workflow run after triggering
+#   bin/release --allow-dirty         # do not fail if working tree is dirty
+#   bin/release --allow-behind        # do not fail if local is behind origin
+#   bin/release -h | --help           # show help
+#
+# Requirements:
+#   - bash, git
+#   - npx (ships with Node) for the local semantic-release dry-run
+#   - gh CLI (https://cli.github.com) authenticated against this repo, OR a
+#     GH_TOKEN/GITHUB_TOKEN environment variable for the REST fallback
+#
+set -euo pipefail
+
+# ── Pretty output helpers ────────────────────────────────────────────────────
+if [ -t 1 ]; then
+  C_RESET=$'\033[0m'; C_BOLD=$'\033[1m'
+  C_RED=$'\033[31m'; C_GREEN=$'\033[32m'; C_YELLOW=$'\033[33m'; C_BLUE=$'\033[34m'
+else
+  C_RESET=''; C_BOLD=''; C_RED=''; C_GREEN=''; C_YELLOW=''; C_BLUE=''
+fi
+
+info()  { printf '%s==>%s %s\n'  "$C_BLUE"   "$C_RESET" "$*"; }
+ok()    { printf '%s✓%s %s\n'    "$C_GREEN"  "$C_RESET" "$*"; }
+warn()  { printf '%s!%s %s\n'    "$C_YELLOW" "$C_RESET" "$*" >&2; }
+fail()  { printf '%s✗%s %s\n'    "$C_RED"    "$C_RESET" "$*" >&2; exit 1; }
+
+show_help() {
+  sed -n '2,/^set -euo pipefail$/p' "$0" | sed -E 's/^# ?//' | sed '$d'
+}
+
+# ── Defaults / argument parsing ──────────────────────────────────────────────
+REF="main"
+WORKFLOW="Release"        # workflow `name:` in .github/workflows/release.yml
+ASSUME_YES="false"
+DRY_RUN_ONLY="false"
+WATCH="true"
+ALLOW_DIRTY="false"
+ALLOW_BEHIND="false"
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -h|--help)        show_help; exit 0 ;;
+    -y|--yes)         ASSUME_YES="true"; shift ;;
+    --dry-run)        DRY_RUN_ONLY="true"; shift ;;
+    --no-watch)       WATCH="false"; shift ;;
+    --allow-dirty)    ALLOW_DIRTY="true"; shift ;;
+    --allow-behind)   ALLOW_BEHIND="true"; shift ;;
+    --ref)            REF="${2:-}"; [ -n "$REF" ] || fail "--ref requires a value"; shift 2 ;;
+    --ref=*)          REF="${1#--ref=}"; shift ;;
+    --workflow)       WORKFLOW="${2:-}"; [ -n "$WORKFLOW" ] || fail "--workflow requires a value"; shift 2 ;;
+    --workflow=*)     WORKFLOW="${1#--workflow=}"; shift ;;
+    *)                fail "Unknown argument: $1 (try --help)" ;;
+  esac
+done
+
+# ── Move to repo root ────────────────────────────────────────────────────────
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || true)
+[ -n "$REPO_ROOT" ] || fail "Not inside a git repository."
+cd "$REPO_ROOT"
+
+# ── Determine remote slug (owner/repo) ───────────────────────────────────────
+REMOTE_URL=$(git config --get remote.origin.url 2>/dev/null || true)
+[ -n "$REMOTE_URL" ] || fail "No 'origin' remote configured."
+
+# Normalise both SSH and HTTPS forms into "owner/repo".
+SLUG=$(printf '%s' "$REMOTE_URL" \
+  | sed -E 's#^git@github\.com:#https://github.com/#' \
+  | sed -E 's#^https://github\.com/##' \
+  | sed -E 's#\.git$##')
+[ -n "$SLUG" ] || fail "Could not parse owner/repo from origin URL: $REMOTE_URL"
+
+# ── Pre-flight checks ────────────────────────────────────────────────────────
+info "Repository:  $C_BOLD$SLUG$C_RESET"
+info "Target ref:  $C_BOLD$REF$C_RESET"
+info "Workflow:    $C_BOLD$WORKFLOW$C_RESET"
+
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if [ "$REF" = "main" ] && [ "$CURRENT_BRANCH" != "main" ]; then
+  warn "You are on '$CURRENT_BRANCH', not 'main'. The workflow will still run against '$REF' on the remote."
+fi
+
+if [ "$ALLOW_DIRTY" = "false" ]; then
+  if ! git diff --quiet || ! git diff --cached --quiet; then
+    fail "Working tree is dirty. Commit/stash changes, or pass --allow-dirty."
+  fi
+fi
+
+info "Fetching latest refs from origin..."
+git fetch --tags --prune origin >/dev/null 2>&1 || warn "git fetch failed — continuing with local state."
+
+if [ "$ALLOW_BEHIND" = "false" ] && git rev-parse --verify "origin/$REF" >/dev/null 2>&1; then
+  LOCAL_SHA=$(git rev-parse "$REF" 2>/dev/null || echo "")
+  REMOTE_SHA=$(git rev-parse "origin/$REF")
+  if [ -n "$LOCAL_SHA" ] && [ "$LOCAL_SHA" != "$REMOTE_SHA" ]; then
+    BEHIND=$(git rev-list --left-right --count "$LOCAL_SHA...$REMOTE_SHA" | awk '{print $2}')
+    if [ "${BEHIND:-0}" -gt 0 ]; then
+      fail "Local '$REF' is $BEHIND commit(s) behind 'origin/$REF'. Pull first, or pass --allow-behind."
+    fi
+  fi
+fi
+
+# ── Show commits that will be included in this release ──────────────────────
+LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
+info "Commits since last release ($C_BOLD${LAST_TAG:-<none>}$C_RESET) on origin/$REF:"
+if [ -n "$LAST_TAG" ]; then
+  git log --no-merges --pretty=format:'  • %h %s' "$LAST_TAG..origin/$REF" || true
+else
+  git log --no-merges --pretty=format:'  • %h %s' "origin/$REF" | head -n 50 || true
+fi
+echo
+
+# ── Local semantic-release dry-run to preview next version ──────────────────
+info "Running semantic-release --dry-run to preview the next version..."
+DRY_OUTPUT_FILE=$(mktemp -t gtv-release-dryrun.XXXXXX)
+trap 'rm -f "$DRY_OUTPUT_FILE"' EXIT
+
+if ! npx --no-install semantic-release --dry-run --no-ci >"$DRY_OUTPUT_FILE" 2>&1; then
+  # semantic-release exits non-zero when there is nothing to release; not fatal.
+  warn "semantic-release dry-run exited non-zero. Output below:"
+fi
+sed -n '1,120p' "$DRY_OUTPUT_FILE" | sed 's/^/   /'
+
+NEXT_VERSION=$(sed -nE 's/.*next release version is ([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' "$DRY_OUTPUT_FILE" | head -n 1 || true)
+if [ -n "$NEXT_VERSION" ]; then
+  ok "Next version will be: $C_BOLD$NEXT_VERSION$C_RESET"
+else
+  warn "No releasable commits detected since last tag — triggering the workflow will produce no new release."
+fi
+
+if [ "$DRY_RUN_ONLY" = "true" ]; then
+  ok "Dry-run only: not triggering CI."
+  exit 0
+fi
+
+# ── Confirmation prompt ──────────────────────────────────────────────────────
+if [ "$ASSUME_YES" != "true" ]; then
+  printf '\n%sTrigger the %s workflow on %s @ %s? [y/N] %s' \
+    "$C_BOLD" "$WORKFLOW" "$SLUG" "$REF" "$C_RESET"
+  read -r ANSWER || ANSWER=""
+  case "$ANSWER" in
+    y|Y|yes|YES) ;;
+    *) fail "Aborted." ;;
+  esac
+fi
+
+# ── Trigger the workflow ─────────────────────────────────────────────────────
+trigger_with_gh() {
+  info "Triggering via gh CLI..."
+  gh workflow run "$WORKFLOW" --repo "$SLUG" --ref "$REF"
+}
+
+trigger_with_curl() {
+  local token="${GH_TOKEN:-${GITHUB_TOKEN:-}}"
+  [ -n "$token" ] || fail "gh CLI not found and neither GH_TOKEN nor GITHUB_TOKEN is set."
+  info "Triggering via REST API (curl)..."
+  # Look up the workflow file name from the workflow display name.
+  local wf_file
+  wf_file=$(basename "$(grep -lE "^name:\s*$WORKFLOW\b" .github/workflows/*.yml 2>/dev/null | head -n 1)")
+  [ -n "$wf_file" ] || fail "Could not locate workflow file for '$WORKFLOW' in .github/workflows/."
+
+  curl -fsSL \
+    -X POST \
+    -H "Accept: application/vnd.github+json" \
+    -H "Authorization: Bearer $token" \
+    -H "X-GitHub-Api-Version: 2022-11-28" \
+    "https://api.github.com/repos/$SLUG/actions/workflows/$wf_file/dispatches" \
+    -d "{\"ref\":\"$REF\"}"
+}
+
+if command -v gh >/dev/null 2>&1; then
+  trigger_with_gh
+else
+  trigger_with_curl
+fi
+ok "Workflow dispatch sent."
+
+# ── Optionally watch the run ─────────────────────────────────────────────────
+if [ "$WATCH" = "true" ] && command -v gh >/dev/null 2>&1; then
+  info "Waiting for the new run to appear..."
+  RUN_ID=""
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    sleep 2
+    RUN_ID=$(gh run list --repo "$SLUG" --workflow "$WORKFLOW" --branch "$REF" \
+              --limit 1 --json databaseId,status \
+              --jq '.[0] | select(.status!="completed") | .databaseId' 2>/dev/null || true)
+    [ -n "$RUN_ID" ] && break
+  done
+
+  if [ -n "$RUN_ID" ]; then
+    ok "Tailing run #$RUN_ID (Ctrl-C to detach; the run will keep going)..."
+    gh run watch "$RUN_ID" --repo "$SLUG" --exit-status || true
+  else
+    warn "Could not locate the new run within 20s. Check it manually: https://github.com/$SLUG/actions"
+  fi
+else
+  info "View runs: https://github.com/$SLUG/actions/workflows/release.yml"
+fi

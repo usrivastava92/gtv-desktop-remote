@@ -132,11 +132,98 @@ This is intentional so short navigation bursts remain responsive while sustained
 
 ## Release Workflow
 
-This project uses `electron-builder` for packaging.
+Releases are produced by the `Release` GitHub Actions workflow
+(`.github/workflows/release.yml`), driven by
+[semantic-release](https://semantic-release.gitbook.io/) and
+[Conventional Commits](https://www.conventionalcommits.org/). Packaging is
+handled by `electron-builder`.
 
-- CI validates install, typecheck, and build
-- Tagged releases are intended to produce macOS artifacts
-- The current target platform is macOS
+### Manual, batched releases
+
+The workflow is **manually triggered** — it no longer fires on every push to
+`main`. This lets you batch several commits into a single release instead of
+producing a new GitHub Release per commit.
+
+Use the helper script:
+
+```bash
+# Preview the next version from commits on origin/main, then prompt before
+# triggering the Release workflow on GitHub:
+npm run release
+
+# Just preview locally, do not trigger CI:
+npm run release:dry-run
+
+# Skip the confirmation prompt (e.g. for use in other automation):
+bin/release --yes
+
+# Trigger against a non-main ref:
+bin/release --ref some-branch
+```
+
+The script will:
+
+1. Verify you are in a clean checkout that is in sync with `origin/<ref>`.
+2. List the commits that will be included since the last release tag.
+3. Run `semantic-release --dry-run` locally to compute and display the next
+   version (based on `feat:` / `fix:` / `BREAKING CHANGE:` etc.).
+4. Ask for confirmation, then dispatch the `Release` workflow via the `gh`
+   CLI (falling back to a REST call if `gh` is unavailable and
+   `GH_TOKEN`/`GITHUB_TOKEN` is set).
+5. Optionally tail the workflow run with `gh run watch`.
+
+You can also trigger the workflow directly from the GitHub Actions UI
+("Run workflow" on the `Release` workflow), but the script is preferred because
+it shows the next version and commit list before you commit to publishing.
+
+### What CI does on each push
+
+- The `CI` workflow validates install, typecheck, lint, format, and build for
+  every push and pull request.
+- The `Release` workflow only runs on manual dispatch and is responsible for
+  building the macOS DMG + ZIP, running semantic-release, and updating the
+  Homebrew tap.
+
+### Who can trigger a release
+
+The `Release` workflow is locked down with **two layers**:
+
+1. **Actor allow-list (fast-fail).** The `authorize` job in `release.yml`
+   reads `RELEASE_ALLOWED_ACTORS` and fails the run immediately if the
+   triggering user is not on the list. Update this env var in the workflow
+   file (in a PR you review) to grant or revoke access.
+2. **GitHub Environment approval (hard, GitHub-enforced).** Both jobs declare
+   `environment: production`. GitHub will pause the run and require an
+   approval from a configured reviewer before any build, publish, or
+   Homebrew-tap update step runs.
+
+#### One-time setup for the `production` environment
+
+In the repo on GitHub:
+
+1. **Settings → Environments → New environment** → name it `production`.
+2. Enable **Required reviewers** and add yourself (and only yourself, or
+   whoever should be able to approve releases).
+3. Under **Deployment branches and tags**, choose "Selected branches and
+   tags" and add `main` (so releases can only be approved from `main`).
+4. Move release-sensitive secrets onto this environment instead of the
+   repository-wide secrets:
+   - `HOMEBREW_TAP_TOKEN` → **Environment secrets** of `production`.
+   - (Optional) `HOMEBREW_TAP_REPOSITORY` → **Environment variables** of
+     `production`.
+
+   This guarantees the secret is only injected after you click "Approve and
+   run", so an unauthorized or accidental dispatch cannot exfiltrate it.
+
+After this setup, the flow for a release is:
+
+1. Someone (you) runs `npm run release` or "Run workflow" in the Actions UI.
+2. `authorize` job runs in seconds and either fails (unauthorized) or
+   succeeds.
+3. The run pauses with a "Review required" banner — GitHub emails the
+   reviewer(s).
+4. You click **Approve and run** → `build-macos` and `release` proceed and
+   publish exactly one GitHub Release for the batched commits.
 
 ## Homebrew Cask Releases
 
