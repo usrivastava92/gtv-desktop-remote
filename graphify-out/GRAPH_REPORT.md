@@ -1,7 +1,7 @@
 # Graph Report - /Users/usrivastava/workspace/github/gtv-desktop-remote  (2026-05-19)
 
 ## Corpus Check
-- 37 files · ~54,841 words
+- 37 files · ~53,816 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -65,10 +65,10 @@
   README.md → scripts/reset-app-state.mjs
 - `Favicon SVG - Google TV Remote Outlined Icon` --semantically_similar_to--> `GTV Remote Icon SVG - Google TV Remote Streamline Outlined Material Icon`  [EXTRACTED] [semantically similar]
   public/favicon.svg → assets/icons/gtv-remote-icon.svg
-- `refreshUpdaterStatusInBackground()` --calls--> `setUpdaterStatus()`  [INFERRED]
-  /Users/usrivastava/workspace/github/gtv-desktop-remote/src/renderer/App.tsx → /Users/usrivastava/workspace/github/gtv-desktop-remote/src/main/updater.ts
-- `initialize()` --calls--> `setUpdaterStatus()`  [INFERRED]
-  /Users/usrivastava/workspace/github/gtv-desktop-remote/src/renderer/App.tsx → /Users/usrivastava/workspace/github/gtv-desktop-remote/src/main/updater.ts
+- `setUpdaterStatus()` --calls--> `refreshUpdaterStatusInBackground()`  [INFERRED]
+  /Users/usrivastava/workspace/github/gtv-desktop-remote/src/main/updater.ts → /Users/usrivastava/workspace/github/gtv-desktop-remote/src/renderer/App.tsx
+- `setUpdaterStatus()` --calls--> `initialize()`  [INFERRED]
+  /Users/usrivastava/workspace/github/gtv-desktop-remote/src/main/updater.ts → /Users/usrivastava/workspace/github/gtv-desktop-remote/src/renderer/App.tsx
 - `readUpdateState()` --calls--> `getAppDataPath()`  [INFERRED]
   /Users/usrivastava/workspace/github/gtv-desktop-remote/src/main/updater.ts → /Users/usrivastava/workspace/github/gtv-desktop-remote/src/main/logger.ts
 

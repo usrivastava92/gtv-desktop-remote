@@ -206,10 +206,7 @@ async function recoverOrphanedRollbackState(state: UpdateState): Promise<UpdateS
     // backed up. Falls back to the bundle's mtime if reading fails.
     let recoveredVersion: string | undefined;
     try {
-      const infoPlist = await fs.readFile(
-        path.join(bundlePath, 'Contents', 'Info.plist'),
-        'utf-8'
-      );
+      const infoPlist = await fs.readFile(path.join(bundlePath, 'Contents', 'Info.plist'), 'utf-8');
       const match = /<key>CFBundleShortVersionString<\/key>\s*<string>([^<]+)<\/string>/.exec(
         infoPlist
       );
@@ -329,7 +326,9 @@ async function requestJson<T>(url: string): Promise<T> {
     return (await response.json()) as T;
   } catch (error) {
     if ((error as Error).name === 'AbortError') {
-      throw new Error('Update check timed out. Check your internet connection and try again.');
+      throw new Error('Update check timed out. Check your internet connection and try again.', {
+        cause: error,
+      });
     }
     throw error;
   } finally {
@@ -346,7 +345,9 @@ function findBestMacAsset(assets: ReleaseAsset[]) {
   const preferredZip = assets.find((asset) => asset.name.endsWith(`-mac-${arch}.zip`));
   if (preferredZip) return preferredZip;
 
-  const anyZip = assets.find((asset) => asset.name.includes('-mac-') && asset.name.endsWith('.zip'));
+  const anyZip = assets.find(
+    (asset) => asset.name.includes('-mac-') && asset.name.endsWith('.zip')
+  );
   if (anyZip) return anyZip;
 
   const preferredDmg = assets.find((asset) => asset.name.endsWith(`-mac-${arch}.dmg`));
@@ -399,12 +400,10 @@ async function createRollbackBackup(targetBundle: string) {
   const stagingBundlePath = path.join(stagingDir, rollbackBundleName);
   const previousRollbackDir = `${rollbackDir}.prev-${String(Date.now())}`;
 
-  let stagedOk = false;
   try {
     await removePathRecursive(stagingDir);
     await fs.mkdir(stagingDir, { recursive: true });
     await execFile('ditto', [targetBundle, stagingBundlePath]);
-    stagedOk = true;
   } catch (error) {
     await logError(
       'updater',
@@ -418,10 +417,6 @@ async function createRollbackBackup(targetBundle: string) {
     // bundle here — a prior install may already have a perfectly good backup
     // that the user still relies on. Refresh status to keep UI in sync.
     await syncRollbackStatus();
-    return;
-  }
-
-  if (!stagedOk) {
     return;
   }
 

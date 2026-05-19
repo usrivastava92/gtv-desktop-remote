@@ -1529,11 +1529,7 @@ function App() {
       (dismissedRollbackVersion === rollbackVersion ||
         suppressedRollbackVersion === rollbackVersion);
 
-    if (
-      updaterStatus.rollbackAvailable &&
-      rollbackVersion &&
-      !isRollbackDismissed
-    ) {
+    if (updaterStatus.rollbackAvailable && rollbackVersion && !isRollbackDismissed) {
       return (
         <section className="ui-update-panel mt-4">
           <div className="ui-update-head">
@@ -1548,9 +1544,7 @@ function App() {
               ✕
             </button>
           </div>
-          <p className="ui-copy ui-update-copy">
-            Restore previous version {rollbackVersion}
-          </p>
+          <p className="ui-copy ui-update-copy">Restore previous version {rollbackVersion}</p>
           <button
             className="ui-update-action"
             disabled={bridgeDisabled}

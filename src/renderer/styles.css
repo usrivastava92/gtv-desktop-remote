@@ -626,7 +626,10 @@ p {
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.02em;
-  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+  transition:
+    background 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease;
 }
 
 .ui-update-secondary:hover {
