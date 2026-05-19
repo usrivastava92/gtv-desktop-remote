@@ -409,6 +409,17 @@ function App() {
     rollbackAvailable: false,
   });
   const [dismissedUpdateVersion, setDismissedUpdateVersion] = useState<string | null>(null);
+  const [dismissedRollbackVersion, setDismissedRollbackVersion] = useState<string | null>(null);
+  const [suppressedRollbackVersion, setSuppressedRollbackVersion] = useState<string | null>(() => {
+    if (typeof window === 'undefined') {
+      return null;
+    }
+    try {
+      return window.localStorage.getItem('gtv-remote.suppressedRollbackVersion');
+    } catch {
+      return null;
+    }
+  });
   const [updaterToast, setUpdaterToast] = useState<string | null>(null);
   const pairCodeInputRef = useRef<HTMLInputElement>(null);
   const commandQueueRef = useRef<QueuedCommandBatch[]>([]);
@@ -1414,6 +1425,26 @@ function App() {
     };
   }, [bridgeReady]);
 
+  // If the rollback version actually changes (e.g. user installed a new update so a new
+  // previous-version backup is now on disk), forget any prior "Don't show again" choice.
+  useEffect(() => {
+    const rollbackVersion = updaterStatus.rollbackVersion;
+    if (!rollbackVersion) {
+      return;
+    }
+    if (suppressedRollbackVersion && suppressedRollbackVersion !== rollbackVersion) {
+      setSuppressedRollbackVersion(null);
+      try {
+        window.localStorage.removeItem('gtv-remote.suppressedRollbackVersion');
+      } catch {
+        // Ignore storage failures.
+      }
+    }
+    if (dismissedRollbackVersion && dismissedRollbackVersion !== rollbackVersion) {
+      setDismissedRollbackVersion(null);
+    }
+  }, [updaterStatus.rollbackVersion, suppressedRollbackVersion, dismissedRollbackVersion]);
+
   function openDevicePicker() {
     setTextInputOpen(false);
     setPairingReady(false);
@@ -1492,14 +1523,33 @@ function App() {
       return <div className="ui-update-check mt-4">{updaterStatus.message}</div>;
     }
 
-    if (updaterStatus.rollbackAvailable && updaterStatus.rollbackVersion) {
+    const rollbackVersion = updaterStatus.rollbackVersion ?? null;
+    const isRollbackDismissed =
+      !!rollbackVersion &&
+      (dismissedRollbackVersion === rollbackVersion ||
+        suppressedRollbackVersion === rollbackVersion);
+
+    if (
+      updaterStatus.rollbackAvailable &&
+      rollbackVersion &&
+      !isRollbackDismissed
+    ) {
       return (
         <section className="ui-update-panel mt-4">
           <div className="ui-update-head">
             <span className="ui-card-title ui-update-title-centered">Rollback Available</span>
+            <button
+              className="ui-update-close"
+              onClick={() => {
+                setDismissedRollbackVersion(rollbackVersion);
+              }}
+              aria-label="Close rollback panel"
+            >
+              ✕
+            </button>
           </div>
           <p className="ui-copy ui-update-copy">
-            Restore previous version {updaterStatus.rollbackVersion}
+            Restore previous version {rollbackVersion}
           </p>
           <button
             className="ui-update-action"
@@ -1508,7 +1558,25 @@ function App() {
               void handleRollbackUpdate();
             }}
           >
-            Rollback to v{updaterStatus.rollbackVersion}
+            Rollback to v{rollbackVersion}
+          </button>
+          <button
+            type="button"
+            className="ui-update-secondary"
+            onClick={() => {
+              setSuppressedRollbackVersion(rollbackVersion);
+              setDismissedRollbackVersion(rollbackVersion);
+              try {
+                window.localStorage.setItem(
+                  'gtv-remote.suppressedRollbackVersion',
+                  rollbackVersion
+                );
+              } catch {
+                // Ignore storage failures (e.g. private mode); session dismissal still applies.
+              }
+            }}
+          >
+            Don’t show again
           </button>
         </section>
       );

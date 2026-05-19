@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
-import { app, dialog, shell } from 'electron';
+import { app, BrowserWindow, dialog, shell } from 'electron';
 
 import type { UpdaterStatus } from '../shared/types';
 
@@ -54,6 +54,39 @@ const updaterStatus: UpdaterStatus = {
 
 function setUpdaterStatus(next: Partial<UpdaterStatus>) {
   Object.assign(updaterStatus, next, { currentVersion: app.getVersion() });
+}
+
+function getDialogParentWindow(): BrowserWindow | undefined {
+  const focused = BrowserWindow.getFocusedWindow();
+  if (focused && !focused.isDestroyed()) {
+    return focused;
+  }
+
+  const visible = BrowserWindow.getAllWindows().find(
+    (window) => !window.isDestroyed() && window.isVisible()
+  );
+  if (visible) {
+    return visible;
+  }
+
+  const anyWindow = BrowserWindow.getAllWindows().find((window) => !window.isDestroyed());
+  return anyWindow;
+}
+
+async function showUpdaterDialog(
+  options: Electron.MessageBoxOptions
+): Promise<Electron.MessageBoxReturnValue> {
+  const parent = getDialogParentWindow();
+  if (parent) {
+    // Bring window forward so the user actually sees the modal even when the dock is hidden.
+    if (!parent.isVisible()) {
+      parent.show();
+    }
+    parent.focus();
+    return await dialog.showMessageBox(parent, options);
+  }
+
+  return await dialog.showMessageBox(options);
 }
 
 function normalizeVersion(value: string) {
@@ -131,7 +164,9 @@ function withoutRollbackState(state: UpdateState): UpdateState {
 
 async function clearRollbackBackup(state?: UpdateState) {
   const stateToPersist = state ?? (await readUpdateState());
-  await fs.rm(getRollbackDirPath(), { force: true, recursive: true });
+  await removePathRecursive(getRollbackDirPath()).catch(() => {
+    // best-effort
+  });
   await writeUpdateState(withoutRollbackState(stateToPersist));
   setUpdaterStatus({
     rollbackAvailable: false,
@@ -140,8 +175,81 @@ async function clearRollbackBackup(state?: UpdateState) {
   });
 }
 
+/**
+ * Look for a stray rollback bundle on disk that isn't referenced by update-state.json
+ * and recover its metadata. This heals state when a previous install partially
+ * cleared metadata (older buggy code paths) while leaving a perfectly good backup
+ * on disk, so the user doesn't lose access to the rollback action.
+ */
+async function recoverOrphanedRollbackState(state: UpdateState): Promise<UpdateState> {
+  const rollbackDir = getRollbackDirPath();
+  let entries: string[];
+  try {
+    entries = await fs.readdir(rollbackDir);
+  } catch {
+    return state;
+  }
+
+  const bundle = entries.find((name) => name.toLowerCase().endsWith('.app'));
+  if (!bundle) {
+    return state;
+  }
+
+  const bundlePath = path.join(rollbackDir, bundle);
+  try {
+    const stats = await fs.stat(bundlePath);
+    if (!stats.isDirectory()) {
+      return state;
+    }
+
+    // Best-effort: read the bundle's Info.plist to recover the version that was
+    // backed up. Falls back to the bundle's mtime if reading fails.
+    let recoveredVersion: string | undefined;
+    try {
+      const infoPlist = await fs.readFile(
+        path.join(bundlePath, 'Contents', 'Info.plist'),
+        'utf-8'
+      );
+      const match = /<key>CFBundleShortVersionString<\/key>\s*<string>([^<]+)<\/string>/.exec(
+        infoPlist
+      );
+      if (match) {
+        recoveredVersion = normalizeVersion(match[1]);
+      }
+    } catch {
+      // ignore, fall through to mtime/unknown
+    }
+
+    const recoveredState: UpdateState = {
+      ...state,
+      rollbackBundleName: bundle,
+      rollbackVersion: recoveredVersion ?? state.rollbackVersion ?? 'unknown',
+      rollbackCreatedAt: state.rollbackCreatedAt ?? stats.mtime.toISOString(),
+    };
+
+    await writeUpdateState(recoveredState).catch(() => {
+      // ignore — we'll still surface the rollback in-memory
+    });
+    await logInfo('updater', 'Recovered orphaned rollback backup', {
+      bundlePath,
+      version: recoveredState.rollbackVersion,
+    });
+    return recoveredState;
+  } catch {
+    return state;
+  }
+}
+
 async function syncRollbackStatus() {
-  const state = await readUpdateState();
+  let state = await readUpdateState();
+
+  // If metadata is missing but a backup exists on disk, recover it. This
+  // self-heals state that older buggy code paths may have wiped after a
+  // failed re-backup attempt during install.
+  if (!state.rollbackVersion || !state.rollbackBundleName) {
+    state = await recoverOrphanedRollbackState(state);
+  }
+
   const available =
     Boolean(state.rollbackVersion && state.rollbackCreatedAt) &&
     (await rollbackBundleExists(state));
@@ -163,6 +271,24 @@ async function syncRollbackStatus() {
   return state;
 }
 
+function formatMinutesUntil(epochSeconds: number): string {
+  const deltaSeconds = epochSeconds - Math.floor(Date.now() / 1000);
+  if (!Number.isFinite(deltaSeconds) || deltaSeconds <= 0) {
+    return 'shortly';
+  }
+
+  const minutes = Math.ceil(deltaSeconds / 60);
+  if (minutes <= 1) {
+    return 'in about a minute';
+  }
+  if (minutes < 60) {
+    return `in about ${String(minutes)} minutes`;
+  }
+
+  const hours = Math.ceil(minutes / 60);
+  return `in about ${String(hours)} hour${hours > 1 ? 's' : ''}`;
+}
+
 async function requestJson<T>(url: string): Promise<T> {
   const controller = new AbortController();
   const timeout = setTimeout(() => {
@@ -179,17 +305,36 @@ async function requestJson<T>(url: string): Promise<T> {
     });
 
     if (!response.ok) {
+      // Surface a human-friendly message for GitHub rate limiting so the renderer
+      // can display *why* the check failed instead of "see logs".
+      const remaining = response.headers.get('x-ratelimit-remaining');
+      const resetHeader = response.headers.get('x-ratelimit-reset');
+      const retryAfter = response.headers.get('retry-after');
+
+      if (response.status === 403 && remaining === '0') {
+        const resetSeconds = Number.parseInt(resetHeader ?? '', 10);
+        const when = Number.isFinite(resetSeconds)
+          ? formatMinutesUntil(resetSeconds)
+          : retryAfter
+            ? `in about ${retryAfter} seconds`
+            : 'shortly';
+        throw new Error(
+          `GitHub API rate limit reached for this network. Please try again ${when}.`
+        );
+      }
+
       throw new Error(`GitHub API failed: ${String(response.status)} ${response.statusText}`);
     }
 
     return (await response.json()) as T;
+  } catch (error) {
+    if ((error as Error).name === 'AbortError') {
+      throw new Error('Update check timed out. Check your internet connection and try again.');
+    }
+    throw error;
   } finally {
     clearTimeout(timeout);
   }
-}
-
-function isZipAsset(asset: ReleaseAsset) {
-  return asset.name.endsWith('.zip');
 }
 
 function isDmgAsset(asset: ReleaseAsset) {
@@ -201,7 +346,7 @@ function findBestMacAsset(assets: ReleaseAsset[]) {
   const preferredZip = assets.find((asset) => asset.name.endsWith(`-mac-${arch}.zip`));
   if (preferredZip) return preferredZip;
 
-  const anyZip = assets.find((asset) => asset.name.includes('-mac-') && isZipAsset(asset));
+  const anyZip = assets.find((asset) => asset.name.includes('-mac-') && asset.name.endsWith('.zip'));
   if (anyZip) return anyZip;
 
   const preferredDmg = assets.find((asset) => asset.name.endsWith(`-mac-${arch}.dmg`));
@@ -212,6 +357,26 @@ function findBestMacAsset(assets: ReleaseAsset[]) {
 
 function getBundlePathFromExecPath() {
   return path.resolve(process.execPath, '..', '..', '..');
+}
+
+/**
+ * Best-effort recursive delete that works reliably for macOS .app bundles
+ * (Node's fs.rm({ recursive: true }) intermittently throws ENOTEMPTY on Resources
+ * directories that contain symlinks, framework hard links, etc.). We try the
+ * native API first and fall back to shelling out to `rm -rf`.
+ */
+async function removePathRecursive(target: string): Promise<void> {
+  try {
+    await fs.rm(target, { force: true, recursive: true });
+    return;
+  } catch (primaryError) {
+    try {
+      await execFile('rm', ['-rf', target]);
+    } catch {
+      // Re-throw the original Node error so callers see the real reason.
+      throw primaryError;
+    }
+  }
 }
 
 async function createRollbackBackup(targetBundle: string) {
@@ -228,21 +393,93 @@ async function createRollbackBackup(targetBundle: string) {
     rollbackVersion,
   });
 
-  await fs.rm(rollbackDir, { force: true, recursive: true });
-  await fs.mkdir(rollbackDir, { recursive: true });
-  await execFile('ditto', [targetBundle, rollbackBundlePath]);
+  // Stage the new backup in a sibling directory so that, if anything fails, we
+  // can leave the previous (working) rollback bundle intact.
+  const stagingDir = `${rollbackDir}.new-${String(Date.now())}`;
+  const stagingBundlePath = path.join(stagingDir, rollbackBundleName);
+  const previousRollbackDir = `${rollbackDir}.prev-${String(Date.now())}`;
 
-  await writeUpdateState({
-    ...state,
-    rollbackVersion,
-    rollbackCreatedAt,
-    rollbackBundleName,
-  });
-  setUpdaterStatus({
-    rollbackAvailable: true,
-    rollbackVersion,
-    rollbackCreatedAt,
-  });
+  let stagedOk = false;
+  try {
+    await removePathRecursive(stagingDir);
+    await fs.mkdir(stagingDir, { recursive: true });
+    await execFile('ditto', [targetBundle, stagingBundlePath]);
+    stagedOk = true;
+  } catch (error) {
+    await logError(
+      'updater',
+      'Failed to stage rollback backup; preserving previous rollback (if any) and continuing install',
+      error
+    );
+    await removePathRecursive(stagingDir).catch(() => {
+      // ignore staging cleanup failure
+    });
+    // IMPORTANT: do NOT clear rollback metadata or wipe the existing rollback
+    // bundle here — a prior install may already have a perfectly good backup
+    // that the user still relies on. Refresh status to keep UI in sync.
+    await syncRollbackStatus();
+    return;
+  }
+
+  if (!stagedOk) {
+    return;
+  }
+
+  // Atomically swap the staged backup in place of the existing one.
+  try {
+    let movedExisting = false;
+    try {
+      await fs.rename(rollbackDir, previousRollbackDir);
+      movedExisting = true;
+    } catch (error) {
+      // ENOENT just means there was no previous rollback dir — fine to proceed.
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        throw error;
+      }
+    }
+
+    try {
+      await fs.rename(stagingDir, rollbackDir);
+    } catch (swapError) {
+      // Restore previous rollback if the swap-in failed.
+      if (movedExisting) {
+        await fs.rename(previousRollbackDir, rollbackDir).catch(() => {
+          // best-effort restore
+        });
+      }
+      throw swapError;
+    }
+
+    if (movedExisting) {
+      await removePathRecursive(previousRollbackDir).catch(() => {
+        // ignore deletion of the now-superseded prior backup
+      });
+    }
+
+    await writeUpdateState({
+      ...state,
+      rollbackVersion,
+      rollbackCreatedAt,
+      rollbackBundleName,
+    });
+    setUpdaterStatus({
+      rollbackAvailable: true,
+      rollbackVersion,
+      rollbackCreatedAt,
+    });
+  } catch (error) {
+    // Swap failed but the existing rollback (if any) is untouched. Keep going
+    // with the install but DO NOT clear previously valid rollback metadata.
+    await logError(
+      'updater',
+      'Failed to swap in new rollback backup; existing rollback (if any) preserved',
+      error
+    );
+    await removePathRecursive(stagingDir).catch(() => {
+      // ignore
+    });
+    await syncRollbackStatus();
+  }
 }
 
 async function installMacUpdateFromZip(zipPath: string) {
@@ -432,7 +669,7 @@ export async function checkForUpdatesInBackground() {
         etaSeconds: undefined,
         updateAvailable: false,
         updateInstallable: false,
-        message: 'Update check failed. See logs for details.',
+        message: (error as Error).message || 'Update check failed. See logs for details.',
       });
     }
   })();
@@ -462,7 +699,7 @@ export async function checkForUpdatesManually() {
       etaSeconds: undefined,
       updateAvailable: false,
       updateInstallable: false,
-      message: 'Update check failed. See logs for details.',
+      message: (error as Error).message || 'Update check failed. See logs for details.',
     });
   }
 
@@ -474,45 +711,23 @@ export async function installAvailableUpdate() {
     setUpdaterStatus({
       inProgress: false,
       stage: 'failed',
+      updateAvailable: false,
+      updateInstallable: false,
       message: 'No installable update is currently available.',
     });
     return await getUpdaterStatus();
   }
 
+  // Guard against re-entry — the renderer polls and could fire install twice.
+  if (updaterStatus.inProgress) {
+    return await getUpdaterStatus();
+  }
+
   const version = updaterStatus.latestVersion;
-
-  const choice = await dialog.showMessageBox({
-    type: 'info',
-    buttons: ['Update now', 'Skip this version', 'Later'],
-    defaultId: 0,
-    cancelId: 2,
-    title: 'Update available',
-    message: `Version ${version} is available. You are on ${app.getVersion()}.`,
-    detail: isZipAsset(cachedAsset)
-      ? 'The update will be downloaded and installed now.'
-      : 'This update is available as DMG and will open in your browser for manual install.',
-  });
-
-  if (choice.response === 1) {
-    const state = await readUpdateState();
-    await writeUpdateState({ ...state, skippedVersion: version });
-    cachedRelease = undefined;
-    cachedAsset = undefined;
-    setUpdaterStatus({
-      updateAvailable: false,
-      updateInstallable: false,
-      message: `Update ${version} was skipped.`,
-    });
-    return await getUpdaterStatus();
-  }
-
-  if (choice.response === 2) {
-    return await getUpdaterStatus();
-  }
 
   if (isDmgAsset(cachedAsset)) {
     await shell.openExternal(cachedAsset.browser_download_url);
-    await dialog.showMessageBox({
+    await showUpdaterDialog({
       type: 'info',
       buttons: ['OK'],
       defaultId: 0,
@@ -589,7 +804,7 @@ export async function installAvailableUpdate() {
     });
 
     if (DEV_UPDATER_ENABLED && !app.isPackaged) {
-      await dialog.showMessageBox({
+      await showUpdaterDialog({
         type: 'info',
         buttons: ['OK'],
         defaultId: 0,
@@ -600,7 +815,7 @@ export async function installAvailableUpdate() {
       return await getUpdaterStatus();
     }
 
-    const relaunchChoice = await dialog.showMessageBox({
+    const relaunchChoice = await showUpdaterDialog({
       type: 'info',
       buttons: ['Relaunch now', 'Later'],
       defaultId: 0,
@@ -616,15 +831,31 @@ export async function installAvailableUpdate() {
     }
   } catch (error) {
     await logError('updater', 'Automatic update installation failed', error);
+    // Clear cached release/asset so the renderer's "Update available" panel goes away
+    // and the user can re-trigger a fresh check instead of being stuck on a broken install.
+    cachedRelease = undefined;
+    cachedAsset = undefined;
     setUpdaterStatus({
       inProgress: false,
       stage: 'failed',
       progressPercent: undefined,
       etaSeconds: undefined,
-      message: 'Update failed during download or install.',
+      updateAvailable: false,
+      updateInstallable: false,
+      message: `Update ${version} failed during download or install. Please try again.`,
+    });
+    await showUpdaterDialog({
+      type: 'warning',
+      buttons: ['OK'],
+      defaultId: 0,
+      title: 'Update failed',
+      message: `Update ${version} could not be installed.`,
+      detail: (error as Error).message || 'See logs for details.',
     });
   } finally {
-    await fs.rm(tmpZipPath, { force: true });
+    await fs.rm(tmpZipPath, { force: true }).catch(() => {
+      // ignore cleanup failure
+    });
   }
 
   return await getUpdaterStatus();
@@ -653,7 +884,7 @@ export async function rollbackToPreviousVersion() {
     return await getUpdaterStatus();
   }
 
-  const choice = await dialog.showMessageBox({
+  const choice = await showUpdaterDialog({
     type: 'warning',
     buttons: ['Rollback now', 'Cancel'],
     defaultId: 0,
@@ -713,7 +944,7 @@ export async function rollbackToPreviousVersion() {
     });
 
     if (DEV_UPDATER_ENABLED && !app.isPackaged) {
-      await dialog.showMessageBox({
+      await showUpdaterDialog({
         type: 'info',
         buttons: ['OK'],
         defaultId: 0,
@@ -724,7 +955,7 @@ export async function rollbackToPreviousVersion() {
       return await getUpdaterStatus();
     }
 
-    const relaunchChoice = await dialog.showMessageBox({
+    const relaunchChoice = await showUpdaterDialog({
       type: 'info',
       buttons: ['Relaunch now', 'Later'],
       defaultId: 0,
