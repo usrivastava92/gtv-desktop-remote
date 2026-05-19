@@ -476,12 +476,12 @@ class AndroidTvRemoteBridge {
   }
 
   /**
-   * Migrate certs from old IP-based filename to MAC-based filename.
+   * Move persisted certs from one identity key to another.
    * Safe to call even if the old file doesn't exist.
    */
-  async migrateCerts(oldHost: string, macAddress: string): Promise<void> {
-    const oldFiles = this.getFilesForCertKey(oldHost);
-    const newFiles = this.getFilesForCertKey(macAddress);
+  async migratePersistedCerts(oldCertKey: string, newCertKey: string): Promise<void> {
+    const oldFiles = this.getFilesForCertKey(oldCertKey);
+    const newFiles = this.getFilesForCertKey(newCertKey);
 
     // Nothing to migrate if they are the same key or new file already exists
     if (oldFiles.certPath === newFiles.certPath) {
@@ -503,14 +503,22 @@ class AndroidTvRemoteBridge {
           fs.rename(oldFiles.certPath, newFiles.certPath),
           fs.rename(oldFiles.keyPath, newFiles.keyPath),
         ]);
-        await logInfo('androidtvremote', 'Migrated cert from IP key to MAC key', {
-          oldHost,
-          macAddress,
+        await logInfo('androidtvremote', 'Migrated persisted client certificate', {
+          oldCertKey,
+          newCertKey,
         });
       } catch {
         // Old cert did not exist either — nothing to migrate
       }
     }
+  }
+
+  /**
+   * Migrate certs from old IP-based filename to MAC-based filename.
+   * Safe to call even if the old file doesn't exist.
+   */
+  async migrateCerts(oldHost: string, macAddress: string): Promise<void> {
+    await this.migratePersistedCerts(oldHost, macAddress);
   }
 
   private async loadOrCreateCerts(certKey: string): Promise<PemPair> {
@@ -562,13 +570,18 @@ class AndroidTvRemoteBridge {
       throw new Error('Missing host');
     }
 
+    const normalizedCertKey = certKey?.trim();
+    if (normalizedCertKey && normalizedCertKey !== normalizedHost) {
+      await this.migrateCerts(normalizedHost, normalizedCertKey);
+    }
+
     const existing = this.sessions.get(normalizedHost);
     if (existing) {
       return existing;
     }
 
     const session: DeviceSession = {
-      certs: await this.loadOrCreateCerts(certKey ?? normalizedHost),
+      certs: await this.loadOrCreateCerts(normalizedCertKey ?? normalizedHost),
     };
     this.sessions.set(normalizedHost, session);
     return session;
