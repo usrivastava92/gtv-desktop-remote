@@ -1,0 +1,45 @@
+# CODEOWNERS for gtv-desktop-remote
+#
+# Syntax: <path-pattern>  <@owner> [<@owner> ...]
+# Docs:   https://docs.github.com/repositories/managing-your-repositories-settings-and-customizations/customizing-your-repository/about-code-owners
+#
+# How this is enforced:
+#   This file only *declares* ownership. For changes to actually require a
+#   Code Owner's review, the `main` branch must have a protection rule with
+#   "Require review from Code Owners" enabled in
+#   Settings → Branches → Branch protection rules → main.
+#
+# Why these paths in particular:
+#   The Release workflow, CI workflow, semantic-release config, husky hooks,
+#   and any helper scripts that touch release/deploy plumbing are
+#   security-sensitive: an unreviewed edit to any of them could bypass the
+#   manual-dispatch + production-environment gates that lock down releases.
+#   Forcing @usrivastava92's review here closes that loophole.
+
+# Default fallback — any file not matched below still requires the repo owner.
+*                                @usrivastava92
+
+# ── Release & CI plumbing ────────────────────────────────────────────────────
+/.github/                        @usrivastava92
+/.github/workflows/              @usrivastava92
+/.github/workflows/release.yml   @usrivastava92
+/.github/workflows/ci.yml        @usrivastava92
+/.github/CODEOWNERS              @usrivastava92
+
+# ── semantic-release / commitlint / husky ────────────────────────────────────
+/.releaserc.json                 @usrivastava92
+/commitlint.config.ts            @usrivastava92
+/.husky/                         @usrivastava92
+
+# ── Release scripts & helpers ────────────────────────────────────────────────
+/bin/                            @usrivastava92
+/bin/release                     @usrivastava92
+/scripts/                        @usrivastava92
+/scripts/render-homebrew-cask.mjs @usrivastava92
+
+# ── Build / packaging config ─────────────────────────────────────────────────
+/package.json                    @usrivastava92
+/package-lock.json               @usrivastava92
+/electron-builder*               @usrivastava92
+/tsconfig*.json                  @usrivastava92
+/vite.config.ts                  @usrivastava92

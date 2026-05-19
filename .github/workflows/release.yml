@@ -1,21 +1,30 @@
 name: Release
 
-# Triggered on every push to main and via workflow_dispatch.
+# Manually-triggered release pipeline.
 #
-# Job 1 (build-macos): runs semantic-release --dry-run to find out if this
-#   push warrants a new version. If yes, patches package.json with the next
-#   version, builds the macOS DMG + ZIP, and uploads them as workflow artifacts.
+# Releases used to fire on every push to `main`, which produced a new
+# GitHub Release per commit. They are now manual: batch up commits on `main`
+# and trigger this workflow when you want to cut a release. The recommended
+# way to do so is via the `bin/release` script (or `npm run release`), which
+# previews the next version locally and then dispatches this workflow.
 #
-# Job 2 (release): runs the real semantic-release, downloads the DMG + ZIP artifacts,
-#   and attaches them to the GitHub Release.
+# Job 1 (build-macos): runs semantic-release --dry-run to find out if the
+#   selected ref warrants a new version. If yes, patches package.json with the
+#   next version, builds the macOS DMG + ZIP, and uploads them as workflow
+#   artifacts.
+#
+# Job 2 (release): runs the real semantic-release, downloads the DMG + ZIP
+#   artifacts, and attaches them to the GitHub Release.
 #
 # GITHUB_TOKEN is provided automatically by GitHub Actions — no secret needed.
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Optional note for this manual release (shown in the run summary).'
+        required: false
+        default: ''
 
 concurrency:
   group: release-${{ github.ref }}
@@ -24,15 +33,56 @@ concurrency:
 permissions:
   contents: write
 
+# Comma-separated GitHub usernames that are allowed to trigger this workflow.
+# This is a fast-fail "first line" check — the real, GitHub-enforced gate is
+# the `environment: production` on each job, which requires an approver
+# configured in repo Settings → Environments → production.
+env:
+  RELEASE_ALLOWED_ACTORS: 'usrivastava92'
+
 jobs:
+  # ── Job 0: actor allow-list preflight ────────────────────────────────────
+  # Cheap, immediate check so an unauthorized dispatch fails in seconds
+  # instead of sitting in the environment approvals queue.
+  authorize:
+    name: Authorize actor
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check triggering actor against allow-list
+        env:
+          ACTOR: ${{ github.triggering_actor }}
+          ALLOWED: ${{ env.RELEASE_ALLOWED_ACTORS }}
+        run: |
+          echo "Triggered by: $ACTOR"
+          echo "Allow-list:   $ALLOWED"
+          # Comma- or whitespace-separated list match.
+          if printf '%s' ",$ALLOWED," | tr -d ' ' | grep -q ",${ACTOR},"; then
+            echo "✓ $ACTOR is authorized to trigger releases."
+          else
+            echo "✗ $ACTOR is NOT in RELEASE_ALLOWED_ACTORS." >&2
+            echo "  Update the allow-list in .github/workflows/release.yml" >&2
+            echo "  if this user should be able to cut releases." >&2
+            exit 1
+          fi
+
   # ── Job 1: build macOS artifacts ──────────────────────────────────────────
   build-macos:
     name: Build macOS artifacts
     runs-on: macos-latest
+    needs: authorize
+    # GitHub-enforced gate: this job will not start until a reviewer configured
+    # on the `production` environment (Settings → Environments → production)
+    # clicks "Approve and run". Environment secrets (e.g. HOMEBREW_TAP_TOKEN)
+    # should live on this environment so they cannot leak to unapproved runs.
+    environment: production
     outputs:
       next-version: ${{ steps.dry-run.outputs.version }}
       will-release: ${{ steps.dry-run.outputs.will_release }}
     steps:
+      - name: Record trigger reason
+        if: ${{ inputs.reason != '' }}
+        run: echo "Manual release reason — ${{ inputs.reason }}" >> "$GITHUB_STEP_SUMMARY"
+
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
@@ -114,6 +164,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-macos
     if: needs.build-macos.outputs.will-release == 'true'
+    # Same hard gate as build-macos. In practice this job inherits the
+    # approval that was granted to build-macos within the same run, so you
+    # only have to approve once per release.
+    environment: production
     steps:
       - uses: actions/checkout@v6
         with:

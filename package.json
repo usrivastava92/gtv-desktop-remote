@@ -21,6 +21,8 @@
     "typecheck": "tsc --noEmit && tsc -p tsconfig.electron.json --noEmit",
     "reset:app": "node scripts/reset-app-state.mjs",
     "reset:app:dry-run": "node scripts/reset-app-state.mjs --dry-run",
+    "release": "bin/release",
+    "release:dry-run": "bin/release --dry-run",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
