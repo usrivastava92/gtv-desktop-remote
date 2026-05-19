@@ -525,6 +525,20 @@ function App() {
     return nextBootstrap;
   }
 
+  async function refreshUpdaterStatusInBackground() {
+    try {
+      const nextStatus = await getDesktopApi().checkForUpdatesInBackground();
+      setUpdaterStatus(nextStatus);
+    } catch (error) {
+      setUpdaterStatus((current) => ({
+        ...current,
+        inProgress: false,
+        stage: 'failed',
+        message: (error as Error).message || 'Update check failed.',
+      }));
+    }
+  }
+
   async function handleScanDevices(
     silent = false,
     devicesSource: SavedDevice[] = bootstrap.devices,
@@ -617,6 +631,36 @@ function App() {
       setSelectedDeviceKey(`saved:${activeSavedDevice.id}`);
     }
   }, [activeSavedDevice, selectedDeviceKey]);
+
+  useEffect(() => {
+    if (!bridgeReady || currentView !== 'devices') {
+      return;
+    }
+
+    void refreshUpdaterStatusInBackground();
+  }, [bridgeReady, currentView]);
+
+  useEffect(() => {
+    if (!bridgeReady) {
+      return;
+    }
+
+    function syncUpdaterOnForeground() {
+      if (document.visibilityState !== 'visible' || currentView !== 'devices') {
+        return;
+      }
+
+      void refreshUpdaterStatusInBackground();
+    }
+
+    window.addEventListener('focus', syncUpdaterOnForeground);
+    document.addEventListener('visibilitychange', syncUpdaterOnForeground);
+
+    return () => {
+      window.removeEventListener('focus', syncUpdaterOnForeground);
+      document.removeEventListener('visibilitychange', syncUpdaterOnForeground);
+    };
+  }, [bridgeReady, currentView]);
 
   useEffect(() => {
     if (pairingReady) {

@@ -34,11 +34,13 @@ interface UpdateState {
 const RELEASE_OWNER = 'usrivastava92';
 const RELEASE_REPO = 'gtv-desktop-remote';
 const CHECK_TIMEOUT_MS = 15_000;
+const BACKGROUND_CHECK_DEBOUNCE_MS = 15 * 60 * 1_000;
 const DEV_UPDATER_ENABLED = process.env.GTV_UPDATER_DEV === '1';
 const ROLLBACK_DIR_NAME = 'rollback';
 
 let cachedRelease: ReleasePayload | undefined;
 let cachedAsset: ReleaseAsset | undefined;
+let activeBackgroundCheck: Promise<void> | undefined;
 
 const updaterStatus: UpdaterStatus = {
   inProgress: false,
@@ -403,6 +405,52 @@ async function checkForMacUpdate() {
 }
 
 export async function checkForUpdatesInBackground() {
+  if (activeBackgroundCheck) {
+    await activeBackgroundCheck;
+    return await getUpdaterStatus();
+  }
+
+  const lastCheckedAt = updaterStatus.lastCheckedAt
+    ? Date.parse(updaterStatus.lastCheckedAt)
+    : Number.NaN;
+  const shouldDebounce =
+    Number.isFinite(lastCheckedAt) && Date.now() - lastCheckedAt < BACKGROUND_CHECK_DEBOUNCE_MS;
+
+  if (shouldDebounce) {
+    return await getUpdaterStatus();
+  }
+
+  activeBackgroundCheck = (async () => {
+    try {
+      await checkForMacUpdate();
+    } catch (error) {
+      await logError('updater', 'Update check failed', error);
+      setUpdaterStatus({
+        inProgress: false,
+        stage: 'failed',
+        progressPercent: undefined,
+        etaSeconds: undefined,
+        updateAvailable: false,
+        updateInstallable: false,
+        message: 'Update check failed. See logs for details.',
+      });
+    }
+  })();
+
+  try {
+    await activeBackgroundCheck;
+  } finally {
+    activeBackgroundCheck = undefined;
+  }
+
+  return await getUpdaterStatus();
+}
+
+export async function checkForUpdatesManually() {
+  if (activeBackgroundCheck) {
+    await activeBackgroundCheck;
+  }
+
   try {
     await checkForMacUpdate();
   } catch (error) {
@@ -417,10 +465,7 @@ export async function checkForUpdatesInBackground() {
       message: 'Update check failed. See logs for details.',
     });
   }
-}
 
-export async function checkForUpdatesManually() {
-  await checkForUpdatesInBackground();
   return await getUpdaterStatus();
 }
 

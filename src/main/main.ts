@@ -367,6 +367,7 @@ if (!hasSingleInstanceLock) {
   });
 
   app.on('activate', () => {
+    void checkForUpdatesInBackground();
     void showWindow();
   });
 }
@@ -408,6 +409,7 @@ function registerIpc() {
   );
   ipcMain.handle('device:capabilities', async () => adapter.getCapabilities());
   ipcMain.handle('updater:check', async () => checkForUpdatesManually());
+  ipcMain.handle('updater:checkBackground', async () => checkForUpdatesInBackground());
   ipcMain.handle('updater:status', async () => getUpdaterStatus());
   ipcMain.handle('updater:install', async () => installAvailableUpdate());
   ipcMain.handle('updater:rollback', async () => rollbackToPreviousVersion());
