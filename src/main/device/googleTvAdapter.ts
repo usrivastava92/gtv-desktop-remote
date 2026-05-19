@@ -129,13 +129,20 @@ export class GoogleTvAdapter implements DeviceAdapter {
     });
     if (updatedDevicesChanged) {
       await writeDevices(updatedDevices);
-      // Migrate any IP-keyed cert files to MAC-keyed cert files for updated devices
+      // Preserve pairing state when the TV identity is stable but its IP changed.
       for (let i = 0; i < savedDevices.length; i++) {
         const old = savedDevices[i];
         const updated = updatedDevices[i];
-        if (old.host !== updated.host && updated.macAddress) {
-          await androidTvRemoteBridge.migrateCerts(old.host, updated.macAddress);
+        if (old.host === updated.host) {
+          continue;
         }
+
+        if (updated.macAddress) {
+          await androidTvRemoteBridge.migrateCerts(old.host, updated.macAddress);
+          continue;
+        }
+
+        await androidTvRemoteBridge.migratePersistedCerts(old.host, updated.host);
       }
     }
 
