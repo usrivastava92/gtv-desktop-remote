@@ -19,6 +19,7 @@ import type {
 // the call sites; the helpers now live under unit tests that run in the
 // jsdom + RTL harness from PR-renderer-infra.
 import { useDeviceScanner } from './hooks/useDeviceScanner';
+import { usePairingFlow } from './hooks/usePairingFlow';
 import { useUpdaterStatus } from './hooks/useUpdaterStatus';
 import {
   derivePairedNetworkDevices,
@@ -337,8 +338,15 @@ function App() {
     },
   });
   const [selectedDeviceKey, setSelectedDeviceKey] = useState('');
-  const [pairCode, setPairCode] = useState('');
-  const [pairingDeviceId, setPairingDeviceId] = useState('');
+  const {
+    pairCode,
+    setPairCode,
+    pairingDeviceId,
+    setPairingDeviceId,
+    pairingReady,
+    setPairingReady,
+    pairCodeInputRef,
+  } = usePairingFlow();
   const [textInput, setTextInput] = useState('');
   const [textInputOpen, setTextInputOpen] = useState(false);
   const [capabilities, setCapabilities] = useState<DeviceCapabilities>({
@@ -350,7 +358,6 @@ function App() {
   const { discoveredDevices, setDiscoveredDevices, scanning, handleScanDevices } =
     useDeviceScanner();
   const [bridgeReady, setBridgeReady] = useState(false);
-  const [pairingReady, setPairingReady] = useState(false);
   const [assistantStatus, setAssistantStatus] = useState<'idle' | 'active' | 'error'>('idle');
   const [dismissedUpdateVersion, setDismissedUpdateVersion] = useState<string | null>(null);
   const [dismissedRollbackVersion, setDismissedRollbackVersion] = useState<string | null>(null);
@@ -372,7 +379,6 @@ function App() {
     dismissedRollbackVersion,
     setDismissedRollbackVersion
   );
-  const pairCodeInputRef = useRef<HTMLInputElement>(null);
   const commandQueueRef = useRef<QueuedCommandBatch[]>([]);
   const queuedCommandCountRef = useRef(0);
   const isProcessingQueueRef = useRef(false);
