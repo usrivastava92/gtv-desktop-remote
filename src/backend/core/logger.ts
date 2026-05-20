@@ -19,10 +19,21 @@ export interface LogEntry {
   readonly details?: unknown;
 }
 
+/**
+ * Synchronous-by-contract on purpose. Every mature TS logger (winston, pino,
+ * bunyan, etc.) exposes synchronous methods even when the underlying transport
+ * is async — the alternative forces every caller to either `await` or `void`
+ * the call, both of which become unergonomic at hundreds of call sites.
+ *
+ * Implementations whose underlying transport IS async (e.g. `createNodeLogger`
+ * which appends to disk) are responsible for fire-and-forgetting the inner
+ * promise themselves. That keeps the noisy ceremony confined to the
+ * composition layer where it belongs.
+ */
 export interface ILogger {
-  info(scope: string, message: string, details?: unknown): Promise<void> | void;
-  warn(scope: string, message: string, details?: unknown): Promise<void> | void;
-  error(scope: string, message: string, details?: unknown): Promise<void> | void;
+  info(scope: string, message: string, details?: unknown): void;
+  warn(scope: string, message: string, details?: unknown): void;
+  error(scope: string, message: string, details?: unknown): void;
 }
 
 /** A logger that swallows everything — safe default for unit tests. */
