@@ -2,28 +2,19 @@
 /**
  * Headless TV communication test script.
  *
- * Loads the paired device + certs from disk, opens a TLS connection to the
- * TV, and runs a sequence of operations. Reports every inbound message from
- * the TV so you can verify it's responding correctly.
+ * Loads the paired device + certs from disk and runs a sequence of remote
+ * commands, reconnecting per-command (matching the production app behaviour).
+ * Reports every inbound message so you can verify the TV is responding.
  *
  * Usage:
- *   node scripts/tv-test.mjs              # uses first saved device
- *   node scripts/tv-test.mjs 192.168.1.9  # explicit host
+ *   npm run build && node scripts/tv-test.mjs              # first paired device
+ *   npm run build && node scripts/tv-test.mjs 192.168.1.9  # explicit host
  *
- * Requires: npm run build (so dist-electron/ exists for the protobuf codec)
- *
- * Operations performed:
- *   1. TLS connect + protocol handshake
- *   2. Send HOME key
- *   3. Wait 1s → send BACK key
- *   4. Wait 1s → send UP arrow
- *   5. Wait 1s → send DOWN arrow
- *   6. Wait 1s → send SELECT
- *   7. Wait 2s → disconnect
- *
- * Watch your TV screen — each command should cause a visible reaction.
+ * The TV closes the remote protocol connection after each key injection.
+ * This script reconnects per-command — exactly how the production app works.
  */
 
+import { createRequire } from 'node:module';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -32,6 +23,29 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
+const require = createRequire(import.meta.url);
+
+// ── Load compiled codecs ──────────────────────────────────────────────────────
+
+const DIST = path.join(ROOT, 'dist-electron');
+if (!fs.existsSync(DIST)) {
+  console.error('\n❌ dist-electron/ not found. Run: npm run build');
+  process.exit(1);
+}
+
+const {
+  createRemoteKeyInject,
+  createRemoteConfigure,
+  createRemoteSetActive,
+  createRemotePingResponse,
+  parseRemoteMessage,
+} = require(path.join(DIST, 'backend/protocol/androidtv/remote.js'));
+
+const { parseFramedBuffer } = require(
+  path.join(DIST, 'backend/transport/framing/frameParser.js')
+);
+
+const REMOTE_FEATURES = 1;
 
 // ── Load saved device + certs ─────────────────────────────────────────────────
 
@@ -40,103 +54,135 @@ const DEVICES_FILE = path.join(USER_DATA, 'devices.json');
 const CERTS_DIR = path.join(USER_DATA, 'androidtvremote');
 
 if (!fs.existsSync(DEVICES_FILE)) {
-  console.error(`❌ No devices.json found at ${DEVICES_FILE}`);
-  console.error('   Pair a device in the app first, then run this script.');
+  console.error(`❌ No devices.json at ${DEVICES_FILE} — pair a device in the app first.`);
   process.exit(1);
 }
 
 const { devices } = JSON.parse(fs.readFileSync(DEVICES_FILE, 'utf8'));
 const targetHost = process.argv[2];
 const device = targetHost
-  ? devices.find(d => d.host === targetHost)
-  : devices.find(d => d.isPaired);
+  ? devices.find((d) => d.host === targetHost)
+  : devices.find((d) => d.isPaired);
 
 if (!device) {
-  console.error(`❌ No paired device found${targetHost ? ` for host ${targetHost}` : ''}.`);
-  console.error('   Available:', devices.map(d => `${d.name} (${d.host})`).join(', '));
+  console.error(`❌ No paired device found. Available: ${devices.map((d) => `${d.name} (${d.host})`).join(', ')}`);
   process.exit(1);
 }
 
 const certPath = path.join(CERTS_DIR, `${device.host}.cert.pem`);
-const keyPath = path.join(CERTS_DIR, `${device.host}.key.pem`);
-
+const keyPath  = path.join(CERTS_DIR, `${device.host}.key.pem`);
 if (!fs.existsSync(certPath) || !fs.existsSync(keyPath)) {
-  console.error(`❌ Cert files not found for ${device.host}`);
-  console.error(`   Expected: ${certPath}`);
+  console.error(`❌ Cert files not found for ${device.host} — try resetting + re-pairing.`);
   process.exit(1);
 }
 
 const cert = fs.readFileSync(certPath, 'utf8');
-const key = fs.readFileSync(keyPath, 'utf8');
+const key  = fs.readFileSync(keyPath, 'utf8');
 
-console.log(`\n📺 Target: ${device.name} (${device.host})`);
-console.log(`🔐 Cert:   ${certPath}`);
+console.log(`\n📺 ${device.name}  (${device.host})`);
+console.log(`🔐 ${certPath}\n`);
 
-// ── Load compiled protobuf codecs from dist-electron ─────────────────────────
+// ── One-shot command sender ───────────────────────────────────────────────────
 
-import { createRequire } from 'node:module';
-const require = createRequire(import.meta.url);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const DIST = path.join(ROOT, 'dist-electron');
-if (!fs.existsSync(DIST)) {
-  console.error(`\n❌ dist-electron/ not found. Run: npm run build`);
-  process.exit(1);
+/**
+ * Open a fresh TLS connection, complete the remoteConfigure handshake, send
+ * one command frame, wait for the TV's acknowledgement, then disconnect.
+ * Returns an array of decoded inbound messages for logging.
+ */
+function sendOneCommand(label, frame, timeoutMs = 8000) {
+  return new Promise((resolve, reject) => {
+    const inbound = [];
+    let buffer = Buffer.alloc(0);
+    let handshakeDone = false;
+    let commandSent = false;
+    let settled = false;
+
+    const finish = (err) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      socket.destroy();
+      if (err) reject(err);
+      else resolve(inbound);
+    };
+
+    const timer = setTimeout(
+      () => finish(new Error(`Timeout (${label}) — TV did not complete handshake in ${timeoutMs}ms`)),
+      timeoutMs
+    );
+
+    const socket = tls.connect({
+      host: device.host,
+      port: 6466,
+      cert,
+      key,
+      rejectUnauthorized: false,
+    });
+
+    socket.on('data', (chunk) => {
+      buffer = Buffer.concat([buffer, chunk]);
+      const { frames, remaining, error } = parseFramedBuffer(buffer);
+      buffer = Buffer.from(remaining);
+
+      if (error) { finish(new Error(`Frame parse error: ${error.message}`)); return; }
+
+      for (const f of frames) {
+        let msg;
+        try { msg = parseRemoteMessage(f); }
+        catch (e) {
+          inbound.push({ type: 'parseError', hex: f.toString('hex').slice(0, 32), err: e.message });
+          continue;
+        }
+
+        if (msg.remoteConfigure) {
+          const info = msg.remoteConfigure.deviceInfo ?? {};
+          inbound.push({ type: 'remoteConfigure', model: info.model, vendor: info.vendor, appVersion: info.appVersion });
+          socket.write(createRemoteConfigure(REMOTE_FEATURES));
+          handshakeDone = true;
+          // Send the command immediately after configure reply
+          socket.write(frame);
+          commandSent = true;
+          continue;
+        }
+
+        if (msg.remotePingRequest?.val1 !== undefined) {
+          socket.write(createRemotePingResponse(msg.remotePingRequest.val1));
+          inbound.push({ type: 'ping', val1: msg.remotePingRequest.val1 });
+          continue;
+        }
+
+        if (msg.remoteSetActive) {
+          socket.write(createRemoteSetActive(REMOTE_FEATURES));
+          inbound.push({ type: 'remoteSetActive' });
+          // Ack received after command → done
+          if (commandSent) { setTimeout(() => finish(null), 150); }
+          continue;
+        }
+
+        if (msg.remoteImeKeyInject) {
+          const app = msg.remoteImeKeyInject.appInfo?.appPackage;
+          inbound.push({ type: 'remoteImeKeyInject', app });
+          finish(null);
+          continue;
+        }
+
+        if (msg.remoteStart) {
+          inbound.push({ type: 'remoteStart', started: msg.remoteStart.started });
+          continue;
+        }
+
+        inbound.push({ type: 'unknown', hex: f.toString('hex').slice(0, 32) });
+      }
+    });
+
+    socket.on('close', () => finish(null));
+    socket.on('error', (e) => finish(e));
+    socket.setTimeout(timeoutMs);
+    socket.on('timeout', () => finish(new Error(`Socket timeout (${label})`)));
+  });
 }
-
-const { createRemoteKeyInject, createRemoteConfigure, createRemoteSetActive, createRemotePingResponse, parseRemoteMessage } =
-  require(path.join(DIST, 'backend/protocol/androidtv/remote.js'));
-const { parseFramedBuffer } =
-  require(path.join(DIST, 'backend/transport/framing/frameParser.js'));
-
-// ── Varint frame parser (inline — avoids module resolution issues) ─────────────
-
-function readVarint(buf, offset) {
-  let result = 0, shift = 0;
-  while (offset < buf.length) {
-    const byte = buf[offset++];
-    result |= (byte & 0x7f) << shift;
-    shift += 7;
-    if (!(byte & 0x80)) return { value: result, offset };
-  }
-  return null;
-}
-
-function encodeVarint(value) {
-  const bytes = [];
-  while (value > 0x7f) {
-    bytes.push((value & 0x7f) | 0x80);
-    value >>>= 7;
-  }
-  bytes.push(value & 0x7f);
-  return Buffer.from(bytes);
-}
-
-function frameBuffer(payload) {
-  return Buffer.concat([encodeVarint(payload.length), payload]);
-}
-
-function parseFrames(buffer) {
-  const frames = [];
-  let offset = 0;
-  while (offset < buffer.length) {
-    const startOffset = offset;
-    const varint = readVarint(buffer, offset);
-    if (!varint) break;
-    const frameEnd = varint.offset + varint.value;
-    if (frameEnd > buffer.length) {
-      // incomplete frame — wait for more data
-      offset = startOffset;
-      break;
-    }
-    frames.push(buffer.slice(varint.offset, frameEnd));
-    offset = frameEnd;
-  }
-  return { frames, remaining: buffer.slice(offset) };
-}
-
-// ── Remote features (must match what the app sends) ───────────────────────────
-
-const REMOTE_FEATURES = 1;
 
 // ── Test sequence ─────────────────────────────────────────────────────────────
 
@@ -150,149 +196,34 @@ const COMMANDS = [
   { command: 'select', label: '✅ SELECT',  delayAfterMs: 1500 },
 ];
 
-const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+console.log(`🚀 Running ${COMMANDS.length} commands (reconnect per command)\n`);
 
-let rxCount = 0;
-let txCount = 0;
-let protocolReady = false;
+let passed = 0;
+let failed = 0;
 
-console.log(`\n🔌 Connecting to ${device.host}:6466...\n`);
-
-const socket = tls.connect({
-  host: device.host,
-  port: 6466,
-  cert,
-  key,
-  rejectUnauthorized: false,
-});
-
-let buffer = Buffer.alloc(0);
-
-function send(payload) {
-  socket.write(payload);
-  txCount++;
-}
-
-socket.on('secureConnect', () => {
-  console.log('✅ TLS handshake complete\n');
-});
-
-socket.on('data', (chunk) => {
-  buffer = Buffer.concat([buffer, chunk]);
-  const { frames, remaining, error } = parseFramedBuffer(buffer);
-  buffer = Buffer.from(remaining);
-  if (error) {
-    console.error(`\n❌ Frame parse error: ${error.message}`);
-    socket.destroy();
-    return;
-  }
-
-  for (const frame of frames) {
-    rxCount++;
-    try {
-      const msg = parseRemoteMessage(frame);
-      const key = Object.keys(msg).find(k => msg[k] !== undefined && msg[k] !== null);
-
-      if (msg.remoteConfigure) {
-        const info = msg.remoteConfigure.deviceInfo ?? {};
-        console.log(`📥 [rx-${rxCount}] remoteConfigure — model: ${info.model ?? '?'}, vendor: ${info.vendor ?? '?'}, appVersion: ${info.appVersion ?? '?'}`);
-        send(createRemoteConfigure(REMOTE_FEATURES));
-        protocolReady = true;
-        console.log('✅ Protocol handshake complete — TV is ready\n');
-        socket.emit('protocol-ready');
-        return;
-      }
-
-      if (msg.remotePingRequest?.val1 !== undefined) {
-        send(createRemotePingResponse(msg.remotePingRequest.val1));
-        console.log(`📥 [rx-${rxCount}] ping ↔ pong (val1=${msg.remotePingRequest.val1})`);
-        return;
-      }
-
-      if (msg.remoteSetActive) {
-        send(createRemoteSetActive(REMOTE_FEATURES));
-        console.log(`📥 [rx-${rxCount}] remoteSetActive → replied`);
-        return;
-      }
-
-      if (msg.remoteStart) {
-        console.log(`📥 [rx-${rxCount}] remoteStart — TV is ${msg.remoteStart.started ? 'ON' : 'OFF'}`);
-        return;
-      }
-
-      if (msg.remoteImeKeyInject) {
-        console.log(`📥 [rx-${rxCount}] remoteImeKeyInject — app: ${msg.remoteImeKeyInject.appInfo?.appPackage ?? '?'}`);
-        return;
-      }
-
-      if (msg.remoteImeBatchEdit) {
-        console.log(`📥 [rx-${rxCount}] remoteImeBatchEdit`);
-        return;
-      }
-
-      if (msg.remoteVoiceBegin) {
-        console.log(`📥 [rx-${rxCount}] remoteVoiceBegin — sessionId: ${msg.remoteVoiceBegin.sessionId}`);
-        return;
-      }
-
-      if (msg.remoteVoiceEnd) {
-        console.log(`📥 [rx-${rxCount}] remoteVoiceEnd`);
-        return;
-      }
-
-      // Unknown message — log raw hex for diagnosis but don't close
-      console.log(`📥 [rx-${rxCount}] unknown field, raw hex: ${frame.toString('hex')}`);
-    } catch (e) {
-      console.log(`📥 [rx-${rxCount}] <parse error: ${e.message}> hex: ${frame.toString('hex').slice(0, 40)}`);
-    }
-  }
-});
-
-socket.on('error', (err) => {
-  console.error(`\n❌ Socket error: ${err.message}`);
-  process.exit(1);
-});
-
-socket.on('close', () => {
-  console.log(`\n🔌 Connection closed. tx=${txCount} rx=${rxCount}`);
-  process.exit(0);
-});
-
-socket.on('timeout', () => {
-  console.error('\n❌ Connection timed out');
-  socket.destroy();
-  process.exit(1);
-});
-
-socket.setTimeout(30_000);
-
-// ── Wait for protocol ready then run the test sequence ────────────────────────
-
-socket.once('protocol-ready', async () => {
-  console.log('🚀 Starting test sequence...\n');
-
-  // Keep-alive: send remoteSetActive every 3s so TV doesn't close connection
-  const keepAlive = setInterval(() => {
-    if (!socket.destroyed) {
-      socket.write(createRemoteSetActive(REMOTE_FEATURES));
-    }
-  }, 3_000);
+for (const { command, label, delayAfterMs } of COMMANDS) {
+  const frame = createRemoteKeyInject(command);
+  process.stdout.write(`  ${label} ... `);
 
   try {
-    for (const { command, label, delayAfterMs } of COMMANDS) {
-      if (socket.destroyed) break;
-      const frame = createRemoteKeyInject(command);
-      send(frame);
-      console.log(`📤 [tx-${txCount}] ${label}`);
-      await sleep(delayAfterMs);
-    }
-
-    console.log('\n✅ Test sequence complete.');
-    console.log(`   Sent ${txCount} frames, received ${rxCount} frames`);
-    console.log('   Disconnecting in 1s...\n');
-    await sleep(1000);
-  } finally {
-    clearInterval(keepAlive);
-    socket.destroy();
+    const msgs = await sendOneCommand(label, frame);
+    const appPkg = msgs.find((m) => m.type === 'remoteImeKeyInject')?.app;
+    const acked  = msgs.some((m) => ['remoteImeKeyInject','remoteSetActive'].includes(m.type));
+    const detail = appPkg ? ` app: ${appPkg}` : ` ${msgs.map((m) => m.type).join(', ')}`;
+    console.log(acked ? `✅${detail}` : `⚠️  sent, no ack —${detail}`);
+    passed++;
+  } catch (err) {
+    console.log(`❌  ${err.message}`);
+    failed++;
   }
-});
+
+  await sleep(delayAfterMs);
+}
+
+console.log(`
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ${passed} passed  ${failed} failed
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`);
+
+process.exit(failed > 0 ? 1 : 0);
