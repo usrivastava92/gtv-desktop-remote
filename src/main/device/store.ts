@@ -1,52 +1,31 @@
-import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
 import { app } from 'electron';
 
+import { createNodeFileSystem } from '../../backend/core/fileSystem';
+import { DeviceRepository } from '../../backend/devices/deviceRepository';
 import type { SavedDevice } from '../../shared/types';
 
-interface PersistedData {
-  devices?: SavedDevice[];
-}
-
-const DEFAULT_DATA: PersistedData = {
-  devices: [],
-};
-
-function getStorePath(): string {
-  return path.join(app.getPath('userData'), 'devices.json');
-}
+// Persistence is delegated to DeviceRepository (PR-4). The module-level
+// helpers below are preserved as thin wrappers so every existing call site
+// (GoogleTvAdapter, IPC handlers, etc.) keeps working unchanged.
+const repository = new DeviceRepository(createNodeFileSystem(), {
+  getCertStateDir: () => app.getPath('userData'),
+  getAppDataPath: (...segments) => path.join(app.getPath('userData'), ...segments),
+});
 
 export function getDeviceStorePath(): string {
-  return getStorePath();
+  return repository.storePath();
 }
 
 export async function readDevices(): Promise<SavedDevice[]> {
-  try {
-    const raw = await fs.readFile(getStorePath(), 'utf8');
-    const parsed = JSON.parse(raw) as PersistedData;
-    return parsed.devices ?? [];
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      return [];
-    }
-
-    throw error;
-  }
+  return repository.read();
 }
 
 export async function writeDevices(devices: SavedDevice[]): Promise<void> {
-  const storePath = getStorePath();
-  await fs.mkdir(path.dirname(storePath), { recursive: true });
-  await fs.writeFile(storePath, JSON.stringify({ ...DEFAULT_DATA, devices }, null, 2), 'utf8');
+  await repository.write(devices);
 }
 
 export async function clearDeviceStore(): Promise<void> {
-  try {
-    await fs.rm(getStorePath(), { force: true });
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-      throw error;
-    }
-  }
+  await repository.clear();
 }
