@@ -32,9 +32,13 @@ if (!fs.existsSync(DIST)) {
 
 const {
   createRemoteKeyInject,
+  createRemoteKeyInjectRaw,
   createRemoteConfigure,
   createRemoteSetActive,
   createRemotePingResponse,
+  createRemoteVoiceBegin,
+  createRemoteVoicePayload,
+  createRemoteVoiceEnd,
   parseRemoteMessage,
 } = require(path.join(DIST, 'backend/protocol/androidtv/remote.js'));
 
@@ -110,7 +114,7 @@ const socket = tls.connect({
   rejectUnauthorized: false,
 });
 
-socket.setTimeout(10_000);
+socket.setTimeout(30_000); // extended for voice test (1s PCM + roundtrips)
 socket.on('timeout', () => {
   console.error('❌ Socket timeout');
   socket.destroy();
@@ -166,6 +170,19 @@ socket.on('data', (chunk) => {
       return;
     }
 
+    if (msg.remoteVoiceBegin) {
+      const sid = msg.remoteVoiceBegin.sessionId;
+      console.log(`  📥 remoteVoiceBegin — sessionId: ${sid}`);
+      socket.emit('voice-begin', sid);
+      return;
+    }
+
+    if (msg.remoteVoiceEnd) {
+      console.log(`  📥 remoteVoiceEnd`);
+      socket.emit('voice-end');
+      return;
+    }
+
     // Everything else (remoteImeKeyInject echo etc) — just note it
     const keys = Object.keys(msg).filter((k) => {
       const v = msg[k];
@@ -201,6 +218,66 @@ for (const { command, label, delayAfterMs } of COMMANDS) {
   }
 
   await sleep(delayAfterMs);
+}
+
+// ── Google Assistant voice test ───────────────────────────────────────────────
+
+console.log('\n🎤 Testing Google Assistant voice session...\n');
+
+// Register voice-begin listener BEFORE sending the key
+const voiceBeginPromise = new Promise((resolve, reject) => {
+  const timer = setTimeout(
+    () => reject(new Error('Timeout: TV did not open voice session within 8s')),
+    8000
+  );
+  socket.once('voice-begin', (sessionId) => { clearTimeout(timer); resolve(sessionId); });
+});
+
+// Navigate to home first so assistant is available
+socket.write(createRemoteKeyInject('home'));
+await sleep(1500);
+
+// Try KEYCODE_SEARCH START_LONG (matches production app)
+process.stdout.write('  🔍 ASSISTANT press (KEYCODE_SEARCH START_LONG) ... ');
+socket.write(createRemoteKeyInjectRaw('KEYCODE_SEARCH', 'START_LONG'));
+console.log('✅ sent');
+
+let voiceSessionId;
+try {
+  voiceSessionId = await voiceBeginPromise;
+  console.log(`  ✅ remoteVoiceBegin confirmed — sessionId: ${voiceSessionId}`);
+  passed++;
+} catch (err) {
+  // Voice session timeout is not a hard failure — some TVs open text search
+  // instead of voice assistant for KEYCODE_SEARCH (firmware/config dependent).
+  // The production app also has this timeout; it's expected on some devices.
+  console.log(`  ⚠️  ${err.message} (TV may have opened text search instead of voice)`);
+  socket.write(createRemoteKeyInjectRaw('KEYCODE_SEARCH', 'END_LONG'));
+  console.log('  ℹ️  Voice test skipped — run from app UI to verify voice on this TV');
+}
+
+if (voiceSessionId !== undefined) {
+  // Acknowledge the voice session
+  socket.write(createRemoteVoiceBegin(voiceSessionId));
+  console.log(`  📤 createRemoteVoiceBegin(${voiceSessionId}) sent`);
+
+  // Send 1 second of silence (8kHz mono 16-bit = 8000 samples/s × 2 bytes)
+  process.stdout.write('  🔊 Sending 1s silence PCM (5 × 200ms chunks) ... ');
+  const CHUNK_SIZE = 1600; // 200ms at 8kHz mono 16-bit
+  const silence = Buffer.alloc(CHUNK_SIZE * 2, 0);
+  for (let i = 0; i < 5; i++) {
+    socket.write(createRemoteVoicePayload(voiceSessionId, silence));
+    await sleep(200);
+  }
+  console.log('✅ sent');
+  passed++;
+
+  // End the voice session
+  await sleep(300);
+  socket.write(createRemoteVoiceEnd(voiceSessionId));
+  socket.write(createRemoteKeyInjectRaw('KEYCODE_SEARCH', 'END_LONG'));
+  console.log('  📤 Voice session ended + END_LONG sent');
+  await sleep(500);
 }
 
 console.log(`
