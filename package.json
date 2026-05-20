@@ -13,6 +13,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "concurrently -k \"vite\" \"tsc -p tsconfig.electron.json --watch --preserveWatchOutput\" \"wait-on tcp:5173 file:dist-electron/main/main.js file:dist-electron/main/preload.js && electron .\"",
+    "dev:capture": "GTV_CAPTURE=1 concurrently -k \"vite\" \"tsc -p tsconfig.electron.json --watch --preserveWatchOutput\" \"wait-on tcp:5173 file:dist-electron/main/main.js file:dist-electron/main/preload.js && GTV_CAPTURE=1 electron .\"",
     "clean": "rm -rf dist dist-electron coverage release",
     "build": "tsc -p tsconfig.electron.json && vite build",
     "rebuild": "npm run clean && npm run build",
