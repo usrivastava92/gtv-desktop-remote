@@ -603,17 +603,20 @@ async function checkForMacUpdate() {
   const latestVersion = normalizeVersion(release.tag_name);
   const currentVersion = normalizeVersion(app.getVersion());
 
+  // PR-6c: 2 call sites migrated from setUpdaterStatus(partial) to
+  // dispatchUpdaterEvent({ type: 'check-completed-no-update', ... }). The
+  // reducer's stage/progress/UX fields exactly match the previous inline
+  // values (validated by the round-trip reducer tests below), so this is
+  // a pure refactor with zero behavior change. `lastCheckedAt` was set in
+  // the prologue; we re-read the current value off updaterStatus to honor
+  // the existing serialization timing.
   if (compareVersions(latestVersion, currentVersion) <= 0) {
     cachedRelease = undefined;
     cachedAsset = undefined;
-    setUpdaterStatus({
-      inProgress: false,
-      stage: 'completed',
+    dispatchUpdaterEvent({
+      type: 'check-completed-no-update',
       latestVersion,
-      progressPercent: 100,
-      etaSeconds: 0,
-      updateAvailable: false,
-      updateInstallable: false,
+      lastCheckedAt: updaterStatus.lastCheckedAt ?? new Date().toISOString(),
       message: `You're up to date (${currentVersion}).`,
     });
     return;
@@ -623,14 +626,10 @@ async function checkForMacUpdate() {
   if (state.skippedVersion && normalizeVersion(state.skippedVersion) === latestVersion) {
     cachedRelease = undefined;
     cachedAsset = undefined;
-    setUpdaterStatus({
-      inProgress: false,
-      stage: 'completed',
+    dispatchUpdaterEvent({
+      type: 'check-completed-no-update',
       latestVersion,
-      progressPercent: 100,
-      etaSeconds: 0,
-      updateAvailable: false,
-      updateInstallable: false,
+      lastCheckedAt: updaterStatus.lastCheckedAt ?? new Date().toISOString(),
       message: `Update ${latestVersion} was skipped.`,
     });
     return;
