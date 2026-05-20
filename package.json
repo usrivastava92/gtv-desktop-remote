@@ -13,7 +13,9 @@
   "license": "MIT",
   "scripts": {
     "dev": "concurrently -k \"vite\" \"tsc -p tsconfig.electron.json --watch --preserveWatchOutput\" \"wait-on tcp:5173 file:dist-electron/main/main.js file:dist-electron/main/preload.js && electron .\"",
+    "clean": "rm -rf dist dist-electron coverage",
     "build": "tsc -p tsconfig.electron.json && vite build",
+    "rebuild": "npm run clean && npm run build",
     "pack": "npm run build && electron-builder --dir --publish never",
     "dist:mac": "npm run build && electron-builder --mac dmg zip --publish never",
     "homebrew:cask": "node scripts/render-homebrew-cask.mjs",
