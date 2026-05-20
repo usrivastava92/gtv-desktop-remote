@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 
 import type { DiscoveredDevice } from '../../shared/types';
+import { record } from '../capture';
 
 interface ResolvedService {
   instanceName: string;
@@ -273,5 +274,19 @@ export async function discoverGoogleTvDevices(): Promise<DiscoveredDevice[]> {
     });
   }
 
-  return [...devices.values()].sort((left, right) => left.name.localeCompare(right.name));
+  const result = [...devices.values()].sort((left, right) => left.name.localeCompare(right.name));
+  record({
+    layer: 'discovery',
+    direction: 'rx',
+    event: 'discoverGoogleTvDevices',
+    data: result.map((d) => ({
+      id: d.id,
+      name: d.name,
+      host: d.host,
+      source: d.source,
+      macAddress: d.macAddress,
+    })),
+    meta: { count: result.length },
+  });
+  return result;
 }

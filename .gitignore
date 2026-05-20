@@ -17,4 +17,6 @@ graphify-out/*
 !graphify-out/graph.json
 !graphify-out/manifest.json
 
-**/**.logcoverage
+**/**.log
+coverage
+captures

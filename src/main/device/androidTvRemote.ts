@@ -12,6 +12,7 @@ import {
   type ITlsConnector,
 } from '../../backend/transport/tls/tlsConnector';
 import type { CommandDispatchRequest } from '../../shared/types';
+import { isCaptureEnabled, record, recordBuffer } from '../capture';
 import { createNodeLogger, getAppDataPath, logError } from '../logger';
 import { commandMetricsStore } from '../metrics';
 
@@ -210,7 +211,11 @@ class NativeRemoteClient {
 
   sendCommand(request: CommandDispatchRequest): void {
     const transport = this.getTransport();
-    const wroteImmediately = transport.send(createRemoteKeyInject(request.command));
+    const frame = createRemoteKeyInject(request.command);
+    if (isCaptureEnabled()) {
+      recordBuffer('remote', 'tx', 'sendCommand', frame, { command: request.command, id: request.id, host: this.host });
+    }
+    const wroteImmediately = transport.send(frame);
     commandMetricsStore.recordSocketWrite(request, {
       host: this.host,
       buffered: !wroteImmediately,
@@ -329,7 +334,13 @@ class NativeRemoteClient {
     }
 
     for (const frame of result.frames) {
+      if (isCaptureEnabled()) {
+        recordBuffer('transport', 'rx', 'inbound-frame', frame, { host: this.host });
+      }
       const message = parseRemoteMessage(frame);
+      if (isCaptureEnabled()) {
+        record({ layer: 'remote', direction: 'rx', event: 'parsed-message', data: message, meta: { host: this.host } });
+      }
       this.handleMessage(message);
     }
   }
@@ -486,6 +497,7 @@ export class AndroidTvRemoteBridge {
   }
 
   async startPairing(host: string, certKey?: string): Promise<Record<string, unknown> | undefined> {
+    record({ layer: 'pairing', direction: 'call', event: 'startPairing', meta: { host, certKey } });
     const session = await this.getSession(host, certKey);
 
     if (session.pairingReady) {
@@ -527,6 +539,7 @@ export class AndroidTvRemoteBridge {
   }
 
   async finishPairing(host: string, code: string, certKey?: string): Promise<void> {
+    record({ layer: 'pairing', direction: 'call', event: 'finishPairing', meta: { host, certKey, codeLength: code.length } });
     const session = await this.getSession(host, certKey);
     if (!session.pairingManager || !session.pairingComplete) {
       throw new Error('No pairing session is active for this device.');
@@ -547,6 +560,7 @@ export class AndroidTvRemoteBridge {
   }
 
   async connect(host: string, certKey?: string): Promise<Record<string, unknown> | undefined> {
+    record({ layer: 'transport', direction: 'call', event: 'connect', meta: { host, certKey } });
     const session = await this.getSession(host, certKey);
     session.remoteClient ??= new NativeRemoteClient(host, session.certs, this.tlsConnector);
 
@@ -633,6 +647,7 @@ export class AndroidTvRemoteBridge {
   }
 
   async startAssistantVoice(host: string, certKey?: string): Promise<number> {
+    record({ layer: 'voice', direction: 'call', event: 'startAssistantVoice', meta: { host } });
     const session = await this.getSession(host, certKey);
     session.remoteClient ??= new NativeRemoteClient(host, session.certs, this.tlsConnector);
     await session.remoteClient.connect();
@@ -645,6 +660,9 @@ export class AndroidTvRemoteBridge {
     chunk: Buffer,
     certKey?: string
   ): Promise<void> {
+    if (isCaptureEnabled()) {
+      recordBuffer('voice', 'tx', 'voiceChunk', chunk, { host, sessionId, byteLength: chunk.byteLength });
+    }
     const session = await this.getSession(host, certKey);
     session.remoteClient ??= new NativeRemoteClient(host, session.certs, this.tlsConnector);
     await session.remoteClient.connect();
@@ -652,6 +670,7 @@ export class AndroidTvRemoteBridge {
   }
 
   async stopAssistantVoice(host: string, sessionId: number, certKey?: string): Promise<void> {
+    record({ layer: 'voice', direction: 'call', event: 'stopAssistantVoice', meta: { host, sessionId } });
     const session = await this.getSession(host, certKey);
     session.remoteClient ??= new NativeRemoteClient(host, session.certs, this.tlsConnector);
     await session.remoteClient.connect();

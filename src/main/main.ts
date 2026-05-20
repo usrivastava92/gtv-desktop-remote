@@ -21,6 +21,7 @@ import type {
   UpdaterStatus,
 } from '../shared/types';
 
+import { captureIpc, closeCapture, initCapture } from './capture';
 import { GoogleTvAdapter } from './device/googleTvAdapter';
 import { getLoggerPath, logError, logInfo } from './logger';
 import { commandMetricsStore } from './metrics';
@@ -383,61 +384,129 @@ if (!hasSingleInstanceLock) {
 }
 
 function registerIpc() {
-  ipcMain.handle(INVOKE_CHANNELS.deviceBootstrap, async () => adapter.getBootstrapState());
-  ipcMain.handle(INVOKE_CHANNELS.deviceScan, async () => adapter.scanForDevices());
-  ipcMain.handle(INVOKE_CHANNELS.deviceSave, async (_event, draft: DeviceDraft) =>
-    adapter.saveDevice(draft)
-  );
-  ipcMain.handle(INVOKE_CHANNELS.deviceRemove, async (_event, deviceId: string) =>
-    adapter.removeDevice(deviceId)
-  );
-  ipcMain.handle(INVOKE_CHANNELS.deviceReset, async () => adapter.resetState());
-  ipcMain.handle(INVOKE_CHANNELS.deviceStartPairing, async (_event, deviceId: string) =>
-    adapter.startPairing(deviceId)
-  );
-  ipcMain.handle(INVOKE_CHANNELS.devicePair, async (_event, request: PairingRequest) =>
-    adapter.pair(request)
-  );
-  ipcMain.handle(INVOKE_CHANNELS.deviceConnect, async (_event, deviceId: string) =>
-    adapter.connect(deviceId)
-  );
-  ipcMain.handle(INVOKE_CHANNELS.deviceDisconnect, async () => adapter.disconnect());
-  ipcMain.handle(INVOKE_CHANNELS.deviceCommand, async (_event, request: CommandDispatchRequest) => {
-    commandMetricsStore.recordIpcReceived(request);
-    return adapter.sendCommand(request);
-  });
-  ipcMain.handle(INVOKE_CHANNELS.metricsRendererDrop, (_event, report: CommandDropReport) => {
-    commandMetricsStore.recordRendererDrop(report);
-  });
-  ipcMain.handle(INVOKE_CHANNELS.metricsSnapshot, () => commandMetricsStore.getSnapshot());
-  ipcMain.handle(INVOKE_CHANNELS.deviceText, async (_event, text: string) =>
-    adapter.sendText(text)
-  );
-  ipcMain.handle(INVOKE_CHANNELS.deviceAssistantVoiceStart, async () =>
-    adapter.startAssistantVoice()
+  const ch = INVOKE_CHANNELS;
+  ipcMain.handle(
+    ch.deviceBootstrap,
+    captureIpc(ch.deviceBootstrap, async () => adapter.getBootstrapState())
   );
   ipcMain.handle(
-    INVOKE_CHANNELS.deviceAssistantVoiceChunk,
-    async (_event, sessionId: number, chunkBase64: string) =>
-      adapter.sendAssistantVoiceChunk(sessionId, chunkBase64)
+    ch.deviceScan,
+    captureIpc(ch.deviceScan, async () => adapter.scanForDevices())
   );
-  ipcMain.handle(INVOKE_CHANNELS.deviceAssistantVoiceStop, async (_event, sessionId: number) =>
-    adapter.stopAssistantVoice(sessionId)
+  ipcMain.handle(
+    ch.deviceSave,
+    captureIpc(ch.deviceSave, async (_event: unknown, draft: DeviceDraft) =>
+      adapter.saveDevice(draft)
+    )
   );
-  ipcMain.handle(INVOKE_CHANNELS.deviceAssistantVoicePending, async () =>
-    adapter.hasPendingAssistantVoiceSession()
+  ipcMain.handle(
+    ch.deviceRemove,
+    captureIpc(ch.deviceRemove, async (_event: unknown, deviceId: string) =>
+      adapter.removeDevice(deviceId)
+    )
   );
-  ipcMain.handle(INVOKE_CHANNELS.deviceCapabilities, async () => adapter.getCapabilities());
-  ipcMain.handle(INVOKE_CHANNELS.updaterCheck, async () => checkForUpdatesManually());
-  ipcMain.handle(INVOKE_CHANNELS.updaterCheckBackground, async () => checkForUpdatesInBackground());
-  ipcMain.handle(INVOKE_CHANNELS.updaterStatus, async () => getUpdaterStatus());
-  ipcMain.handle(INVOKE_CHANNELS.updaterInstall, async () => installAvailableUpdate());
-  ipcMain.handle(INVOKE_CHANNELS.updaterRollback, async () => rollbackToPreviousVersion());
+  ipcMain.handle(
+    ch.deviceReset,
+    captureIpc(ch.deviceReset, async () => adapter.resetState())
+  );
+  ipcMain.handle(
+    ch.deviceStartPairing,
+    captureIpc(ch.deviceStartPairing, async (_event: unknown, deviceId: string) =>
+      adapter.startPairing(deviceId)
+    )
+  );
+  ipcMain.handle(
+    ch.devicePair,
+    captureIpc(ch.devicePair, async (_event: unknown, request: PairingRequest) =>
+      adapter.pair(request)
+    )
+  );
+  ipcMain.handle(
+    ch.deviceConnect,
+    captureIpc(ch.deviceConnect, async (_event: unknown, deviceId: string) =>
+      adapter.connect(deviceId)
+    )
+  );
+  ipcMain.handle(
+    ch.deviceDisconnect,
+    captureIpc(ch.deviceDisconnect, async () => adapter.disconnect())
+  );
+  ipcMain.handle(
+    ch.deviceCommand,
+    captureIpc(ch.deviceCommand, async (_event: unknown, request: CommandDispatchRequest) => {
+      commandMetricsStore.recordIpcReceived(request);
+      return adapter.sendCommand(request);
+    })
+  );
+  ipcMain.handle(
+    ch.metricsRendererDrop,
+    captureIpc(ch.metricsRendererDrop, (_event: unknown, report: CommandDropReport) => {
+      commandMetricsStore.recordRendererDrop(report);
+      return Promise.resolve();
+    })
+  );
+  ipcMain.handle(
+    ch.metricsSnapshot,
+    captureIpc(ch.metricsSnapshot, () => Promise.resolve(commandMetricsStore.getSnapshot()))
+  );
+  ipcMain.handle(
+    ch.deviceText,
+    captureIpc(ch.deviceText, async (_event: unknown, text: string) => adapter.sendText(text))
+  );
+  ipcMain.handle(
+    ch.deviceAssistantVoiceStart,
+    captureIpc(ch.deviceAssistantVoiceStart, async () => adapter.startAssistantVoice())
+  );
+  ipcMain.handle(
+    ch.deviceAssistantVoiceChunk,
+    captureIpc(
+      ch.deviceAssistantVoiceChunk,
+      async (_event: unknown, sessionId: number, chunkBase64: string) =>
+        adapter.sendAssistantVoiceChunk(sessionId, chunkBase64)
+    )
+  );
+  ipcMain.handle(
+    ch.deviceAssistantVoiceStop,
+    captureIpc(ch.deviceAssistantVoiceStop, async (_event: unknown, sessionId: number) =>
+      adapter.stopAssistantVoice(sessionId)
+    )
+  );
+  ipcMain.handle(
+    ch.deviceAssistantVoicePending,
+    captureIpc(ch.deviceAssistantVoicePending, async () =>
+      adapter.hasPendingAssistantVoiceSession()
+    )
+  );
+  ipcMain.handle(
+    ch.deviceCapabilities,
+    captureIpc(ch.deviceCapabilities, async () => adapter.getCapabilities())
+  );
+  ipcMain.handle(
+    ch.updaterCheck,
+    captureIpc(ch.updaterCheck, async () => checkForUpdatesManually())
+  );
+  ipcMain.handle(
+    ch.updaterCheckBackground,
+    captureIpc(ch.updaterCheckBackground, async () => checkForUpdatesInBackground())
+  );
+  ipcMain.handle(
+    ch.updaterStatus,
+    captureIpc(ch.updaterStatus, async () => getUpdaterStatus())
+  );
+  ipcMain.handle(
+    ch.updaterInstall,
+    captureIpc(ch.updaterInstall, async () => installAvailableUpdate())
+  );
+  ipcMain.handle(
+    ch.updaterRollback,
+    captureIpc(ch.updaterRollback, async () => rollbackToPreviousVersion())
+  );
 }
 
 if (hasSingleInstanceLock) {
   void app.whenReady().then(async () => {
     try {
+      initCapture(app.getAppPath());
       registerIpc();
       await bootstrapApp();
     } catch (error) {
@@ -457,6 +526,7 @@ process.on('unhandledRejection', (reason) => {
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
+  closeCapture();
 });
 
 app.on('window-all-closed', () => {
