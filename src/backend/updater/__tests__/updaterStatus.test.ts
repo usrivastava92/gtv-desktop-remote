@@ -75,6 +75,33 @@ describe('applyUpdaterEvent — every event transition', () => {
     expect(next.message).toContain('Checking');
   });
 
+  it('check-failed → clears progressPercent/etaSeconds/updateAvailable/updateInstallable (PR-6d)', () => {
+    // Seed state as if a check had previously found an installable update.
+    const dirty = applyUpdaterEvent(
+      initial,
+      {
+        type: 'check-completed-update-available',
+        latestVersion: '1.5.0',
+        lastCheckedAt: '2025-01-01T00:00:00Z',
+        installable: true,
+        message: 'Update 1.5.0 is available.',
+      },
+      V
+    );
+    expect(dirty.updateAvailable).toBe(true);
+    expect(dirty.updateInstallable).toBe(true);
+    // A subsequent failed check (e.g. network outage during background poll)
+    // must wipe those flags so the UI doesn't show a stale "available" CTA.
+    const failed = applyUpdaterEvent(dirty, { type: 'check-failed', message: 'network down' }, V);
+    expect(failed.inProgress).toBe(false);
+    expect(failed.stage).toBe('failed');
+    expect(failed.progressPercent).toBeUndefined();
+    expect(failed.etaSeconds).toBeUndefined();
+    expect(failed.updateAvailable).toBe(false);
+    expect(failed.updateInstallable).toBe(false);
+    expect(failed.message).toBe('network down');
+  });
+
   it('check-failed → !inProgress + failed + carries message', () => {
     const next = applyUpdaterEvent(initial, { type: 'check-failed', message: 'boom' }, V);
     expect(next).toMatchObject({ inProgress: false, stage: 'failed', message: 'boom' });

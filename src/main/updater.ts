@@ -652,12 +652,18 @@ async function checkForMacUpdate() {
 
   cachedRelease = release;
   cachedAsset = selectedAsset;
-  setUpdaterStatus({
-    inProgress: false,
-    stage: 'completed',
+  // PR-6d: migrate to dispatchUpdaterEvent. The reducer's
+  // check-completed-update-available variant was pre-aligned in PR-6c
+  // (stage: 'completed') so this is a zero-UX-change migration.
+  // `lastCheckedAt` falls back to the value already on updaterStatus from
+  // the preceding check-started dispatch (line ~568) — the reducer's
+  // mergeUpdaterStatus preserves it. We supply the new timestamp here for
+  // freshness.
+  dispatchUpdaterEvent({
+    type: 'check-completed-update-available',
     latestVersion,
-    updateAvailable: true,
-    updateInstallable: true,
+    lastCheckedAt: new Date().toISOString(),
+    installable: true,
     message: `Update ${latestVersion} is available.`,
   });
 }
@@ -683,13 +689,14 @@ export async function checkForUpdatesInBackground() {
       await checkForMacUpdate();
     } catch (error) {
       await logError('updater', 'Update check failed', error);
-      setUpdaterStatus({
-        inProgress: false,
-        stage: 'failed',
-        progressPercent: undefined,
-        etaSeconds: undefined,
-        updateAvailable: false,
-        updateInstallable: false,
+      // PR-6d: migrate to dispatchUpdaterEvent. The reducer's check-failed
+      // variant already sets stage: 'failed' + inProgress: false; the
+      // remaining fields (progressPercent/etaSeconds/updateAvailable/
+      // updateInstallable) become caller-supplied via the reducer rather
+      // than this inline partial. Reducer revision: now also clears those
+      // 4 fields to match the prior inline shape (zero UX change).
+      dispatchUpdaterEvent({
+        type: 'check-failed',
         message: (error as Error).message || 'Update check failed. See logs for details.',
       });
     }

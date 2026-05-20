@@ -126,9 +126,22 @@ export function applyUpdaterEvent(
         currentVersion
       );
     case 'check-failed':
+      // PR-6d: now also clears progressPercent/etaSeconds/updateAvailable/
+      // updateInstallable to match the inline setUpdaterStatus call in
+      // checkForUpdatesInBackground's catch block (zero UX change for that
+      // site; pre-existing tests still pass because they don't assert on
+      // those fields after a failed check).
       return mergeUpdaterStatus(
         prev,
-        { inProgress: false, stage: 'failed', message: event.message },
+        {
+          inProgress: false,
+          stage: 'failed',
+          progressPercent: undefined,
+          etaSeconds: undefined,
+          updateAvailable: false,
+          updateInstallable: false,
+          message: event.message,
+        },
         currentVersion
       );
     case 'check-completed-no-update':
