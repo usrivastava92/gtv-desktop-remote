@@ -18,6 +18,20 @@ import type { CommandDispatchRequest } from '../../shared/types';
 import { createNodeLogger, getAppDataPath, logError } from '../logger';
 import { commandMetricsStore } from '../metrics';
 
+import {
+  DEFAULT_PAIRING_PORT,
+  REMOTE_CONNECT_TIMEOUT_MS,
+  REMOTE_FEATURES,
+  REMOTE_STALE_AFTER_MS,
+  REMOTE_VOICE_BEGIN_TIMEOUT_MS,
+  SERVICE_NAME,
+  isCertificateRejectedError,
+  normalizeRemoteError,
+  toError,
+  type DeviceSession,
+  type PairingManagerInstance,
+  type RemoteState,
+} from './androidTvRemote.types';
 import type { PemPair } from './protocol/certificate';
 import {
   createImeBatchEditMessage,
@@ -32,36 +46,6 @@ import {
   parseRemoteMessage,
 } from './protocol/remoteProtocol';
 
-interface PairingManagerInstance {
-  on(event: 'secret', listener: () => void): this;
-  start(): Promise<boolean>;
-  sendCode(code: string): boolean;
-}
-
-interface RemoteDeviceInfo {
-  model?: string;
-  vendor?: string;
-  appVersion?: string;
-}
-
-interface RemoteState {
-  currentApp?: string;
-  isOn?: boolean;
-  deviceInfo?: RemoteDeviceInfo;
-  imeCounter: number;
-  imeFieldCounter: number;
-  lastActivityAt: number;
-  voiceSessionId?: number;
-}
-
-interface DeviceSession {
-  certs: PemPair;
-  pairingManager?: PairingManagerInstance;
-  pairingReady?: Promise<void>;
-  pairingComplete?: Promise<void>;
-  remoteClient?: NativeRemoteClient;
-}
-
 const { PairingManager } = require('androidtv-remote/dist/pairing/PairingManager.js') as {
   PairingManager: new (
     host: string,
@@ -70,52 +54,6 @@ const { PairingManager } = require('androidtv-remote/dist/pairing/PairingManager
     serviceName: string
   ) => PairingManagerInstance;
 };
-
-const DEFAULT_PAIRING_PORT = 6467;
-const REMOTE_FEATURES = 622;
-const REMOTE_STALE_AFTER_MS = 30_000;
-const REMOTE_CONNECT_TIMEOUT_MS = 10_000;
-const REMOTE_VOICE_BEGIN_TIMEOUT_MS = 2_000;
-const SERVICE_NAME = 'GTV Desktop Remote';
-
-function toError(error: unknown, fallback: string): Error {
-  if (error instanceof Error) {
-    return error;
-  }
-
-  if (typeof error === 'string' && error.trim()) {
-    return new Error(error);
-  }
-
-  if (typeof error === 'boolean') {
-    return new Error(error ? fallback : 'Operation failed.');
-  }
-
-  return new Error(fallback);
-}
-
-function isCertificateRejectedError(error: unknown): boolean {
-  const message = toError(error, '').message;
-  return message.includes('SSLV3_ALERT_CERTIFICATE_UNKNOWN') || message.includes('alert number 46');
-}
-
-function normalizeRemoteError(error: unknown, fallback: string): Error {
-  const normalized = toError(error, fallback);
-
-  if (isCertificateRejectedError(normalized)) {
-    return new Error(
-      'The TV rejected the saved pairing certificate. Start pairing again. If this keeps happening, remove this remote from the TV and pair again.'
-    );
-  }
-
-  if (normalized.message.includes('Remote connection timed out.')) {
-    return new Error(
-      'The TV did not respond on the Android TV Remote port. Make sure the TV is awake and Android TV Remote Service is available, then try pairing again.'
-    );
-  }
-
-  return normalized;
-}
 
 class NativeRemoteClient {
   private socket: TLSSocket | undefined;
