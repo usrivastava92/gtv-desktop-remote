@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   createImeBatchEditMessage,
+  createRemoteConfigure,
   createRemoteKeyInject,
   createRemoteKeyInjectRaw,
   createRemotePingResponse,
@@ -28,6 +29,10 @@ const fixtures = JSON.parse(readFileSync(fixturesPath, 'utf8')) as Record<string
  * REFACTOR_PLAN.md §7.1 #8.
  */
 describe('remote codec — golden encode', () => {
+  it('createRemoteConfigure — REMOTE_FEATURES=622 (production value)', () => {
+    expect(createRemoteConfigure(622).toString('hex')).toBe(fixtures.configure_622);
+  });
+
   it('createRemoteSetActive — small value', () => {
     expect(createRemoteSetActive(1).toString('hex')).toBe(fixtures.setActive_1);
   });
