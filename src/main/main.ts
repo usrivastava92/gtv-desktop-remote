@@ -25,10 +25,11 @@ import { getLoggerPath, logError, logInfo } from './logger';
 import { commandMetricsStore } from './metrics';
 import {
   checkForUpdatesInBackground,
-  installAvailableUpdate,
   checkForUpdatesManually,
   getUpdaterStatus,
+  installAvailableUpdate,
   rollbackToPreviousVersion,
+  subscribeUpdaterStatus,
 } from './updater';
 
 declare const _MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
@@ -145,6 +146,16 @@ async function createWindow(): Promise<BrowserWindow> {
 
   attachWindowDiagnostics(window);
 
+  // QW-2: forward updater status changes to this window's renderer over IPC,
+  // replacing the renderer's 1.5s polling loop. The subscription is torn down
+  // when the window is destroyed so we never send to a stale webContents.
+  const unsubscribeUpdater = subscribeUpdaterStatus((status) => {
+    if (window.isDestroyed() || window.webContents.isDestroyed()) {
+      return;
+    }
+    window.webContents.send('updater:statusChanged', status);
+  });
+
   if (app.isPackaged) {
     await window.loadFile(getRendererEntryPath());
   } else {
@@ -158,6 +169,7 @@ async function createWindow(): Promise<BrowserWindow> {
   });
 
   window.on('closed', () => {
+    unsubscribeUpdater();
     if (windowRef === window) {
       windowRef = undefined;
     }
