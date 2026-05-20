@@ -2,16 +2,13 @@
 /**
  * Headless TV communication test script.
  *
- * Loads the paired device + certs from disk and runs a sequence of remote
- * commands, reconnecting per-command (matching the production app behaviour).
- * Reports every inbound message so you can verify the TV is responding.
+ * Opens ONE persistent TLS connection (matching the production app), completes
+ * the remoteConfigure handshake, then sends all commands on that same socket.
+ * The TV only accepts keys from the session that established the connection.
  *
  * Usage:
  *   npm run build && node scripts/tv-test.mjs              # first paired device
  *   npm run build && node scripts/tv-test.mjs 192.168.1.9  # explicit host
- *
- * The TV closes the remote protocol connection after each key injection.
- * This script reconnects per-command — exactly how the production app works.
  */
 
 import { createRequire } from 'node:module';
@@ -45,7 +42,7 @@ const { parseFramedBuffer } = require(
   path.join(DIST, 'backend/transport/framing/frameParser.js')
 );
 
-const REMOTE_FEATURES = 1;
+const REMOTE_FEATURES = 622; // must match src/main/device/androidTvRemote.types.ts
 
 // ── Load saved device + certs ─────────────────────────────────────────────────
 
@@ -82,108 +79,6 @@ const key  = fs.readFileSync(keyPath, 'utf8');
 console.log(`\n📺 ${device.name}  (${device.host})`);
 console.log(`🔐 ${certPath}\n`);
 
-// ── One-shot command sender ───────────────────────────────────────────────────
-
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-/**
- * Open a fresh TLS connection, complete the remoteConfigure handshake, send
- * one command frame, wait for the TV's acknowledgement, then disconnect.
- * Returns an array of decoded inbound messages for logging.
- */
-function sendOneCommand(label, frame, timeoutMs = 8000) {
-  return new Promise((resolve, reject) => {
-    const inbound = [];
-    let buffer = Buffer.alloc(0);
-    let handshakeDone = false;
-    let commandSent = false;
-    let settled = false;
-
-    const finish = (err) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      socket.destroy();
-      if (err) reject(err);
-      else resolve(inbound);
-    };
-
-    const timer = setTimeout(
-      () => finish(new Error(`Timeout (${label}) — TV did not complete handshake in ${timeoutMs}ms`)),
-      timeoutMs
-    );
-
-    const socket = tls.connect({
-      host: device.host,
-      port: 6466,
-      cert,
-      key,
-      rejectUnauthorized: false,
-    });
-
-    socket.on('data', (chunk) => {
-      buffer = Buffer.concat([buffer, chunk]);
-      const { frames, remaining, error } = parseFramedBuffer(buffer);
-      buffer = Buffer.from(remaining);
-
-      if (error) { finish(new Error(`Frame parse error: ${error.message}`)); return; }
-
-      for (const f of frames) {
-        let msg;
-        try { msg = parseRemoteMessage(f); }
-        catch (e) {
-          inbound.push({ type: 'parseError', hex: f.toString('hex').slice(0, 32), err: e.message });
-          continue;
-        }
-
-        if (msg.remoteConfigure) {
-          const info = msg.remoteConfigure.deviceInfo ?? {};
-          inbound.push({ type: 'remoteConfigure', model: info.model, vendor: info.vendor, appVersion: info.appVersion });
-          socket.write(createRemoteConfigure(REMOTE_FEATURES));
-          handshakeDone = true;
-          // Send the command immediately after configure reply
-          socket.write(frame);
-          commandSent = true;
-          continue;
-        }
-
-        if (msg.remotePingRequest?.val1 !== undefined) {
-          socket.write(createRemotePingResponse(msg.remotePingRequest.val1));
-          inbound.push({ type: 'ping', val1: msg.remotePingRequest.val1 });
-          continue;
-        }
-
-        if (msg.remoteSetActive) {
-          socket.write(createRemoteSetActive(REMOTE_FEATURES));
-          inbound.push({ type: 'remoteSetActive' });
-          // Ack received after command → done
-          if (commandSent) { setTimeout(() => finish(null), 150); }
-          continue;
-        }
-
-        if (msg.remoteImeKeyInject) {
-          const app = msg.remoteImeKeyInject.appInfo?.appPackage;
-          inbound.push({ type: 'remoteImeKeyInject', app });
-          finish(null);
-          continue;
-        }
-
-        if (msg.remoteStart) {
-          inbound.push({ type: 'remoteStart', started: msg.remoteStart.started });
-          continue;
-        }
-
-        inbound.push({ type: 'unknown', hex: f.toString('hex').slice(0, 32) });
-      }
-    });
-
-    socket.on('close', () => finish(null));
-    socket.on('error', (e) => finish(e));
-    socket.setTimeout(timeoutMs);
-    socket.on('timeout', () => finish(new Error(`Socket timeout (${label})`)));
-  });
-}
-
 // ── Test sequence ─────────────────────────────────────────────────────────────
 
 const COMMANDS = [
@@ -196,24 +91,112 @@ const COMMANDS = [
   { command: 'select', label: '✅ SELECT',  delayAfterMs: 1500 },
 ];
 
-console.log(`🚀 Running ${COMMANDS.length} commands (reconnect per command)\n`);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// ── Open persistent connection ────────────────────────────────────────────────
+
+console.log(`🔌 Connecting to ${device.host}:6466 ...\n`);
+
+let buffer = Buffer.alloc(0);
+let protocolReady = false;
 let passed = 0;
 let failed = 0;
+
+const socket = tls.connect({
+  host: device.host,
+  port: 6466,
+  cert,
+  key,
+  rejectUnauthorized: false,
+});
+
+socket.setTimeout(10_000);
+socket.on('timeout', () => {
+  console.error('❌ Socket timeout');
+  socket.destroy();
+  process.exit(1);
+});
+socket.on('error', (err) => {
+  console.error(`❌ Socket error: ${err.message}`);
+  process.exit(1);
+});
+
+// ── Inbound message handler ───────────────────────────────────────────────────
+
+socket.on('data', (chunk) => {
+  buffer = Buffer.concat([buffer, chunk]);
+  const { frames, remaining, error } = parseFramedBuffer(buffer);
+  buffer = Buffer.from(remaining);
+
+  if (error) {
+    console.error(`❌ Frame parse error: ${error.message}`);
+    socket.destroy();
+    return;
+  }
+
+  for (const f of frames) {
+    let msg;
+    try { msg = parseRemoteMessage(f); }
+    catch (e) {
+      console.log(`  ⚠️  parse error: ${e.message} hex: ${f.toString('hex').slice(0, 20)}`);
+      continue;
+    }
+
+    if (msg.remoteConfigure) {
+      const info = msg.remoteConfigure.deviceInfo ?? {};
+      console.log(`✅ remoteConfigure — ${info.vendor ?? '?'} ${info.model ?? '?'} (${info.appVersion ?? '?'})`);
+      socket.write(createRemoteConfigure(REMOTE_FEATURES));
+      // Protocol is ready — emit event so the main loop can proceed
+      socket.emit('protocol-ready');
+      return;
+    }
+
+    if (msg.remoteSetActive) {
+      socket.write(createRemoteSetActive(REMOTE_FEATURES));
+      return;
+    }
+
+    if (msg.remotePingRequest?.val1 !== undefined) {
+      socket.write(createRemotePingResponse(msg.remotePingRequest.val1));
+      return;
+    }
+
+    if (msg.remoteStart) {
+      console.log(`  📺 remoteStart: started=${msg.remoteStart.started}`);
+      return;
+    }
+
+    // Everything else (remoteImeKeyInject echo etc) — just note it
+    const keys = Object.keys(msg).filter((k) => {
+      const v = msg[k];
+      return v !== undefined && v !== null && !(typeof v === 'object' && Object.keys(v).length === 0);
+    });
+    if (keys.length > 0) {
+      console.log(`  📥 ${keys.join(', ')}`);
+    }
+  }
+});
+
+// ── Wait for protocol-ready, then run commands ────────────────────────────────
+
+await new Promise((resolve, reject) => {
+  const timer = setTimeout(() => reject(new Error('Timeout: TV did not send remoteConfigure within 8s')), 8000);
+  socket.once('protocol-ready', () => { clearTimeout(timer); resolve(); });
+  socket.once('error', (e) => { clearTimeout(timer); reject(e); });
+});
+
+console.log('\n🚀 Starting command sequence (persistent connection)\n');
 
 for (const { command, label, delayAfterMs } of COMMANDS) {
   const frame = createRemoteKeyInject(command);
   process.stdout.write(`  ${label} ... `);
 
   try {
-    const msgs = await sendOneCommand(label, frame);
-    const appPkg = msgs.find((m) => m.type === 'remoteImeKeyInject')?.app;
-    const acked  = msgs.some((m) => ['remoteImeKeyInject','remoteSetActive'].includes(m.type));
-    const detail = appPkg ? ` app: ${appPkg}` : ` ${msgs.map((m) => m.type).join(', ')}`;
-    console.log(acked ? `✅${detail}` : `⚠️  sent, no ack —${detail}`);
+    socket.write(frame);
+    console.log('✅ sent');
     passed++;
   } catch (err) {
-    console.log(`❌  ${err.message}`);
+    console.log(`❌ ${err.message}`);
     failed++;
   }
 
@@ -226,4 +209,5 @@ console.log(`
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `);
 
+socket.destroy();
 process.exit(failed > 0 ? 1 : 0);
