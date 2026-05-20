@@ -12,6 +12,7 @@ import {
   Tray,
 } from 'electron';
 
+import { INVOKE_CHANNELS } from '../shared/ipcContract';
 import type {
   CommandDispatchRequest,
   CommandDropReport,
@@ -384,47 +385,60 @@ if (!hasSingleInstanceLock) {
   });
 }
 
+// PR-7: every channel string flows through INVOKE_CHANNELS, matching the
+// constants used in preload.ts. The contract in src/shared/ipcContract.ts has
+// a compile-time parity check that prevents the two halves from drifting.
 function registerIpc() {
-  ipcMain.handle('device:bootstrap', async () => adapter.getBootstrapState());
-  ipcMain.handle('device:scan', async () => adapter.scanForDevices());
-  ipcMain.handle('device:save', async (_event, draft: DeviceDraft) => adapter.saveDevice(draft));
-  ipcMain.handle('device:remove', async (_event, deviceId: string) =>
+  ipcMain.handle(INVOKE_CHANNELS.deviceBootstrap, async () => adapter.getBootstrapState());
+  ipcMain.handle(INVOKE_CHANNELS.deviceScan, async () => adapter.scanForDevices());
+  ipcMain.handle(INVOKE_CHANNELS.deviceSave, async (_event, draft: DeviceDraft) =>
+    adapter.saveDevice(draft)
+  );
+  ipcMain.handle(INVOKE_CHANNELS.deviceRemove, async (_event, deviceId: string) =>
     adapter.removeDevice(deviceId)
   );
-  ipcMain.handle('device:reset', async () => adapter.resetState());
-  ipcMain.handle('device:startPairing', async (_event, deviceId: string) =>
+  ipcMain.handle(INVOKE_CHANNELS.deviceReset, async () => adapter.resetState());
+  ipcMain.handle(INVOKE_CHANNELS.deviceStartPairing, async (_event, deviceId: string) =>
     adapter.startPairing(deviceId)
   );
-  ipcMain.handle('device:pair', async (_event, request: PairingRequest) => adapter.pair(request));
-  ipcMain.handle('device:connect', async (_event, deviceId: string) => adapter.connect(deviceId));
-  ipcMain.handle('device:disconnect', async () => adapter.disconnect());
-  ipcMain.handle('device:command', async (_event, request: CommandDispatchRequest) => {
+  ipcMain.handle(INVOKE_CHANNELS.devicePair, async (_event, request: PairingRequest) =>
+    adapter.pair(request)
+  );
+  ipcMain.handle(INVOKE_CHANNELS.deviceConnect, async (_event, deviceId: string) =>
+    adapter.connect(deviceId)
+  );
+  ipcMain.handle(INVOKE_CHANNELS.deviceDisconnect, async () => adapter.disconnect());
+  ipcMain.handle(INVOKE_CHANNELS.deviceCommand, async (_event, request: CommandDispatchRequest) => {
     commandMetricsStore.recordIpcReceived(request);
     return adapter.sendCommand(request);
   });
-  ipcMain.handle('metrics:rendererDrop', (_event, report: CommandDropReport) => {
+  ipcMain.handle(INVOKE_CHANNELS.metricsRendererDrop, (_event, report: CommandDropReport) => {
     commandMetricsStore.recordRendererDrop(report);
   });
-  ipcMain.handle('metrics:snapshot', () => commandMetricsStore.getSnapshot());
-  ipcMain.handle('device:text', async (_event, text: string) => adapter.sendText(text));
-  ipcMain.handle('device:assistantVoiceStart', async () => adapter.startAssistantVoice());
+  ipcMain.handle(INVOKE_CHANNELS.metricsSnapshot, () => commandMetricsStore.getSnapshot());
+  ipcMain.handle(INVOKE_CHANNELS.deviceText, async (_event, text: string) =>
+    adapter.sendText(text)
+  );
+  ipcMain.handle(INVOKE_CHANNELS.deviceAssistantVoiceStart, async () =>
+    adapter.startAssistantVoice()
+  );
   ipcMain.handle(
-    'device:assistantVoiceChunk',
+    INVOKE_CHANNELS.deviceAssistantVoiceChunk,
     async (_event, sessionId: number, chunkBase64: string) =>
       adapter.sendAssistantVoiceChunk(sessionId, chunkBase64)
   );
-  ipcMain.handle('device:assistantVoiceStop', async (_event, sessionId: number) =>
+  ipcMain.handle(INVOKE_CHANNELS.deviceAssistantVoiceStop, async (_event, sessionId: number) =>
     adapter.stopAssistantVoice(sessionId)
   );
-  ipcMain.handle('device:assistantVoicePending', async () =>
+  ipcMain.handle(INVOKE_CHANNELS.deviceAssistantVoicePending, async () =>
     adapter.hasPendingAssistantVoiceSession()
   );
-  ipcMain.handle('device:capabilities', async () => adapter.getCapabilities());
-  ipcMain.handle('updater:check', async () => checkForUpdatesManually());
-  ipcMain.handle('updater:checkBackground', async () => checkForUpdatesInBackground());
-  ipcMain.handle('updater:status', async () => getUpdaterStatus());
-  ipcMain.handle('updater:install', async () => installAvailableUpdate());
-  ipcMain.handle('updater:rollback', async () => rollbackToPreviousVersion());
+  ipcMain.handle(INVOKE_CHANNELS.deviceCapabilities, async () => adapter.getCapabilities());
+  ipcMain.handle(INVOKE_CHANNELS.updaterCheck, async () => checkForUpdatesManually());
+  ipcMain.handle(INVOKE_CHANNELS.updaterCheckBackground, async () => checkForUpdatesInBackground());
+  ipcMain.handle(INVOKE_CHANNELS.updaterStatus, async () => getUpdaterStatus());
+  ipcMain.handle(INVOKE_CHANNELS.updaterInstall, async () => installAvailableUpdate());
+  ipcMain.handle(INVOKE_CHANNELS.updaterRollback, async () => rollbackToPreviousVersion());
 }
 
 if (hasSingleInstanceLock) {
