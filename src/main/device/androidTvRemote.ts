@@ -1,11 +1,15 @@
 // fs moved to AndroidTvCertStore (PR-3a); the bridge keeps a single shared
 // IFileSystem only for the directory-recursive reset() below.
+// tls.connect call replaced with ITlsConnector port in PR-3c.
 import type { TLSSocket } from 'node:tls';
-import tls from 'node:tls';
 
 import { createNodeFileSystem, type IFileSystem } from '../../backend/core/fileSystem';
 import { AndroidTvCertStore } from '../../backend/devices/credentials/androidTvCertStore';
 import { parseFramedBuffer } from '../../backend/transport/framing/frameParser';
+import {
+  createNodeTlsConnector,
+  type ITlsConnector,
+} from '../../backend/transport/tls/tlsConnector';
 import type { CommandDispatchRequest } from '../../shared/types';
 import { getAppDataPath, logError, logInfo } from '../logger';
 import { commandMetricsStore } from '../metrics';
@@ -128,7 +132,11 @@ class NativeRemoteClient {
 
   constructor(
     private readonly host: string,
-    private readonly certs: PemPair
+    private readonly certs: PemPair,
+    // PR-3c: TLS factory injected as an ITlsConnector so tests can swap in a
+    // FakeTlsSocket without monkey-patching node:tls. Production defaults
+    // resolve to `createNodeTlsConnector()` in `AndroidTvRemoteBridge.getSession`.
+    private readonly tlsConnector: ITlsConnector
   ) {}
 
   get snapshot(): RemoteState {
@@ -169,7 +177,10 @@ class NativeRemoteClient {
     }
 
     this.connectPromise = new Promise<void>((resolve, reject) => {
-      const socket = tls.connect({
+      // PR-3c: socket factory goes through the ITlsConnector port. Production
+      // wires it to `node:tls.connect`; tests inject a fake to drive the
+      // socket lifecycle deterministically.
+      const socket = this.tlsConnector.connect({
         cert: this.certs.cert,
         host: this.host,
         key: this.certs.key,
@@ -448,6 +459,12 @@ export class AndroidTvRemoteBridge {
   // future PR (PR-5 onward, when this whole class is broken up).
   private readonly fs: IFileSystem = createNodeFileSystem();
 
+  // PR-3c: the TLS connector port (defaulted to the production Node impl)
+  // is shared across every NativeRemoteClient this bridge spins up so a
+  // single fake connector swap covers every device-side TLS connection in
+  // tests.
+  private readonly tlsConnector: ITlsConnector = createNodeTlsConnector();
+
   private readonly certStore = new AndroidTvCertStore(
     this.fs,
     {
@@ -596,7 +613,7 @@ export class AndroidTvRemoteBridge {
 
   async connect(host: string, certKey?: string): Promise<Record<string, unknown> | undefined> {
     const session = await this.getSession(host, certKey);
-    session.remoteClient ??= new NativeRemoteClient(host, session.certs);
+    session.remoteClient ??= new NativeRemoteClient(host, session.certs, this.tlsConnector);
 
     try {
       await session.remoteClient.connect();
@@ -645,7 +662,7 @@ export class AndroidTvRemoteBridge {
     certKey?: string
   ): Promise<void> {
     const session = await this.getSession(host, certKey);
-    session.remoteClient ??= new NativeRemoteClient(host, session.certs);
+    session.remoteClient ??= new NativeRemoteClient(host, session.certs, this.tlsConnector);
 
     commandMetricsStore.recordBridgeSendStart(request, host);
 
@@ -674,7 +691,7 @@ export class AndroidTvRemoteBridge {
 
   async sendText(host: string, text: string, certKey?: string): Promise<void> {
     const session = await this.getSession(host, certKey);
-    session.remoteClient ??= new NativeRemoteClient(host, session.certs);
+    session.remoteClient ??= new NativeRemoteClient(host, session.certs, this.tlsConnector);
 
     await session.remoteClient.connect();
     session.remoteClient.sendText(text);
@@ -682,7 +699,7 @@ export class AndroidTvRemoteBridge {
 
   async startAssistantVoice(host: string, certKey?: string): Promise<number> {
     const session = await this.getSession(host, certKey);
-    session.remoteClient ??= new NativeRemoteClient(host, session.certs);
+    session.remoteClient ??= new NativeRemoteClient(host, session.certs, this.tlsConnector);
     await session.remoteClient.connect();
     return session.remoteClient.startVoiceSession();
   }
@@ -694,21 +711,21 @@ export class AndroidTvRemoteBridge {
     certKey?: string
   ): Promise<void> {
     const session = await this.getSession(host, certKey);
-    session.remoteClient ??= new NativeRemoteClient(host, session.certs);
+    session.remoteClient ??= new NativeRemoteClient(host, session.certs, this.tlsConnector);
     await session.remoteClient.connect();
     session.remoteClient.sendVoiceChunk(sessionId, chunk);
   }
 
   async stopAssistantVoice(host: string, sessionId: number, certKey?: string): Promise<void> {
     const session = await this.getSession(host, certKey);
-    session.remoteClient ??= new NativeRemoteClient(host, session.certs);
+    session.remoteClient ??= new NativeRemoteClient(host, session.certs, this.tlsConnector);
     await session.remoteClient.connect();
     session.remoteClient.stopVoiceSession(sessionId);
   }
 
   async hasPendingAssistantVoiceSession(host: string, certKey?: string): Promise<boolean> {
     const session = await this.getSession(host, certKey);
-    session.remoteClient ??= new NativeRemoteClient(host, session.certs);
+    session.remoteClient ??= new NativeRemoteClient(host, session.certs, this.tlsConnector);
     await session.remoteClient.connect();
     return Boolean(session.remoteClient.snapshot.voiceSessionId);
   }
