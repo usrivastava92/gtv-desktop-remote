@@ -1,3 +1,4 @@
+import type { IMetricsRecorder } from '../backend/metrics/IMetricsRecorder';
 import type {
   CommandDispatchRequest,
   CommandDropReason,
@@ -51,7 +52,7 @@ function createEmptySnapshot(): CommandMetricsSnapshot {
   };
 }
 
-export class CommandMetricsStore {
+export class CommandMetricsStore implements IMetricsRecorder {
   private readonly commands = new Map<string, CommandMetricsRecord>();
 
   private readonly counters = createCounters();
@@ -448,7 +449,7 @@ export class CommandMetricsStore {
 }
 
 /* eslint-disable @typescript-eslint/no-empty-function */
-export class NoopCommandMetricsStore {
+export class NoopCommandMetricsStore implements IMetricsRecorder {
   recordRendererDrop(_report: CommandDropReport): void {}
 
   recordIpcReceived(_request: CommandDispatchRequest): void {}
