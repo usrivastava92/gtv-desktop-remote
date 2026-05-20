@@ -219,12 +219,20 @@ class NativeRemoteClient {
       socket.on('secureConnect', () => {
         this.state.lastActivityAt = Date.now();
       });
-      socket.on('data', (chunk) => {
+      // PR-3e: inbound data now flows through IFramedTlsTransport.onData
+      // instead of socket.on('data') directly. The transport normalises the
+      // chunk to Buffer (never string) so we can drop the inner Buffer.from
+      // conversion. The transport is wrapped on `socket` just below this
+      // block; we set up the subscription AFTER constructing the transport
+      // for clarity. To preserve the previous registration order, we attach
+      // listeners on socket first and wire the transport's onData after the
+      // transport is constructed.
+      const onInboundChunk = (chunk: Buffer): void => {
         commandMetricsStore.recordInboundMessage(this.host);
         this.state.lastActivityAt = Date.now();
-        this.buffer = Buffer.concat([this.buffer, Buffer.from(chunk)]);
+        this.buffer = Buffer.concat([this.buffer, chunk]);
         this.flushBuffer();
-      });
+      };
       socket.on('error', fail);
       socket.on('close', () => {
         commandMetricsStore.recordSocketClosed(this.host);
@@ -255,6 +263,10 @@ class NativeRemoteClient {
       // PR-3d: wrap the live socket in the framed transport port now that it
       // exists. Every send/drain call from here on goes through the port.
       this.transport = createFramedTlsTransportOverSocket(socket);
+      // PR-3e: subscribe the inbound dispatch via the transport's onData.
+      // No need to track the unsubscribe handle — disconnect() destroys the
+      // socket, which Node's net layer cleans up via removeAllListeners.
+      this.transport.onData(onInboundChunk);
     }).finally(() => {
       this.connectPromise = undefined;
     });

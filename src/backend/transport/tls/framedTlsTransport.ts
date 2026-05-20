@@ -28,8 +28,13 @@
 import type { TLSSocket } from 'node:tls';
 
 /**
- * The transport surface used by `NativeRemoteClient` for outbound writes.
- * Intentionally minimal — only the three things the writer cares about.
+ * The transport surface used by `NativeRemoteClient` for outbound writes
+ * AND inbound data dispatch.
+ *
+ * Intentionally minimal — only what the writer and the inbound dispatch
+ * loop need. Other socket-level concerns (close / error / timeout /
+ * protocol-level events like `remote-voice-begin`) stay on the raw socket
+ * until PR-3f.
  */
 export interface IFramedTlsTransport {
   /**
@@ -54,6 +59,22 @@ export interface IFramedTlsTransport {
    * existing call site in `NativeRemoteClient.sendCommand` is a 1:1 swap.
    */
   onDrain(handler: () => void): () => void;
+
+  /**
+   * Subscribe to inbound chunks from the underlying socket. The handler is
+   * invoked once per `'data'` event with the chunk normalised to a `Buffer`
+   * (Node's socket.on('data') yields `Buffer | string`; we always pass a
+   * Buffer so the caller never has to handle the union).
+   *
+   * Returns an unsubscribe function. Production socket-side cleanup is
+   * still the caller's responsibility (this PR doesn't take ownership of
+   * `socket.removeAllListeners`).
+   *
+   * PR-3e introduced this method to complete the inbound side of the
+   * transport contract. Combined with PR-3b's `parseFramedBuffer`, the
+   * entire write-and-parse loop is now testable without a real TLS socket.
+   */
+  onData(handler: (chunk: Buffer) => void): () => void;
 
   /** Mirrors `socket.destroyed`. Used by `NativeRemoteClient.isConnected`. */
   readonly destroyed: boolean;
@@ -80,6 +101,18 @@ export function createFramedTlsTransportOverSocket(socket: TLSSocket): IFramedTl
         socket.removeListener('drain', handler);
       };
     },
+    onData(handler) {
+      // PR-3e: normalise Buffer|string union from socket.on('data') so
+      // every NativeRemoteClient inbound handler sees a Buffer regardless
+      // of the socket's encoding setting.
+      const listener = (chunk: Buffer | string): void => {
+        handler(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+      };
+      socket.on('data', listener);
+      return () => {
+        socket.removeListener('data', listener);
+      };
+    },
     get destroyed() {
       return socket.destroyed;
     },
@@ -100,6 +133,13 @@ export function createFakeFramedTlsTransport(): IFramedTlsTransport & {
   nextWriteReturns(value: boolean): void;
   /** Fires all pending drain subscribers once, then clears them. */
   emitDrain(): void;
+  /**
+   * Deliver `chunk` to every active onData subscriber. Throws if a subscriber
+   * handler throws (matches Node's socket.on('data') semantics that one bad
+   * listener takes down the dispatch). Tests asserting isolation should
+   * subscribe via separate transports.
+   */
+  emitData(chunk: Buffer): void;
   /** Mutates `destroyed`. */
   setDestroyed(value: boolean): void;
 } {
@@ -107,6 +147,10 @@ export function createFakeFramedTlsTransport(): IFramedTlsTransport & {
   let nextReturn: boolean | undefined;
   let isDestroyed = false;
   const drainSubscribers: (() => void)[] = [];
+  // PR-3e: data subscribers are an array (not a single field) so the test
+  // factory can verify multi-subscriber dispatch the same way the
+  // production binding does.
+  const dataSubscribers: ((chunk: Buffer) => void)[] = [];
 
   return {
     get writes(): readonly Buffer[] {
@@ -119,6 +163,11 @@ export function createFakeFramedTlsTransport(): IFramedTlsTransport & {
       const pending = drainSubscribers.splice(0);
       for (const handler of pending) {
         handler();
+      }
+    },
+    emitData(chunk) {
+      for (const handler of dataSubscribers.slice()) {
+        handler(chunk);
       }
     },
     setDestroyed(value) {
@@ -139,6 +188,15 @@ export function createFakeFramedTlsTransport(): IFramedTlsTransport & {
         const index = drainSubscribers.indexOf(handler);
         if (index >= 0) {
           drainSubscribers.splice(index, 1);
+        }
+      };
+    },
+    onData(handler) {
+      dataSubscribers.push(handler);
+      return () => {
+        const index = dataSubscribers.indexOf(handler);
+        if (index >= 0) {
+          dataSubscribers.splice(index, 1);
         }
       };
     },
