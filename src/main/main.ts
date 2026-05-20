@@ -506,7 +506,7 @@ function registerIpc() {
 if (hasSingleInstanceLock) {
   void app.whenReady().then(async () => {
     try {
-      initCapture(app.getAppPath());
+      initCapture(process.cwd());
       registerIpc();
       await bootstrapApp();
     } catch (error) {
