@@ -349,6 +349,125 @@ describe('applyUpdaterEvent — every event transition', () => {
     expect(next).toMatchObject({ inProgress: false, stage: 'failed', message: 'no backup' });
   });
 
+  it('rollback-started → progress:20 + caller message + targetVersion fallback (PR-6g)', () => {
+    // rollbackToPreviousVersion sets progressPercent:20 inline to show
+    // visible activity while the bundle restore runs. Caller message
+    // wins (ASCII '...' format from the prod call site).
+    const next = applyUpdaterEvent(
+      initial,
+      {
+        type: 'rollback-started',
+        targetVersion: '1.2.2',
+        message: 'Rolling back to 1.2.2...',
+        progressPercent: 20,
+      },
+      V
+    );
+    expect(next).toMatchObject({
+      inProgress: true,
+      stage: 'installing',
+      progressPercent: 20,
+      message: 'Rolling back to 1.2.2...',
+    });
+    expect(next.etaSeconds).toBeUndefined();
+
+    // Default fallback message uses ellipsis when caller omits one.
+    const defaulted = applyUpdaterEvent(
+      initial,
+      { type: 'rollback-started', targetVersion: '1.2.2' },
+      V
+    );
+    expect(defaulted.message).toContain('1.2.2');
+  });
+
+  it('rollback-completed → progress:100 + eta:0 + clears updateAvailable + honors dev-mode message (PR-6g)', () => {
+    // Dev-mode override branch from rollbackToPreviousVersion must
+    // survive the migration. Also clears updateAvailable/updateInstallable
+    // because any "update available" state from before the rollback no
+    // longer applies post-restore.
+    const dirty = applyUpdaterEvent(
+      initial,
+      {
+        type: 'check-completed-update-available',
+        latestVersion: '2.0.0',
+        lastCheckedAt: '2024-12-01T00:00:00Z',
+        installable: true,
+        message: 'Update 2.0.0 is available.',
+      },
+      V
+    );
+    const next = applyUpdaterEvent(
+      dirty,
+      {
+        type: 'rollback-completed',
+        message: 'Dev mode: rollback restore skipped.',
+      },
+      V
+    );
+    expect(next).toMatchObject({
+      inProgress: false,
+      stage: 'completed',
+      progressPercent: 100,
+      etaSeconds: 0,
+      updateAvailable: false,
+      updateInstallable: false,
+      message: 'Dev mode: rollback restore skipped.',
+    });
+  });
+
+  it('rollback-failed → clears progress/eta (PR-6g)', () => {
+    const inProgress = applyUpdaterEvent(
+      initial,
+      { type: 'rollback-started', targetVersion: '1.2.2', progressPercent: 20 },
+      V
+    );
+    const next = applyUpdaterEvent(
+      inProgress,
+      { type: 'rollback-failed', message: 'restore IO error' },
+      V
+    );
+    expect(next).toMatchObject({
+      inProgress: false,
+      stage: 'failed',
+      message: 'restore IO error',
+    });
+    expect(next.progressPercent).toBeUndefined();
+    expect(next.etaSeconds).toBeUndefined();
+  });
+
+  it('rollback-unavailable → stage:failed + clears rollback metadata + passes message (PR-6g)', () => {
+    // New variant: distinct from rollback-failed. Means there's no
+    // bundle to roll back to (vs an actual restore failure mid-op).
+    // Renderer can dim the rollback button instead of showing a red
+    // toast.
+    const withRollback = applyUpdaterEvent(
+      initial,
+      {
+        type: 'rollback-availability-changed',
+        available: true,
+        version: '1.1.0',
+        createdAt: '2024-11-01T00:00:00Z',
+      },
+      V
+    );
+    const next = applyUpdaterEvent(
+      withRollback,
+      {
+        type: 'rollback-unavailable',
+        message: 'No previous version backup is available.',
+      },
+      V
+    );
+    expect(next).toMatchObject({
+      inProgress: false,
+      stage: 'failed',
+      rollbackAvailable: false,
+      message: 'No previous version backup is available.',
+    });
+    expect(next.rollbackVersion).toBeUndefined();
+    expect(next.rollbackCreatedAt).toBeUndefined();
+  });
+
   it('rollback-availability-changed toggles availability fields independently of stage', () => {
     const enabled = applyUpdaterEvent(
       initial,
