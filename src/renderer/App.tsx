@@ -18,6 +18,7 @@ import type {
 // Both were inline in App.tsx until extracted. Zero semantic change at
 // the call sites; the helpers now live under unit tests that run in the
 // jsdom + RTL harness from PR-renderer-infra.
+import { useDeviceScanner } from './hooks/useDeviceScanner';
 import { useUpdaterStatus } from './hooks/useUpdaterStatus';
 import {
   derivePairedNetworkDevices,
@@ -335,7 +336,6 @@ function App() {
       message: 'Loading...',
     },
   });
-  const [discoveredDevices, setDiscoveredDevices] = useState<DiscoveredDevice[]>([]);
   const [selectedDeviceKey, setSelectedDeviceKey] = useState('');
   const [pairCode, setPairCode] = useState('');
   const [pairingDeviceId, setPairingDeviceId] = useState('');
@@ -347,7 +347,8 @@ function App() {
   });
   const [devicePickerOpen, setDevicePickerOpen] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [scanning, setScanning] = useState(false);
+  const { discoveredDevices, setDiscoveredDevices, scanning, handleScanDevices } =
+    useDeviceScanner();
   const [bridgeReady, setBridgeReady] = useState(false);
   const [pairingReady, setPairingReady] = useState(false);
   const [assistantStatus, setAssistantStatus] = useState<'idle' | 'active' | 'error'>('idle');
@@ -444,15 +445,14 @@ function App() {
     return nextBootstrap;
   }
 
-  async function handleScanDevices(
+  // Wrapped handleScanDevices from the hook to add App-level state updates
+  const appHandleScanDevices = async (
     silent = false,
     devicesSource: SavedDevice[] = bootstrap.devices,
     activeDeviceId = bootstrap.deviceState.activeDeviceId
-  ) {
-    setScanning(true);
+  ) => {
     try {
-      const devices = await getDesktopApi().scanDevices();
-      setDiscoveredDevices(devices);
+      const devices = await handleScanDevices();
       setSelectedDeviceKey((current) => {
         const validSavedKeys = devicesSource.map((savedDevice) => `saved:${savedDevice.id}`);
         const validDiscoveredKeys = devices.map(
@@ -494,10 +494,8 @@ function App() {
           message: (error as Error).message,
         },
       }));
-    } finally {
-      setScanning(false);
     }
-  }
+  };
 
   useEffect(() => {
     async function initialize() {
@@ -511,7 +509,7 @@ function App() {
         setUpdaterStatus(nextUpdaterStatus);
         setBridgeReady(true);
         setDevicePickerOpen(!nextBootstrap.deviceState.activeDeviceId);
-        await handleScanDevices(
+        await appHandleScanDevices(
           true,
           nextBootstrap.devices,
           nextBootstrap.deviceState.activeDeviceId
@@ -1577,7 +1575,7 @@ function App() {
                     className="ui-icon-button"
                     disabled={bridgeDisabled || scanning}
                     onClick={() => {
-                      void handleScanDevices(false);
+                      void appHandleScanDevices(false);
                     }}
                   >
                     <Icon
@@ -1633,7 +1631,7 @@ function App() {
                   className="ui-help-chip"
                   disabled={bridgeDisabled}
                   onClick={() => {
-                    void handleScanDevices(false);
+                    void appHandleScanDevices(false);
                   }}
                 >
                   Don&apos;t see your device?
