@@ -137,20 +137,27 @@ void _eventParity;
 // ── Helper-derived types (used by preload + main wiring) ─────────────────────
 
 /**
- * Renderer-side client signature derived from the contract. The `Awaited<...>`
- * wrapping keeps `void`-returning handlers expressible without tripping
- * `@typescript-eslint/no-invalid-void-type` (bare `void` in a generic position
- * is forbidden by the lint rule).
+ * Internal helper that maps the contract's `undefined` "no result" marker to
+ * `void` at the function-signature level. Promises of `void` and promises of
+ * `undefined` are not assignment-compatible in strict mode (assigning
+ * `Promise<void>` to `Promise<undefined>` fails), and the renderer's call
+ * sites already use `Promise<void>` for the no-result handlers, so the
+ * contract internally uses `undefined` (which satisfies the no-invalid-void
+ * lint rule) and the derived types surface `void`.
  */
+type ResultOf<K extends InvokeChannelKey> = InvokeContract[K]['res'] extends undefined
+  ? // eslint-disable-next-line @typescript-eslint/no-invalid-void-type -- deliberate; see ResultOf docblock above
+    void
+  : InvokeContract[K]['res'];
+
+/** Renderer-side client signature derived from the contract. */
 export type ClientApi = {
-  [K in InvokeChannelKey]: (
-    ...args: InvokeContract[K]['args']
-  ) => Promise<Awaited<InvokeContract[K]['res']>>;
+  [K in InvokeChannelKey]: (...args: InvokeContract[K]['args']) => Promise<ResultOf<K>>;
 };
 
 /** Main-side handler signature derived from the contract. */
 export type HandlerApi = {
   [K in InvokeChannelKey]: (
     ...args: InvokeContract[K]['args']
-  ) => InvokeContract[K]['res'] extends infer R ? R | Promise<Awaited<R>> : never;
+  ) => ResultOf<K> | Promise<ResultOf<K>>;
 };

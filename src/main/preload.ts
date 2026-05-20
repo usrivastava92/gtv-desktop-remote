@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
+import type { DesktopApi } from '../shared/desktopApi';
 import { EVENT_CHANNELS, INVOKE_CHANNELS } from '../shared/ipcContract';
 import type {
   BootstrapState,
@@ -76,6 +77,14 @@ const api = {
   },
 };
 
-contextBridge.exposeInMainWorld('gtvRemote', api);
+// PR-5c: assert at compile time that the preload `api` matches the
+// renderer-facing `DesktopApi` surface derived from the IPC contract. If a
+// channel is added to `INVOKE_CHANNELS` without a corresponding preload
+// method (or the method's signature drifts), this fails the build.
+const typedApi: DesktopApi = api;
 
-export type DesktopApi = typeof api;
+contextBridge.exposeInMainWorld('gtvRemote', typedApi);
+
+// Re-export DesktopApi as a courtesy for any code that still imports from
+// `./preload`; the canonical location is now `src/shared/desktopApi.ts`.
+export type { DesktopApi } from '../shared/desktopApi';
