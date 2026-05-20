@@ -10,7 +10,6 @@ import type {
   RemoteCommand,
   RemoteCommandSource,
   SavedDevice,
-  UpdaterStatus,
 } from '../shared/types';
 
 // PR-renderer-1 (Wave 12): pure formatting/event helpers in lib/pure.
@@ -19,6 +18,7 @@ import type {
 // Both were inline in App.tsx until extracted. Zero semantic change at
 // the call sites; the helpers now live under unit tests that run in the
 // jsdom + RTL harness from PR-renderer-infra.
+import { useUpdaterStatus } from './hooks/useUpdaterStatus';
 import {
   derivePairedNetworkDevices,
   deriveUnpairedNetworkDevices,
@@ -351,15 +351,6 @@ function App() {
   const [bridgeReady, setBridgeReady] = useState(false);
   const [pairingReady, setPairingReady] = useState(false);
   const [assistantStatus, setAssistantStatus] = useState<'idle' | 'active' | 'error'>('idle');
-  const [updaterStatus, setUpdaterStatus] = useState<UpdaterStatus>({
-    inProgress: false,
-    stage: 'idle',
-    currentVersion: 'unknown',
-    message: 'Loading update status...',
-    updateAvailable: false,
-    updateInstallable: false,
-    rollbackAvailable: false,
-  });
   const [dismissedUpdateVersion, setDismissedUpdateVersion] = useState<string | null>(null);
   const [dismissedRollbackVersion, setDismissedRollbackVersion] = useState<string | null>(null);
   const [suppressedRollbackVersion, setSuppressedRollbackVersion] = useState<string | null>(() => {
@@ -373,6 +364,13 @@ function App() {
     }
   });
   const [updaterToast, setUpdaterToast] = useState<string | null>(null);
+  const { updaterStatus, setUpdaterStatus, refreshUpdaterStatusInBackground } = useUpdaterStatus(
+    bridgeReady,
+    suppressedRollbackVersion,
+    setSuppressedRollbackVersion,
+    dismissedRollbackVersion,
+    setDismissedRollbackVersion
+  );
   const pairCodeInputRef = useRef<HTMLInputElement>(null);
   const commandQueueRef = useRef<QueuedCommandBatch[]>([]);
   const queuedCommandCountRef = useRef(0);
@@ -444,20 +442,6 @@ function App() {
     const nextBootstrap = await getDesktopApi().bootstrap();
     setBootstrap(nextBootstrap);
     return nextBootstrap;
-  }
-
-  async function refreshUpdaterStatusInBackground() {
-    try {
-      const nextStatus = await getDesktopApi().checkForUpdatesInBackground();
-      setUpdaterStatus(nextStatus);
-    } catch (error) {
-      setUpdaterStatus((current) => ({
-        ...current,
-        inProgress: false,
-        stage: 'failed',
-        message: (error as Error).message || 'Update check failed.',
-      }));
-    }
   }
 
   async function handleScanDevices(
@@ -1321,40 +1305,6 @@ function App() {
       }));
     }
   }
-
-  // QW-2: subscribe to push-style updater status changes (replaces the prior
-  // 1.5s setInterval polling loop). The main process broadcasts on every
-  // status mutation via `updater:statusChanged`, so the renderer reacts
-  // immediately and consumes zero CPU when nothing is happening.
-  useEffect(() => {
-    if (!bridgeReady) {
-      return;
-    }
-    const unsubscribe = getDesktopApi().onUpdaterStatus((status) => {
-      setUpdaterStatus(status);
-    });
-    return unsubscribe;
-  }, [bridgeReady]);
-
-  // If the rollback version actually changes (e.g. user installed a new update so a new
-  // previous-version backup is now on disk), forget any prior "Don't show again" choice.
-  useEffect(() => {
-    const rollbackVersion = updaterStatus.rollbackVersion;
-    if (!rollbackVersion) {
-      return;
-    }
-    if (suppressedRollbackVersion && suppressedRollbackVersion !== rollbackVersion) {
-      setSuppressedRollbackVersion(null);
-      try {
-        window.localStorage.removeItem('gtv-remote.suppressedRollbackVersion');
-      } catch {
-        // Ignore storage failures.
-      }
-    }
-    if (dismissedRollbackVersion && dismissedRollbackVersion !== rollbackVersion) {
-      setDismissedRollbackVersion(null);
-    }
-  }, [updaterStatus.rollbackVersion, suppressedRollbackVersion, dismissedRollbackVersion]);
 
   function openDevicePicker() {
     setTextInputOpen(false);
