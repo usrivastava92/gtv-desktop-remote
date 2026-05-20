@@ -13,11 +13,19 @@ import type {
   UpdaterStatus,
 } from '../shared/types';
 
-// PR-renderer-1 (Wave 12): the 4 helpers below (classes, isEditableTarget,
-// sanitizePairCode, shouldRestartPairingFlow) were inline functions in
-// this file until this PR. Moved to src/renderer/lib/pure.ts to land the
-// first real renderer tests against the jsdom + RTL harness shipped in
-// PR-renderer-infra. Zero semantic change.
+// PR-renderer-1 (Wave 12): pure formatting/event helpers in lib/pure.
+// PR-renderer-2 (Wave 13): pure device-selection derivers in lib/deviceSelection.
+//
+// Both were inline in App.tsx until extracted. Zero semantic change at
+// the call sites; the helpers now live under unit tests that run in the
+// jsdom + RTL harness from PR-renderer-infra.
+import {
+  derivePairedNetworkDevices,
+  deriveUnpairedNetworkDevices,
+  findDiscoveredForSaved as findDiscoveredForSavedPure,
+  resolveSelectedDevice,
+  type DevicePickerSelection as DevicePickerSelectionFromLib,
+} from './lib/deviceSelection';
 import { classes, isEditableTarget, sanitizePairCode, shouldRestartPairingFlow } from './lib/pure';
 
 const initialDraft: DeviceDraft = {
@@ -61,9 +69,10 @@ interface QueuedCommandBatch {
   requests: CommandDispatchRequest[];
 }
 
-type DevicePickerSelection =
-  | { kind: 'saved'; key: string; savedDevice: SavedDevice; discoveredDevice?: DiscoveredDevice }
-  | { kind: 'discovered'; key: string; discoveredDevice: DiscoveredDevice };
+// PR-renderer-2: DevicePickerSelection now lives in lib/deviceSelection
+// so the resolveSelectedDevice helper can return it. Re-exported under
+// the original local name to avoid touching every call site.
+type DevicePickerSelection = DevicePickerSelectionFromLib;
 
 type IconName =
   | 'devices'
@@ -376,63 +385,21 @@ function App() {
   const assistantChunkCountRef = useRef(0);
   const assistantFirstChunkSentRef = useRef(false);
 
-  const discoveredByHost = new Map(discoveredDevices.map((device) => [device.host, device]));
-  const discoveredByMac = new Map(
-    discoveredDevices
-      .filter((device) => device.macAddress)
-      .map((device) => [device.macAddress!, device])
+  // PR-renderer-2: replaced the inline derivation block (the Map opts
+  // + findDiscoveredForSaved closure + the two array derivations + the
+  // IIFE) with calls to the pure helpers in lib/deviceSelection. Same
+  // shape, same identity priority matrix (MAC-first → host fallback),
+  // same key format. The local `findDiscoveredForSaved` wrapper keeps
+  // the in-component call sites unchanged.
+  const findDiscoveredForSaved = (savedDevice: { host: string; macAddress?: string }) =>
+    findDiscoveredForSavedPure(savedDevice, discoveredDevices);
+  const pairedNetworkDevices = derivePairedNetworkDevices(bootstrap.devices, discoveredDevices);
+  const unpairedNetworkDevices = deriveUnpairedNetworkDevices(bootstrap.devices, discoveredDevices);
+  const selectedDevice: DevicePickerSelection | undefined = resolveSelectedDevice(
+    selectedDeviceKey,
+    pairedNetworkDevices,
+    unpairedNetworkDevices
   );
-
-  function findDiscoveredForSaved(savedDevice: { host: string; macAddress?: string }) {
-    // Prefer MAC-based match (stable across IP changes), fall back to host
-    if (savedDevice.macAddress) {
-      const byMac = discoveredByMac.get(savedDevice.macAddress);
-      if (byMac) return byMac;
-    }
-    return discoveredByHost.get(savedDevice.host);
-  }
-
-  const pairedNetworkDevices = bootstrap.devices
-    .filter((savedDevice) => savedDevice.isPaired)
-    .map((savedDevice) => ({
-      key: `saved:${savedDevice.id}`,
-      savedDevice,
-      discoveredDevice: findDiscoveredForSaved(savedDevice),
-    }));
-  const unpairedNetworkDevices = discoveredDevices.filter(
-    (discoveredDevice) =>
-      !bootstrap.devices.some(
-        (savedDevice) =>
-          savedDevice.isPaired &&
-          (savedDevice.host === discoveredDevice.host ||
-            (savedDevice.macAddress && savedDevice.macAddress === discoveredDevice.macAddress))
-      )
-  );
-
-  const selectedDevice: DevicePickerSelection | undefined = (() => {
-    const savedSelection = pairedNetworkDevices.find((option) => option.key === selectedDeviceKey);
-    if (savedSelection) {
-      return {
-        kind: 'saved',
-        key: savedSelection.key,
-        savedDevice: savedSelection.savedDevice,
-        discoveredDevice: savedSelection.discoveredDevice,
-      };
-    }
-
-    const discoveredSelection = unpairedNetworkDevices.find(
-      (device) => `discovered:${device.id}` === selectedDeviceKey
-    );
-    if (discoveredSelection) {
-      return {
-        kind: 'discovered',
-        key: `discovered:${discoveredSelection.id}`,
-        discoveredDevice: discoveredSelection,
-      };
-    }
-
-    return undefined;
-  })();
 
   const activeSavedDevice = bootstrap.deviceState.activeDeviceId
     ? bootstrap.devices.find((device) => device.id === bootstrap.deviceState.activeDeviceId)
