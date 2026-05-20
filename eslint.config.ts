@@ -119,9 +119,82 @@ export default tseslint.config(
     },
   },
 
+  // ── Type-aware rules for backend (tsconfig.backend.json) ─────────────────
+  {
+    files: ['src/backend/**/*.ts'],
+    extends: [...tseslint.configs.strictTypeChecked, ...tseslint.configs.stylisticTypeChecked],
+    languageOptions: {
+      parserOptions: {
+        project: './tsconfig.backend.json',
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+  },
+
+  // ── Layer boundary enforcement ────────────────────────────────────────────
+  // src/backend/** must NOT import from electron, react, src/main, src/renderer
+  {
+    files: ['src/backend/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['electron', 'electron/*'],
+              message:
+                'src/backend must not import from electron. Use an injected port (IPathProvider, IDialogPresenter, etc.) instead.',
+            },
+            {
+              group: ['react', 'react-dom', 'react/*', 'react-dom/*'],
+              message: 'src/backend must not import from React.',
+            },
+            {
+              group: ['*/src/main/*', '../main/*', '../../main/*'],
+              message:
+                'src/backend must not import from src/main. Dependency flows main → backend, not the other way.',
+            },
+            {
+              group: ['*/src/renderer/*', '../renderer/*', '../../renderer/*'],
+              message: 'src/backend must not import from src/renderer.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // ── src/renderer must NOT import from src/backend directly ───────────────
+  {
+    files: ['src/renderer/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['*/src/backend/*', '../backend/*', '../../backend/*'],
+              message:
+                'src/renderer must not import from src/backend directly. Use the typed gtvRemote RPC client in src/renderer/api/ instead.',
+            },
+            {
+              group: ['electron', 'electron/*'],
+              message: 'src/renderer must not import from electron.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   // ── Root config files (type-checking not needed) ──────────────────────────
   {
-    files: ['*.config.{ts,mjs,js}', 'commitlint.config.ts', 'tailwind.config.ts'],
+    files: [
+      '*.config.{ts,mjs,js}',
+      'vitest.config.ts',
+      'commitlint.config.ts',
+      'tailwind.config.ts',
+    ],
     extends: [tseslint.configs.disableTypeChecked],
   },
 
