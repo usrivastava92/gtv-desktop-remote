@@ -90,11 +90,8 @@ function makeFakeSocket(): FakeSocket & {
           state.drainHandlers.splice(idx, 1);
         }
       } else if (event === 'data') {
-        // PR-3e: the removeListener signature in our fake takes
-        // `() => void`, but in practice both 'drain' and 'data' listeners
-        // are removed by reference; the runtime comparison works regardless
-        // of arity, so a single-target ts-expect-error keeps the seam tiny.
-        // @ts-expect-error -- intentional cross-arity comparison for the fake
+        // PR-3e: TS allows `(chunk) => void` to be compared against
+        // `() => void` here via bivariance — no cast needed at all.
         const idx = state.dataHandlers.indexOf(handler);
         if (idx >= 0) {
           state.dataHandlers.splice(idx, 1);
