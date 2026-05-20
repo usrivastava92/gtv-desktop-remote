@@ -170,7 +170,12 @@ describe('applyUpdaterEvent — every event transition', () => {
   it('download-started → downloading + zeros progress + clears eta + message includes version', () => {
     const after = applyUpdaterEvent(
       initial,
-      { type: 'download-progress', progressPercent: 99, etaSeconds: 4 },
+      {
+        type: 'download-progress',
+        progressPercent: 99,
+        etaSeconds: 4,
+        latestVersion: '1.2.3',
+      },
       V
     );
     const next = applyUpdaterEvent(after, { type: 'download-started', latestVersion: '2.0.0' }, V);
@@ -179,15 +184,55 @@ describe('applyUpdaterEvent — every event transition', () => {
     expect(next.message).toContain('2.0.0');
   });
 
-  it('download-progress → updates progress and eta only', () => {
+  it('download-started → caller-supplied message wins (PR-6e UX-parity)', () => {
     const next = applyUpdaterEvent(
       initial,
-      { type: 'download-progress', progressPercent: 42, etaSeconds: 17 },
+      {
+        type: 'download-started',
+        latestVersion: '2.0.0',
+        message: 'Downloading update 2.0.0...',
+      },
+      V
+    );
+    // ASCII "..." vs the default "Downloading X…" with ellipsis; caller wins.
+    expect(next.message).toBe('Downloading update 2.0.0...');
+  });
+
+  it('download-progress → sets stage:downloading + UX message + progress + eta (PR-6e)', () => {
+    const next = applyUpdaterEvent(
+      initial,
+      {
+        type: 'download-progress',
+        progressPercent: 42,
+        etaSeconds: 17,
+        latestVersion: '1.2.3',
+      },
       V
     );
     expect(next.progressPercent).toBe(42);
     expect(next.etaSeconds).toBe(17);
-    expect(next.stage).toBe(initial.stage); // unchanged
+    // PR-6e: stage and UX message are now derived from the event so the
+    // installAvailableUpdate progress callback doesn't have to set them
+    // inline. Matches the prior inline setUpdaterStatus shape.
+    expect(next.inProgress).toBe(true);
+    expect(next.stage).toBe('downloading');
+    expect(next.message).toBe('Downloading update 1.2.3... 42%');
+  });
+
+  it('download-progress → undefined progressPercent uses fallback message (PR-6e)', () => {
+    const next = applyUpdaterEvent(
+      initial,
+      {
+        type: 'download-progress',
+        progressPercent: undefined,
+        etaSeconds: undefined,
+        latestVersion: '1.2.3',
+      },
+      V
+    );
+    expect(next.progressPercent).toBeUndefined();
+    expect(next.etaSeconds).toBeUndefined();
+    expect(next.message).toBe('Downloading update 1.2.3...');
   });
 
   it('install-started / install-completed / install-failed transitions', () => {

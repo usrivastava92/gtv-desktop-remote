@@ -87,8 +87,13 @@ export type UpdaterEvent =
       installable: boolean;
       message: string;
     }
-  | { type: 'download-started'; latestVersion: string }
-  | { type: 'download-progress'; progressPercent: number; etaSeconds?: number }
+  | { type: 'download-started'; latestVersion: string; message?: string }
+  | {
+      type: 'download-progress';
+      progressPercent: number | undefined;
+      etaSeconds: number | undefined;
+      latestVersion: string;
+    }
   | { type: 'install-started' }
   | { type: 'install-completed'; latestVersion: string }
   | { type: 'install-failed'; message: string }
@@ -188,14 +193,33 @@ export function applyUpdaterEvent(
           stage: 'downloading',
           progressPercent: 0,
           etaSeconds: undefined,
-          message: `Downloading ${event.latestVersion}…`,
+          // PR-6e: caller-supplied message wins (matches existing inline
+          // setUpdaterStatus message format with ASCII "..." instead of "…")
+          // when migrating from installAvailableUpdate. Falls back to the
+          // PR-6 default ("Downloading X…") if omitted, so existing tests
+          // and any future caller that doesn't care about the format work.
+          message: event.message ?? `Downloading ${event.latestVersion}…`,
         },
         currentVersion
       );
     case 'download-progress':
+      // PR-6e: also keeps the "downloading" stage + UX message in sync with
+      // the inline setUpdaterStatus call. Without these, a download-progress
+      // event right after the user manually clicks "Check" would otherwise
+      // race the stage back to 'idle'. Message format ("Downloading X... NN%")
+      // matches what installAvailableUpdate's progress callback was sending.
       return mergeUpdaterStatus(
         prev,
-        { progressPercent: event.progressPercent, etaSeconds: event.etaSeconds },
+        {
+          inProgress: true,
+          stage: 'downloading',
+          progressPercent: event.progressPercent,
+          etaSeconds: event.etaSeconds,
+          message:
+            event.progressPercent !== undefined
+              ? `Downloading update ${event.latestVersion}... ${String(event.progressPercent)}%`
+              : `Downloading update ${event.latestVersion}...`,
+        },
         currentVersion
       );
     case 'install-started':
