@@ -20,6 +20,10 @@ interface FakeSocket {
   drainHandlers: (() => void)[];
   // PR-3e: track data listeners for onData test coverage.
   dataHandlers: ((chunk: Buffer | string) => void)[];
+  // PR-3f: track lifecycle listeners.
+  errorHandlers: ((error: Error) => void)[];
+  closeHandlers: (() => void)[];
+  timeoutHandlers: (() => void)[];
 }
 
 /**
@@ -29,11 +33,14 @@ interface FakeSocket {
  */
 function makeFakeSocket(): FakeSocket & {
   write(buffer: Buffer): boolean;
-  on(event: string, handler: (chunk?: Buffer | string) => void): unknown;
+  on(event: string, handler: (...args: unknown[]) => void): unknown;
   once(event: string, handler: () => void): unknown;
-  removeListener(event: string, handler: () => void): unknown;
+  removeListener(event: string, handler: (...args: unknown[]) => void): unknown;
   fireDrain(): void;
   fireData(chunk: Buffer | string): void;
+  fireError(error: Error): void;
+  fireClose(): void;
+  fireTimeout(): void;
 } {
   const state: FakeSocket = {
     destroyed: false,
@@ -41,6 +48,9 @@ function makeFakeSocket(): FakeSocket & {
     writeReturnValue: true,
     drainHandlers: [],
     dataHandlers: [],
+    errorHandlers: [],
+    closeHandlers: [],
+    timeoutHandlers: [],
   };
   return {
     ...state,
@@ -69,11 +79,25 @@ function makeFakeSocket(): FakeSocket & {
       state.written.push(buffer);
       return state.writeReturnValue;
     },
-    on(event: string, handler: (chunk: Buffer | string) => void) {
-      // PR-3e: only the 'data' event is supported here — that's all
-      // createFramedTlsTransportOverSocket calls into.
-      if (event === 'data') {
-        state.dataHandlers.push(handler);
+    on(event: string, handler: (...args: unknown[]) => void) {
+      // PR-3f: extended to support data + error + close + timeout. Each
+      // event has its own handler list so the production binding can be
+      // verified per-event.
+      // PR-3f: bivariant function types allow `(...args: unknown[]) => void`
+      // to be assigned to each specific handler signature without a cast.
+      switch (event) {
+        case 'data':
+          state.dataHandlers.push(handler);
+          break;
+        case 'error':
+          state.errorHandlers.push(handler);
+          break;
+        case 'close':
+          state.closeHandlers.push(handler);
+          break;
+        case 'timeout':
+          state.timeoutHandlers.push(handler);
+          break;
       }
       return this;
     },
@@ -83,18 +107,24 @@ function makeFakeSocket(): FakeSocket & {
       }
       return this;
     },
-    removeListener(event: string, handler: () => void) {
-      if (event === 'drain') {
-        const idx = state.drainHandlers.indexOf(handler);
+    removeListener(event: string, handler: (...args: unknown[]) => void) {
+      // PR-3f: per-event splice. Bivariant comparison is fine here — we're
+      // only doing reference equality on the handler.
+      const map: Record<
+        string,
+        { indexOf(h: unknown): number; splice(i: number, n: number): void }
+      > = {
+        drain: state.drainHandlers,
+        data: state.dataHandlers,
+        error: state.errorHandlers,
+        close: state.closeHandlers,
+        timeout: state.timeoutHandlers,
+      };
+      const target = map[event];
+      if (target) {
+        const idx = target.indexOf(handler);
         if (idx >= 0) {
-          state.drainHandlers.splice(idx, 1);
-        }
-      } else if (event === 'data') {
-        // PR-3e: TS allows `(chunk) => void` to be compared against
-        // `() => void` here via bivariance — no cast needed at all.
-        const idx = state.dataHandlers.indexOf(handler);
-        if (idx >= 0) {
-          state.dataHandlers.splice(idx, 1);
+          target.splice(idx, 1);
         }
       }
       return this;
@@ -106,6 +136,21 @@ function makeFakeSocket(): FakeSocket & {
     fireData(chunk: Buffer | string) {
       for (const h of state.dataHandlers.slice()) {
         h(chunk);
+      }
+    },
+    fireError(error: Error) {
+      for (const h of state.errorHandlers.slice()) {
+        h(error);
+      }
+    },
+    fireClose() {
+      for (const h of state.closeHandlers.slice()) {
+        h();
+      }
+    },
+    fireTimeout() {
+      for (const h of state.timeoutHandlers.slice()) {
+        h();
       }
     },
   };
@@ -196,6 +241,60 @@ describe('IFramedTlsTransport — production binding over socket', () => {
     socket.fireData(Buffer.from([1]));
     expect(handler).not.toHaveBeenCalled();
   });
+
+  it('onError subscribes via socket.on(error) and dispatches the error', () => {
+    const socket = makeFakeSocket();
+    const transport = createFramedTlsTransportOverSocket(socket as never);
+    const handler = vi.fn();
+    transport.onError(handler);
+    expect(socket.errorHandlers).toHaveLength(1);
+    socket.fireError(new Error('boom'));
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect((handler.mock.calls[0]?.[0] as Error).message).toBe('boom');
+  });
+
+  it('onClose subscribes via socket.on(close) and dispatches with no payload', () => {
+    const socket = makeFakeSocket();
+    const transport = createFramedTlsTransportOverSocket(socket as never);
+    const handler = vi.fn();
+    transport.onClose(handler);
+    expect(socket.closeHandlers).toHaveLength(1);
+    socket.fireClose();
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it('onTimeout subscribes via socket.on(timeout) and dispatches with no payload', () => {
+    const socket = makeFakeSocket();
+    const transport = createFramedTlsTransportOverSocket(socket as never);
+    const handler = vi.fn();
+    transport.onTimeout(handler);
+    expect(socket.timeoutHandlers).toHaveLength(1);
+    socket.fireTimeout();
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it('lifecycle unsubscribes remove their respective listeners', () => {
+    const socket = makeFakeSocket();
+    const transport = createFramedTlsTransportOverSocket(socket as never);
+    const errH = vi.fn();
+    const closeH = vi.fn();
+    const timeoutH = vi.fn();
+    const unErr = transport.onError(errH);
+    const unClose = transport.onClose(closeH);
+    const unTime = transport.onTimeout(timeoutH);
+    unErr();
+    unClose();
+    unTime();
+    expect(socket.errorHandlers).toHaveLength(0);
+    expect(socket.closeHandlers).toHaveLength(0);
+    expect(socket.timeoutHandlers).toHaveLength(0);
+    socket.fireError(new Error('x'));
+    socket.fireClose();
+    socket.fireTimeout();
+    expect(errH).not.toHaveBeenCalled();
+    expect(closeH).not.toHaveBeenCalled();
+    expect(timeoutH).not.toHaveBeenCalled();
+  });
 });
 
 describe('IFramedTlsTransport — createFakeFramedTlsTransport', () => {
@@ -281,5 +380,37 @@ describe('IFramedTlsTransport — createFakeFramedTlsTransport', () => {
     expect(() => {
       t.emitData(Buffer.from([0xff]));
     }).not.toThrow();
+  });
+
+  it('emitError/emitClose/emitTimeout dispatch to their respective subscribers', () => {
+    const t = createFakeFramedTlsTransport();
+    const errH = vi.fn();
+    const closeH = vi.fn();
+    const timeoutH = vi.fn();
+    t.onError(errH);
+    t.onClose(closeH);
+    t.onTimeout(timeoutH);
+    t.emitError(new Error('boom'));
+    t.emitClose();
+    t.emitTimeout();
+    expect(errH).toHaveBeenCalledWith(new Error('boom'));
+    expect(closeH).toHaveBeenCalledTimes(1);
+    expect(timeoutH).toHaveBeenCalledTimes(1);
+  });
+
+  it('lifecycle unsubscribes stop further fake dispatches', () => {
+    const t = createFakeFramedTlsTransport();
+    const errH = vi.fn();
+    const closeH = vi.fn();
+    const timeoutH = vi.fn();
+    t.onError(errH)();
+    t.onClose(closeH)();
+    t.onTimeout(timeoutH)();
+    t.emitError(new Error('x'));
+    t.emitClose();
+    t.emitTimeout();
+    expect(errH).not.toHaveBeenCalled();
+    expect(closeH).not.toHaveBeenCalled();
+    expect(timeoutH).not.toHaveBeenCalled();
   });
 });
