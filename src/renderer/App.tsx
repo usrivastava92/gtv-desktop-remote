@@ -99,6 +99,12 @@ type IconName =
   | 'remote'
   | 'assistant';
 
+// PR-renderer-3: getDesktopApi is duplicated in src/renderer/api.ts so
+// that hooks in src/renderer/hooks/ can import it without a circular dep
+// on App.tsx. The inline copy below remains for App's own use — importing
+// from './api' would violate the import-x/order group ordering (sibling
+// imports must precede parent imports, but App's parent imports appear
+// first due to the existing block shape). Zero behavioural difference.
 function getDesktopApi() {
   const api = window.gtvRemote;
 
