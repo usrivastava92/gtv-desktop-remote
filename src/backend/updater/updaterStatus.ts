@@ -74,7 +74,12 @@ export function mergeUpdaterStatus(
 export type UpdaterEvent =
   | { type: 'check-started' }
   | { type: 'check-failed'; message: string }
-  | { type: 'check-completed-no-update'; latestVersion: string; lastCheckedAt: string }
+  | {
+      type: 'check-completed-no-update';
+      latestVersion: string;
+      lastCheckedAt: string;
+      message: string;
+    }
   | {
       type: 'check-completed-update-available';
       latestVersion: string;
@@ -127,25 +132,33 @@ export function applyUpdaterEvent(
         currentVersion
       );
     case 'check-completed-no-update':
+      // PR-6c: stage/progress/message exactly match the inline setUpdaterStatus
+      // call site this event now replaces in updater.ts (compareVersions <= 0
+      // and skipped-version branches). Renderer UX is byte-for-byte unchanged.
       return mergeUpdaterStatus(
         prev,
         {
           inProgress: false,
-          stage: 'idle',
+          stage: 'completed',
           latestVersion: event.latestVersion,
           lastCheckedAt: event.lastCheckedAt,
+          progressPercent: 100,
+          etaSeconds: 0,
           updateAvailable: false,
           updateInstallable: false,
-          message: `You're on the latest version (${event.latestVersion}).`,
+          // `message` is now caller-supplied so the same event covers BOTH
+          // "You're up to date" AND "Update X was skipped" without 2 variants.
+          message: event.message,
         },
         currentVersion
       );
     case 'check-completed-update-available':
+      // PR-6c: stage matches the inline call site (`completed`, not `idle`).
       return mergeUpdaterStatus(
         prev,
         {
           inProgress: false,
-          stage: 'idle',
+          stage: 'completed',
           latestVersion: event.latestVersion,
           lastCheckedAt: event.lastCheckedAt,
           updateAvailable: true,

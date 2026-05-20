@@ -80,24 +80,49 @@ describe('applyUpdaterEvent — every event transition', () => {
     expect(next).toMatchObject({ inProgress: false, stage: 'failed', message: 'boom' });
   });
 
-  it('check-completed-no-update → idle + sets latestVersion + lastCheckedAt + cleared availability', () => {
+  it('check-completed-no-update → completed + sets latestVersion + lastCheckedAt + cleared availability + caller-supplied message', () => {
+    // PR-6c: `message` is now caller-supplied so the same event covers
+    // "up to date" AND "skipped" without 2 variants. Stage/progress/eta
+    // match the production setUpdaterStatus call sites exactly.
     const next = applyUpdaterEvent(
       initial,
       {
         type: 'check-completed-no-update',
         latestVersion: '1.2.4',
         lastCheckedAt: '2025-01-01T00:00:00Z',
+        message: "You're up to date (1.2.3).",
       },
       V
     );
+    expect(next.stage).toBe('completed');
+    expect(next.progressPercent).toBe(100);
+    expect(next.etaSeconds).toBe(0);
     expect(next.latestVersion).toBe('1.2.4');
     expect(next.lastCheckedAt).toBe('2025-01-01T00:00:00Z');
     expect(next.updateAvailable).toBe(false);
     expect(next.updateInstallable).toBe(false);
-    expect(next.message).toContain('1.2.4');
+    expect(next.message).toBe("You're up to date (1.2.3).");
   });
 
-  it('check-completed-update-available → idle + updateAvailable=true + installable mirrored', () => {
+  it('check-completed-no-update → also fits the "skipped" UX with a different message', () => {
+    // Verifies the same event covers the skipped-version branch in updater.ts
+    // without needing a separate `check-completed-skipped` event.
+    const next = applyUpdaterEvent(
+      initial,
+      {
+        type: 'check-completed-no-update',
+        latestVersion: '2.0.0',
+        lastCheckedAt: '2025-01-01T00:00:00Z',
+        message: 'Update 2.0.0 was skipped.',
+      },
+      V
+    );
+    expect(next.message).toBe('Update 2.0.0 was skipped.');
+    expect(next.stage).toBe('completed');
+    expect(next.updateAvailable).toBe(false);
+  });
+
+  it('check-completed-update-available → completed + updateAvailable=true + installable mirrored', () => {
     const next = applyUpdaterEvent(
       initial,
       {
