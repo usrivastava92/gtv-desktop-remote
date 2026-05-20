@@ -11,7 +11,7 @@ import {
   type ITlsConnector,
 } from '../../backend/transport/tls/tlsConnector';
 import type { CommandDispatchRequest } from '../../shared/types';
-import { getAppDataPath, logError, logInfo } from '../logger';
+import { createNodeLogger, getAppDataPath, logError } from '../logger';
 import { commandMetricsStore } from '../metrics';
 
 import type { PemPair } from './protocol/certificate';
@@ -465,17 +465,20 @@ export class AndroidTvRemoteBridge {
   // tests.
   private readonly tlsConnector: ITlsConnector = createNodeTlsConnector();
 
+  // PR-QW-logger: was a hand-rolled inline { info, warn, error } adapter that
+  // (a) returned Promise<void> from each arrow (triggers no-misused-promises
+  // now that ILogger is synchronous-by-contract) and (b) faked the missing
+  // WARN level with `logInfo(scope, 'WARN ' + msg, details)`. Both problems
+  // go away by binding the official `createNodeLogger()` factory which
+  // fire-and-forgets internally and routes warn() to `logWarn` (a real WARN
+  // level in the file logger).
   private readonly certStore = new AndroidTvCertStore(
     this.fs,
     {
       getCertStateDir: () => getAppDataPath('androidtvremote'),
       getAppDataPath: (...segments) => getAppDataPath(...segments),
     },
-    {
-      info: (scope, message, details) => logInfo(scope, message, details),
-      warn: (scope, message, details) => logInfo(scope, `WARN ${message}`, details),
-      error: (scope, message, details) => logInfo(scope, `ERROR ${message}`, details),
-    }
+    createNodeLogger()
   );
 
   private getFilesForCertKey(certKey: string): { certPath: string; keyPath: string } {

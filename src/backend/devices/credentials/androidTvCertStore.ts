@@ -66,7 +66,9 @@ export class AndroidTvCertStore {
       this.fs.writeFile(certPath, certs.cert, 'utf8'),
       this.fs.writeFile(keyPath, certs.key, 'utf8'),
     ]);
-    await this.logger.info('androidTvCertStore', 'Generated new client certificate', { certKey });
+    // PR-QW-logger revision: ILogger is now synchronous-by-contract, so the
+    // `await` is unnecessary here (and would trigger @typescript-eslint/await-thenable).
+    this.logger.info('androidTvCertStore', 'Generated new client certificate', { certKey });
     return certs;
   }
 
@@ -102,7 +104,7 @@ export class AndroidTvCertStore {
         this.fs.rename(oldFiles.certPath, newFiles.certPath),
         this.fs.rename(oldFiles.keyPath, newFiles.keyPath),
       ]);
-      await this.logger.info('androidTvCertStore', 'Migrated persisted client certificate', {
+      this.logger.info('androidTvCertStore', 'Migrated persisted client certificate', {
         oldCertKey,
         newCertKey,
       });
