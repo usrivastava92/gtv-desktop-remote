@@ -1,12 +1,12 @@
 /**
- * PR-renderer-1 (Wave 12): pure renderer helpers extracted from
+ * pure renderer helpers extracted from
  * `App.tsx`. These are the easiest 4 functions to lift because they have
  * no React, no DOM mutation, no Electron, and no closure state — just
  * inputs → outputs (with `isEditableTarget` reading DOM properties on a
  * passed-in node, which jsdom synthesizes fine in tests).
  *
  * Why extract these first
- *   - First real renderer test wins after PR-renderer-infra (Wave 11)
+ *   - First real renderer tests use jsdom + @testing-library/react
  *     shipped the jsdom + RTL harness.
  *   - Sets the import convention (`renderer/lib/`) so future hooks
  *     (`renderer/hooks/`) and features (`renderer/features/`) have a
@@ -27,15 +27,6 @@ export function isEditableTarget(target: EventTarget | null): boolean {
   }
 
   const tagName = target.tagName;
-  // PR-renderer-1: read isContentEditable through `unknown` then check
-  // strict equality with true. TS lib.dom.d.ts types HTMLElement
-  // .isContentEditable as `boolean` (per WHATWG spec), but jsdom returns
-  // `undefined` for elements without a contenteditable attribute. The
-  // App.tsx caller historically fed the result into `if (...)` so the
-  // undefined leak was masked. Strict `.toBe(false)` assertions in tests
-  // expose it. The `unknown`-cast keeps the compile-time type honest
-  // while letting the runtime check handle the spec-incompliant jsdom
-  // return shape.
   const editable = (target.isContentEditable as unknown) === true;
   return tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT' || editable;
 }

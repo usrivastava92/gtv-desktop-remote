@@ -1,10 +1,10 @@
 /**
  * Single source of truth for every IPC channel used between the renderer and
- * the main process. PR-7 introduces this contract so that:
+ * the main process. introduces this contract so that:
  *
  *   1. `src/main/preload.ts` and `src/main/main.ts` can never drift in
  *      channel names — both import the same constants.
- *   2. New code paths (PR-5 services, future device drivers, Apple TV) plug
+ * 2. New code paths ( services, future device drivers, Apple TV) plug
  *      into a typed map instead of inventing free-form strings.
  *   3. A trivial parity test (`__tests__/ipcContract.test.ts`) asserts that
  *      every channel declared here is shaped correctly.
@@ -97,18 +97,12 @@ export interface InvokeContract {
   updaterRollback: { args: []; res: UpdaterStatus };
 }
 
-// Compile-time assertion: every channel key has a contract entry, and the set
-// of keys is identical on both sides. If a new channel is added to
-// INVOKE_CHANNELS without a matching contract entry (or vice-versa), this
-// errors at build time.
 type _ContractParityCheck =
   Exclude<InvokeChannelKey, keyof InvokeContract> extends never
     ? Exclude<keyof InvokeContract, InvokeChannelKey> extends never
       ? true
       : ['MISSING_CHANNEL_NAME', Exclude<keyof InvokeContract, InvokeChannelKey>]
     : ['MISSING_CONTRACT_ENTRY', Exclude<InvokeChannelKey, keyof InvokeContract>];
-// Touch the type so it is not "unused" — a build error here means the map and
-// contract have drifted.
 const _parity: _ContractParityCheck = true;
 void _parity;
 

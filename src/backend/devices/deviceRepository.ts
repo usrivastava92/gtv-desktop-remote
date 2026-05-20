@@ -14,7 +14,7 @@ const DEFAULT_DATA: PersistedData = {
 
 /**
  * Persists the user's saved device list. Extracted from `src/main/device/store.ts`
- * as part of PR-4. The original module-level helpers (`readDevices`, `writeDevices`,
+ * The original module-level helpers (`readDevices`, `writeDevices`,
  * `clearDeviceStore`) become thin wrappers around an instance of this class so
  * existing call sites keep working unchanged.
  *

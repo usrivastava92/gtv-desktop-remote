@@ -1,15 +1,3 @@
-// PR-renderer-5: extract device scanning state from App.tsx.
-//
-// This hook owns:
-//   - the discoveredDevices state slice (DiscoveredDevice[])
-//   - the scanning state slice (boolean)
-//   - the handleScanDevices async function that calls getDesktopApi().scanDevices()
-//
-// App.tsx uses this as:
-//   const { discoveredDevices, setDiscoveredDevices, scanning, handleScanDevices } = useDeviceScanner();
-//
-// The hook is tested in src/renderer/hooks/__tests__/useDeviceScanner.test.tsx.
-
 import { useState } from 'react';
 
 import type { DiscoveredDevice } from '../../shared/types';

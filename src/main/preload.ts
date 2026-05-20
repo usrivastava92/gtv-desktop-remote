@@ -16,9 +16,6 @@ import type {
   UpdaterStatus,
 } from '../shared/types';
 
-// PR-7: every channel string flows through the shared `INVOKE_CHANNELS` and
-// `EVENT_CHANNELS` constants so renderer and main can never drift. A typo
-// here is a compile error, not a silent runtime failure.
 const api = {
   bootstrap: (): Promise<BootstrapState> => ipcRenderer.invoke(INVOKE_CHANNELS.deviceBootstrap),
   scanDevices: (): Promise<DiscoveredDevice[]> => ipcRenderer.invoke(INVOKE_CHANNELS.deviceScan),
@@ -77,14 +74,8 @@ const api = {
   },
 };
 
-// PR-5c: assert at compile time that the preload `api` matches the
-// renderer-facing `DesktopApi` surface derived from the IPC contract. If a
-// channel is added to `INVOKE_CHANNELS` without a corresponding preload
-// method (or the method's signature drifts), this fails the build.
 const typedApi: DesktopApi = api;
 
 contextBridge.exposeInMainWorld('gtvRemote', typedApi);
 
-// Re-export DesktopApi as a courtesy for any code that still imports from
-// `./preload`; the canonical location is now `src/shared/desktopApi.ts`.
 export type { DesktopApi } from '../shared/desktopApi';

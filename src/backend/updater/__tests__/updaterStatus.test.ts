@@ -75,7 +75,7 @@ describe('applyUpdaterEvent — every event transition', () => {
     expect(next.message).toContain('Checking');
   });
 
-  it('check-failed → clears progressPercent/etaSeconds/updateAvailable/updateInstallable (PR-6d)', () => {
+  it('check-failed → clears progressPercent/etaSeconds/updateAvailable/updateInstallable', () => {
     // Seed state as if a check had previously found an installable update.
     const dirty = applyUpdaterEvent(
       initial,
@@ -90,8 +90,6 @@ describe('applyUpdaterEvent — every event transition', () => {
     );
     expect(dirty.updateAvailable).toBe(true);
     expect(dirty.updateInstallable).toBe(true);
-    // A subsequent failed check (e.g. network outage during background poll)
-    // must wipe those flags so the UI doesn't show a stale "available" CTA.
     const failed = applyUpdaterEvent(dirty, { type: 'check-failed', message: 'network down' }, V);
     expect(failed.inProgress).toBe(false);
     expect(failed.stage).toBe('failed');
@@ -108,9 +106,6 @@ describe('applyUpdaterEvent — every event transition', () => {
   });
 
   it('check-completed-no-update → completed + sets latestVersion + lastCheckedAt + cleared availability + caller-supplied message', () => {
-    // PR-6c: `message` is now caller-supplied so the same event covers
-    // "up to date" AND "skipped" without 2 variants. Stage/progress/eta
-    // match the production setUpdaterStatus call sites exactly.
     const next = applyUpdaterEvent(
       initial,
       {
@@ -132,8 +127,6 @@ describe('applyUpdaterEvent — every event transition', () => {
   });
 
   it('check-completed-no-update → also fits the "skipped" UX with a different message', () => {
-    // Verifies the same event covers the skipped-version branch in updater.ts
-    // without needing a separate `check-completed-skipped` event.
     const next = applyUpdaterEvent(
       initial,
       {
@@ -184,7 +177,7 @@ describe('applyUpdaterEvent — every event transition', () => {
     expect(next.message).toContain('2.0.0');
   });
 
-  it('download-started → caller-supplied message wins (PR-6e UX-parity)', () => {
+  it('download-started → caller-supplied message wins', () => {
     const next = applyUpdaterEvent(
       initial,
       {
@@ -198,7 +191,7 @@ describe('applyUpdaterEvent — every event transition', () => {
     expect(next.message).toBe('Downloading update 2.0.0...');
   });
 
-  it('download-progress → sets stage:downloading + UX message + progress + eta (PR-6e)', () => {
+  it('download-progress → sets stage:downloading + UX message + progress + eta', () => {
     const next = applyUpdaterEvent(
       initial,
       {
@@ -211,15 +204,12 @@ describe('applyUpdaterEvent — every event transition', () => {
     );
     expect(next.progressPercent).toBe(42);
     expect(next.etaSeconds).toBe(17);
-    // PR-6e: stage and UX message are now derived from the event so the
-    // installAvailableUpdate progress callback doesn't have to set them
-    // inline. Matches the prior inline setUpdaterStatus shape.
     expect(next.inProgress).toBe(true);
     expect(next.stage).toBe('downloading');
     expect(next.message).toBe('Downloading update 1.2.3... 42%');
   });
 
-  it('download-progress → undefined progressPercent uses fallback message (PR-6e)', () => {
+  it('download-progress → undefined progressPercent uses fallback message', () => {
     const next = applyUpdaterEvent(
       initial,
       {
@@ -256,10 +246,7 @@ describe('applyUpdaterEvent — every event transition', () => {
     expect(failed).toMatchObject({ inProgress: false, stage: 'failed', message: 'disk full' });
   });
 
-  it('install-started → sets progress:95 + eta:10 + caller-supplied message (PR-6f UX-parity)', () => {
-    // installAvailableUpdate transitions the download bar through 95 %
-    // before showing the install dialog. The ASCII '...' format (vs the
-    // default '…' ellipsis) is the caller's exact UX.
+  it('install-started → sets progress:95 + eta:10 + caller-supplied message', () => {
     const next = applyUpdaterEvent(
       initial,
       { type: 'install-started', message: 'Installing update...' },
@@ -274,9 +261,7 @@ describe('applyUpdaterEvent — every event transition', () => {
     });
   });
 
-  it('install-completed → sets progress:100 + eta:0 + honors dev-mode message (PR-6f UX-parity)', () => {
-    // installAvailableUpdate branches the message for the dev-updater
-    // override; the reducer must accept the caller value verbatim.
+  it('install-completed → sets progress:100 + eta:0 + honors dev-mode message', () => {
     const next = applyUpdaterEvent(
       initial,
       {
@@ -297,10 +282,7 @@ describe('applyUpdaterEvent — every event transition', () => {
     });
   });
 
-  it('install-failed → clears progress/eta/updateAvailable/updateInstallable (PR-6f)', () => {
-    // Mirrors PR-6d's check-failed shape: a failed install must hide the
-    // progress bar and the 'Update available' CTA so the user can re-run
-    // the check from a clean state.
+  it('install-failed → clears progress/eta/updateAvailable/updateInstallable', () => {
     const downloading = applyUpdaterEvent(
       initial,
       {
@@ -349,10 +331,7 @@ describe('applyUpdaterEvent — every event transition', () => {
     expect(next).toMatchObject({ inProgress: false, stage: 'failed', message: 'no backup' });
   });
 
-  it('rollback-started → progress:20 + caller message + targetVersion fallback (PR-6g)', () => {
-    // rollbackToPreviousVersion sets progressPercent:20 inline to show
-    // visible activity while the bundle restore runs. Caller message
-    // wins (ASCII '...' format from the prod call site).
+  it('rollback-started → progress:20 + caller message + targetVersion fallback', () => {
     const next = applyUpdaterEvent(
       initial,
       {
@@ -380,11 +359,7 @@ describe('applyUpdaterEvent — every event transition', () => {
     expect(defaulted.message).toContain('1.2.2');
   });
 
-  it('rollback-completed → progress:100 + eta:0 + clears updateAvailable + honors dev-mode message (PR-6g)', () => {
-    // Dev-mode override branch from rollbackToPreviousVersion must
-    // survive the migration. Also clears updateAvailable/updateInstallable
-    // because any "update available" state from before the rollback no
-    // longer applies post-restore.
+  it('rollback-completed → progress:100 + eta:0 + clears updateAvailable + honors dev-mode message', () => {
     const dirty = applyUpdaterEvent(
       initial,
       {
@@ -415,7 +390,7 @@ describe('applyUpdaterEvent — every event transition', () => {
     });
   });
 
-  it('rollback-failed → clears progress/eta (PR-6g)', () => {
+  it('rollback-failed → clears progress/eta', () => {
     const inProgress = applyUpdaterEvent(
       initial,
       { type: 'rollback-started', targetVersion: '1.2.2', progressPercent: 20 },
@@ -435,11 +410,7 @@ describe('applyUpdaterEvent — every event transition', () => {
     expect(next.etaSeconds).toBeUndefined();
   });
 
-  it('rollback-unavailable → stage:failed + clears rollback metadata + passes message (PR-6g)', () => {
-    // New variant: distinct from rollback-failed. Means there's no
-    // bundle to roll back to (vs an actual restore failure mid-op).
-    // Renderer can dim the rollback button instead of showing a red
-    // toast.
+  it('rollback-unavailable → stage:failed + clears rollback metadata + passes message', () => {
     const withRollback = applyUpdaterEvent(
       initial,
       {
@@ -516,12 +487,9 @@ describe('applyUpdaterEvent — every event transition', () => {
     expect(initial).toEqual(before);
   });
 
-  // ── PR-6h new events ────────────────────────────────────────────────────
+  // ── new events ────────────────────────────────────────────────────
 
-  it('check-completed-no-asset → updateAvailable:true + updateInstallable:false + stage:failed (PR-6h)', () => {
-    // Distinct outcome: the release exists on GitHub but no compatible macOS
-    // asset was found. updateAvailable:true so the UI can say "new version
-    // exists" but updateInstallable:false so the install button stays hidden.
+  it('check-completed-no-asset → updateAvailable:true + updateInstallable:false + stage:failed', () => {
     const next = applyUpdaterEvent(
       initial,
       {
@@ -541,9 +509,7 @@ describe('applyUpdaterEvent — every event transition', () => {
     });
   });
 
-  it('check-started after check-completed-no-asset clears the no-asset state (PR-6h)', () => {
-    // Ensures the user can retry by clicking "check for updates" without
-    // being stuck in the no-asset state indefinitely.
+  it('check-started after check-completed-no-asset clears the no-asset state', () => {
     const noAsset = applyUpdaterEvent(
       initial,
       {
@@ -558,10 +524,7 @@ describe('applyUpdaterEvent — every event transition', () => {
     expect(retrying.updateAvailable).toBe(false);
   });
 
-  it('rollback-availability-changed dispatched by clearRollbackBackup clears metadata (PR-6h)', () => {
-    // clearRollbackBackup now dispatches rollback-availability-changed
-    // (available:false) instead of the raw setUpdaterStatus patch. The
-    // reducer must clear version + createdAt fields identically.
+  it('rollback-availability-changed dispatched by clearRollbackBackup clears metadata', () => {
     const withRollback = applyUpdaterEvent(
       initial,
       {

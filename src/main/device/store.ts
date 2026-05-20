@@ -6,9 +6,6 @@ import { createNodeFileSystem } from '../../backend/core/fileSystem';
 import { DeviceRepository } from '../../backend/devices/deviceRepository';
 import type { SavedDevice } from '../../shared/types';
 
-// Persistence is delegated to DeviceRepository (PR-4). The module-level
-// helpers below are preserved as thin wrappers so every existing call site
-// (GoogleTvAdapter, IPC handlers, etc.) keeps working unchanged.
 const repository = new DeviceRepository(createNodeFileSystem(), {
   getCertStateDir: () => app.getPath('userData'),
   getAppDataPath: (...segments) => path.join(app.getPath('userData'), ...segments),

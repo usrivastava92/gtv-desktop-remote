@@ -1,20 +1,3 @@
-// PR-renderer-7: extract pairing flow state from App.tsx.
-//
-// This hook owns:
-//   - the pairCode state slice (string)
-//   - the pairingDeviceId state slice (string)
-//   - the pairingReady state slice (boolean)
-//   - the pairCodeInputRef ref
-//
-// App.tsx uses this as:
-//   const { pairCode, setPairCode, pairingDeviceId, setPairingDeviceId, pairingReady, setPairingReady, pairCodeInputRef } = usePairingFlow();
-//
-// Pairing handlers (startPairingFlow, handlePair, etc.) remain in App.tsx because they
-// have dependencies on bootstrap state, setBootstrap, and other app-level state setters.
-// They call the setters from this hook as needed.
-//
-// The hook is tested in src/renderer/hooks/__tests__/usePairingFlow.test.tsx.
-
 import { useRef, useState } from 'react';
 
 /**

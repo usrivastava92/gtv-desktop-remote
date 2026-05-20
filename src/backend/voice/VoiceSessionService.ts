@@ -1,7 +1,7 @@
 /**
  * `VoiceSessionService` owns the lifecycle of an assistant-voice session
  * against a single connected device. It was extracted from
- * `GoogleTvAdapter.{start,send,stop,hasPending}AssistantVoice` in PR-5b so:
+ * `GoogleTvAdapter.{start,send,stop,hasPending}AssistantVoice` so:
  *
  *   - the stats accounting + progress logging is testable without electron
  *     or a live TV (constructor takes ports for transport / clock / logger);
@@ -13,9 +13,9 @@
  * The caller passes a `VoiceSessionTarget` per call; the service decides
  * everything else (session id ownership, stats lifecycle, log cadence).
  *
- * PR-QW-adopt-logger (Wave 9): the previously-local `IVoiceLogger` and
- * `IClock` interfaces are replaced by the shared `ILogger` (PR-QW-logger)
- * and `IClock` (PR-QW-clock) ports. Removes 2 duplicate interface
+ * the previously-local `IVoiceLogger` and
+ * `IClock` interfaces are replaced by the shared `ILogger`
+ * and `IClock`  ports. Removes 2 duplicate interface
  * declarations and lets callers pass `silentLogger` /
  * `createInMemoryLogger()` directly without an adapter.
  */
@@ -66,7 +66,7 @@ export class VoiceSessionService {
    * session id, which the caller must echo back on chunk / stop. */
   async start(target: VoiceSessionTarget): Promise<number> {
     const sessionId = await this.transport.start(target.host, target.macAddress);
-    // PR-QW-adopt-logger: ILogger is synchronous-by-contract — no await.
+    // ILogger is synchronous-by-contract — no await.
     this.logger.info('adapter', 'Assistant voice session started', {
       deviceId: target.deviceId,
       host: target.host,

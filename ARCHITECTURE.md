@@ -25,19 +25,20 @@ src/backend/           ← Pure Node (services, ports, codecs — no Electron)
 
 ### `src/renderer/` — Thin React shell
 
-| Module | Purpose |
-|--------|---------|
-| `App.tsx` | Root component (~1,867 LOC; further decomposition is ongoing) |
-| `hooks/useUpdaterStatus` | Owns updater status state + push subscription |
-| `hooks/useDeviceScanner` | Owns device discovery state + scan handler |
-| `hooks/useRemoteSession` | Owns command queue, busy state, keyboard map |
-| `hooks/usePairingFlow` | Owns pairing state variables |
-| `lib/pure.ts` | Pure formatting/event helpers (tested) |
-| `lib/deviceSelection.ts` | MAC-first identity matching (tested, mirrors backend DeviceRegistry) |
-| `lib/remoteCommands.ts` | Keyboard command map + burst constants |
-| `api.ts` | `getDesktopApi()` accessor — the **only** place that touches `window.gtvRemote` |
+| Module                   | Purpose                                                                         |
+| ------------------------ | ------------------------------------------------------------------------------- |
+| `App.tsx`                | Root component (~1,867 LOC; further decomposition is ongoing)                   |
+| `hooks/useUpdaterStatus` | Owns updater status state + push subscription                                   |
+| `hooks/useDeviceScanner` | Owns device discovery state + scan handler                                      |
+| `hooks/useRemoteSession` | Owns command queue, busy state, keyboard map                                    |
+| `hooks/usePairingFlow`   | Owns pairing state variables                                                    |
+| `lib/pure.ts`            | Pure formatting/event helpers (tested)                                          |
+| `lib/deviceSelection.ts` | MAC-first identity matching (tested, mirrors backend DeviceRegistry)            |
+| `lib/remoteCommands.ts`  | Keyboard command map + burst constants                                          |
+| `api.ts`                 | `getDesktopApi()` accessor — the **only** place that touches `window.gtvRemote` |
 
 **Hard rules (enforced by ESLint `no-restricted-imports`):**
+
 - `src/renderer/**` → **cannot** import from `src/backend/**`, `src/main/**`, or `electron`
 - Talk to main **only** through `getDesktopApi()` → `window.gtvRemote`
 
@@ -45,17 +46,17 @@ src/backend/           ← Pure Node (services, ports, codecs — no Electron)
 
 ### `src/main/` — Electron shell (kept thin)
 
-| Module | Purpose |
-|--------|---------|
-| `main.ts` | Window, tray, menu, global shortcut, IPC router (delegates to GoogleTvAdapter) |
-| `preload.ts` | IPC bridge — exposes typed `window.gtvRemote` using channels from `shared/ipcContract` |
-| `device/googleTvAdapter.ts` | Composition root for device logic (delegates to `src/backend/`) |
-| `device/androidTvRemote.ts` | TLS socket + NativeRemoteClient (session lifecycle, cert migration) |
-| `device/androidTvRemote.types.ts` | Types + constants extracted from `androidTvRemote.ts` |
-| `device/discovery.ts` | mDNS via `dns-sd` subprocess |
-| `updater.ts` | GitHub release download + install + rollback (pure state via `dispatchUpdaterEvent`) |
-| `logger.ts` | File logger using `app.getPath('logs')` |
-| `metrics.ts` | Command metrics (uses `IMetricsRecorder` port) |
+| Module                            | Purpose                                                                                |
+| --------------------------------- | -------------------------------------------------------------------------------------- |
+| `main.ts`                         | Window, tray, menu, global shortcut, IPC router (delegates to GoogleTvAdapter)         |
+| `preload.ts`                      | IPC bridge — exposes typed `window.gtvRemote` using channels from `shared/ipcContract` |
+| `device/googleTvAdapter.ts`       | Composition root for device logic (delegates to `src/backend/`)                        |
+| `device/androidTvRemote.ts`       | TLS socket + NativeRemoteClient (session lifecycle, cert migration)                    |
+| `device/androidTvRemote.types.ts` | Types + constants extracted from `androidTvRemote.ts`                                  |
+| `device/discovery.ts`             | mDNS via `dns-sd` subprocess                                                           |
+| `updater.ts`                      | GitHub release download + install + rollback (pure state via `dispatchUpdaterEvent`)   |
+| `logger.ts`                       | File logger using `app.getPath('logs')`                                                |
+| `metrics.ts`                      | Command metrics (uses `IMetricsRecorder` port)                                         |
 
 ---
 
@@ -64,30 +65,31 @@ src/backend/           ← Pure Node (services, ports, codecs — no Electron)
 All modules are port-and-adapter style: each directory has a clean
 interface (`I*`) and a production implementation. Tests use in-memory fakes.
 
-| Module | Purpose | Coverage target |
-|--------|---------|----------------|
-| `core/fileSystem` | `IFileSystem` port (fs operations) | — (port only) |
-| `core/logger` | `ILogger` port + `createNodeLogger()` | — |
-| `core/clock` | `IClock` port + `createSystemClock()` | — |
-| `core/pathProvider` | `IPathProvider` port | — |
-| `core/runtimeConfig` | `IRuntimeConfig` port | — |
-| `protocol/androidtv/pairing` | Protobuf pairing codec (pure) | ≥95% |
-| `protocol/androidtv/remote` | Protobuf remote/IME codec (pure) | ≥95% |
-| `protocol/androidtv/certificate` | node-forge cert/key generator | ≥90% |
-| `transport/framing/frameParser` | Varint length-prefix frame parser | ≥95% |
-| `transport/tls/framedTlsTransport` | `IFramedTlsTransport` port | — |
-| `transport/tls/tlsConnector` | `ITlsConnector` port | — |
-| `devices/deviceRepository` | CRUD over `SavedDevice[]` | ≥90% |
-| `devices/deviceRegistry` | MAC-first identity matching + merge | ≥95% |
-| `devices/credentials/androidTvCertStore` | Cert persistence | ≥90% |
-| `metrics/IMetricsRecorder` | Port for command dispatch metrics | — |
-| `metrics/createCommandMetricsStore` | Production implementation | ≥80% |
-| `voice/VoiceSessionService` | Voice session lifecycle | ≥90% |
-| `updater/updaterStatus` | `UpdaterEvent` pure reducer | 100% |
-| `updater/version` | Semver helpers | 100% |
-| `app/AppFacade` | Composition root (wires all services) | ≥80% |
+| Module                                   | Purpose                               | Coverage target |
+| ---------------------------------------- | ------------------------------------- | --------------- |
+| `core/fileSystem`                        | `IFileSystem` port (fs operations)    | — (port only)   |
+| `core/logger`                            | `ILogger` port + `createNodeLogger()` | —               |
+| `core/clock`                             | `IClock` port + `createSystemClock()` | —               |
+| `core/pathProvider`                      | `IPathProvider` port                  | —               |
+| `core/runtimeConfig`                     | `IRuntimeConfig` port                 | —               |
+| `protocol/androidtv/pairing`             | Protobuf pairing codec (pure)         | ≥95%            |
+| `protocol/androidtv/remote`              | Protobuf remote/IME codec (pure)      | ≥95%            |
+| `protocol/androidtv/certificate`         | node-forge cert/key generator         | ≥90%            |
+| `transport/framing/frameParser`          | Varint length-prefix frame parser     | ≥95%            |
+| `transport/tls/framedTlsTransport`       | `IFramedTlsTransport` port            | —               |
+| `transport/tls/tlsConnector`             | `ITlsConnector` port                  | —               |
+| `devices/deviceRepository`               | CRUD over `SavedDevice[]`             | ≥90%            |
+| `devices/deviceRegistry`                 | MAC-first identity matching + merge   | ≥95%            |
+| `devices/credentials/androidTvCertStore` | Cert persistence                      | ≥90%            |
+| `metrics/IMetricsRecorder`               | Port for command dispatch metrics     | —               |
+| `metrics/createCommandMetricsStore`      | Production implementation             | ≥80%            |
+| `voice/VoiceSessionService`              | Voice session lifecycle               | ≥90%            |
+| `updater/updaterStatus`                  | `UpdaterEvent` pure reducer           | 100%            |
+| `updater/version`                        | Semver helpers                        | 100%            |
+| `app/AppFacade`                          | Composition root (wires all services) | ≥80%            |
 
 **Hard rules (enforced by ESLint `no-restricted-imports`):**
+
 - `src/backend/**` → **cannot** import from `electron`, `react`, `src/renderer/**`, or `src/main/**`
 - Cross-cutting concerns go through port interfaces
 
@@ -100,6 +102,7 @@ names. `preload.ts` and `main.ts` both import from it — any drift is a
 compile-time error.
 
 Two channel families:
+
 - `INVOKE_CHANNELS` — request/response (renderer calls main)
 - `EVENT_CHANNELS` — push (main broadcasts to renderer)
 
@@ -110,15 +113,15 @@ Two channel families:
 Seven test gates that lock the wire format for Android TV communication.
 Any change that breaks one of these breaks CI:
 
-| Gate | File | What it locks |
-|------|------|--------------|
-| Protocol codecs | `protocol/androidtv/pairing.test.ts` | Protobuf pairing encode/decode |
-| Protocol codecs | `protocol/androidtv/remote.test.ts` | Protobuf remote command encode |
-| Cert migration | `devices/credentials/androidTvCertStore.test.ts` | IP-change cert migration |
-| Identity matching | `devices/deviceRegistry.test.ts` | MAC-first priority matrix (46 tests) |
-| IPC channel parity | `shared/ipcContract.test.ts` | Channel name uniqueness + format |
-| Frame parser | `transport/framing/frameParser.test.ts` | Varint partial-read parsing |
-| Connection lifecycle | `transport/tls/framedTlsTransport.test.ts` | Socket event dispatch |
+| Gate                 | File                                             | What it locks                        |
+| -------------------- | ------------------------------------------------ | ------------------------------------ |
+| Protocol codecs      | `protocol/androidtv/pairing.test.ts`             | Protobuf pairing encode/decode       |
+| Protocol codecs      | `protocol/androidtv/remote.test.ts`              | Protobuf remote command encode       |
+| Cert migration       | `devices/credentials/androidTvCertStore.test.ts` | IP-change cert migration             |
+| Identity matching    | `devices/deviceRegistry.test.ts`                 | MAC-first priority matrix (46 tests) |
+| IPC channel parity   | `shared/ipcContract.test.ts`                     | Channel name uniqueness + format     |
+| Frame parser         | `transport/framing/frameParser.test.ts`          | Varint partial-read parsing          |
+| Connection lifecycle | `transport/tls/framedTlsTransport.test.ts`       | Socket event dispatch                |
 
 ---
 

@@ -4,10 +4,10 @@
  * that returns a `FakeTlsSocket` driving framing / drain / close events
  * deterministically.
  *
- * Extracted in PR-3c. The actual TLS lifecycle inside `androidTvRemote.ts`
+ * The actual TLS lifecycle inside `androidTvRemote.ts`
  * (the 75-line connect/secureConnect/data/close/timeout block) keeps doing
- * its thing — this PR only abstracts the **socket factory**. Follow-up
- * PR-3d will move the lifecycle wiring itself, behind a higher-level
+ * this port only abstracts the **socket factory**. The lifecycle wiring
+ * itself is behind a higher-level
  * `IFramedTlsTransport` interface that owns reconnect + drain + backpressure.
  *
  * Adding a new field to `TlsConnectionOptions`: extend the interface, update
@@ -37,7 +37,7 @@ export interface TlsConnectionOptions {
    * store. Android TV self-signs, so production passes `false`. The TV
    * presents the same cert for the entire pairing → command lifecycle, so
    * pinning the fingerprint is the safer long-term option but out of scope
-   * for PR-3c.
+   * for this implementation.
    */
   readonly rejectUnauthorized: boolean;
 }
@@ -52,7 +52,7 @@ export interface TlsConnectionOptions {
  * Returning the raw `TLSSocket` keeps the abstraction minimal — the lower
  * half of the TLS lifecycle (event wiring, drain accounting, framing
  * dispatch) stays in `NativeRemoteClient.connect` and will be hoisted
- * incrementally in PR-3d/PR-3e.
+ * incrementally via the IFramedTlsTransport port.
  */
 export interface ITlsConnector {
   connect(options: TlsConnectionOptions): TLSSocket;
@@ -67,8 +67,6 @@ export interface ITlsConnector {
 export function createNodeTlsConnector(): ITlsConnector {
   return {
     connect(options) {
-      // PR-3c: import lazily so the backend bundle can be consumed in
-      // environments without `node:tls` (e.g. recorded-capture replayers).
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const tls = require('node:tls') as typeof NodeTls;
       return tls.connect({

@@ -1,9 +1,3 @@
-// PR-renderer-2 (Wave 13): tests for the 4 device-selection derivers
-// extracted from App.tsx. These are the renderer's mirror of the
-// backend's DeviceRegistry priority matrix (PR-4) — they must agree
-// on identity matching, otherwise the same TV could appear twice in
-// the picker (once as paired, once as unpaired).
-
 import { describe, expect, it } from 'vitest';
 
 import type { DiscoveredDevice, SavedDevice } from '../../../shared/types';
@@ -138,8 +132,6 @@ describe('deriveUnpairedNetworkDevices', () => {
   });
 
   it('keeps discovered devices when only an unpaired-saved device matches', () => {
-    // unpaired saved entries (i.e. pairing not yet completed) must NOT
-    // shadow the discovered entry — the user still needs to see it.
     const list = deriveUnpairedNetworkDevices(
       [saved({ id: 's1', host: '192.168.1.10', isPaired: false })],
       [discovered({ id: 'd1', host: '192.168.1.10' })]
@@ -160,8 +152,6 @@ describe('deriveUnpairedNetworkDevices', () => {
   });
 
   it('handles saved.macAddress=undefined cleanly (no NPE on host-only match)', () => {
-    // Defends against regression where the `macAddress && ===` short-circuit
-    // is rewritten and accidentally treats undefined===undefined as a match.
     const list = deriveUnpairedNetworkDevices(
       [saved({ host: '192.168.1.10', macAddress: undefined, isPaired: true })],
       [discovered({ host: '192.168.1.42', macAddress: undefined })]
@@ -202,8 +192,6 @@ describe('resolveSelectedDevice', () => {
   });
 
   it('saved match wins when a key could theoretically match both buckets', () => {
-    // saved:s1 should never accidentally match an unpaired entry whose
-    // own key string happens to share that prefix.
     const pairedWithCollidingId = derivePairedNetworkDevices([saved({ id: 's1' })], []);
     const sel = resolveSelectedDevice('saved:s1', pairedWithCollidingId, unpaired);
     expect(sel?.kind).toBe('saved');

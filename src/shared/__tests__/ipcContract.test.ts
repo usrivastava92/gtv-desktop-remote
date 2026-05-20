@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { EVENT_CHANNELS, INVOKE_CHANNELS } from '../ipcContract';
 
 /**
- * PR-7: runtime parity checks for the IPC contract.
+ * runtime parity checks for the IPC contract.
  *
  * The TypeScript types in `ipcContract.ts` already prove every channel key
  * has a contract entry. These runtime tests catch the things types cannot:
@@ -29,9 +29,6 @@ describe('INVOKE_CHANNELS', () => {
   });
 
   it('contains exactly the expected channel keys', () => {
-    // This is an additional safety net: any key added or removed without
-    // updating the contract entry will fail the TypeScript build, but this
-    // test gives a friendlier error message during code review.
     const keys = Object.keys(INVOKE_CHANNELS).sort();
     expect(keys).toEqual(
       [

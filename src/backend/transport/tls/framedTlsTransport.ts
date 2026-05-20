@@ -2,8 +2,8 @@
  * IFramedTlsTransport — thin port over the write+drain side of a TLS socket
  * carrying Android TV varint-prefixed frames.
  *
- * PR-3d (Wave 8) introduces this port behind the same seam-first pattern
- * PR-3c established for `ITlsConnector`. The 9 `socket.write(...)` sites
+ * introduces this port behind the same seam-first pattern
+ * established for `ITlsConnector`. The 9 `socket.write(...)` sites
  * scattered through `NativeRemoteClient` collapse to `transport.send(...)`,
  * and the inline `socket.once('drain', ...)` block in `sendCommand` becomes
  * `transport.onDrain(cb)`.
@@ -11,14 +11,14 @@
  * What's deliberately NOT in this port (yet):
  *   - Inbound data routing (`onData`) — still owned directly by
  *     `NativeRemoteClient.flushBuffer` so this PR has zero risk to the
- *     parseFramedBuffer hot path (gated by PR-3b's 13 tests).
+ *     parseFramedBuffer hot path (gated by 13 golden tests).
  *   - Socket-level event listeners (`once('remote-voice-begin')`) — those
  *     are protocol-state plumbing on top of the parsed inbound stream, not
- *     transport. Future PR-3e moves the inbound surface; PR-3f moves the
+ *     transport. The inbound surface is in `onData`; the lifecycle events
  *     full lifecycle (connect / disconnect / close).
  *
  * Production: `createFramedTlsTransportOverSocket(socket)` wraps a live
- * `TLSSocket` (acquired via `ITlsConnector` from PR-3c).
+ * `TLSSocket` (acquired via `ITlsConnector`).
  *
  * Tests: a hand-rolled `FakeFramedTlsTransport` or the test factory at
  * the bottom of this file (`createFakeFramedTlsTransport()`) drives
@@ -34,7 +34,7 @@ import type { TLSSocket } from 'node:tls';
  * Intentionally minimal — only what the writer and the inbound dispatch
  * loop need. Other socket-level concerns (close / error / timeout /
  * protocol-level events like `remote-voice-begin`) stay on the raw socket
- * until PR-3f.
+ * until the full lifecycle port is in place.
  */
 export interface IFramedTlsTransport {
   /**
@@ -70,8 +70,8 @@ export interface IFramedTlsTransport {
    * still the caller's responsibility (this PR doesn't take ownership of
    * `socket.removeAllListeners`).
    *
-   * PR-3e introduced this method to complete the inbound side of the
-   * transport contract. Combined with PR-3b's `parseFramedBuffer`, the
+   * introduced this method to complete the inbound side of the
+   * transport contract. Combined with `parseFramedBuffer`, the
    * entire write-and-parse loop is now testable without a real TLS socket.
    */
   onData(handler: (chunk: Buffer) => void): () => void;
@@ -79,7 +79,7 @@ export interface IFramedTlsTransport {
   /**
    * Subscribe to fatal socket errors. Mirrors `socket.on('error', cb)` —
    * fires zero or more times before close. Returns an unsubscribe.
-   * PR-3f completion of the lifecycle side of the transport contract.
+   * completion of the lifecycle side of the transport contract.
    */
   onError(handler: (error: Error) => void): () => void;
 
@@ -107,7 +107,7 @@ export interface IFramedTlsTransport {
 /**
  * Production binding — wraps a live TLSSocket. The transport doesn't own
  * the socket's lifecycle: the caller is still responsible for `destroy()`,
- * `connect`, listener wiring beyond drain, etc. PR-3e/PR-3f will lift
+ * `connect`, listener wiring beyond drain, etc. Those are behind
  * those concerns into the transport when they're ready to be tested
  * deterministically.
  */
@@ -126,9 +126,6 @@ export function createFramedTlsTransportOverSocket(socket: TLSSocket): IFramedTl
       };
     },
     onData(handler) {
-      // PR-3e: normalise Buffer|string union from socket.on('data') so
-      // every NativeRemoteClient inbound handler sees a Buffer regardless
-      // of the socket's encoding setting.
       const listener = (chunk: Buffer | string): void => {
         handler(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
       };
@@ -182,11 +179,11 @@ export function createFakeFramedTlsTransport(): IFramedTlsTransport & {
    * subscribe via separate transports.
    */
   emitData(chunk: Buffer): void;
-  /** PR-3f: trigger every active onError subscriber with `error`. */
+  /** Trigger every active onError subscriber with `error`. */
   emitError(error: Error): void;
-  /** PR-3f: trigger every active onClose subscriber. */
+  /** Trigger every active onClose subscriber. */
   emitClose(): void;
-  /** PR-3f: trigger every active onTimeout subscriber. */
+  /** Trigger every active onTimeout subscriber. */
   emitTimeout(): void;
   /** Mutates `destroyed`. */
   setDestroyed(value: boolean): void;
@@ -195,11 +192,8 @@ export function createFakeFramedTlsTransport(): IFramedTlsTransport & {
   let nextReturn: boolean | undefined;
   let isDestroyed = false;
   const drainSubscribers: (() => void)[] = [];
-  // PR-3e: data subscribers are an array (not a single field) so the test
-  // factory can verify multi-subscriber dispatch the same way the
-  // production binding does.
   const dataSubscribers: ((chunk: Buffer) => void)[] = [];
-  // PR-3f: lifecycle subscribers.
+  // lifecycle subscribers.
   const errorSubscribers: ((error: Error) => void)[] = [];
   const closeSubscribers: (() => void)[] = [];
   const timeoutSubscribers: (() => void)[] = [];

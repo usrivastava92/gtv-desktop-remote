@@ -12,7 +12,7 @@ const SERVICE_NAME = 'gtv-desktop-remote';
  * Android TV pairing protocol exchanges. Keyed by MAC address when known
  * (stable across IP changes), falling back to host.
  *
- * Extracted from `src/main/device/androidTvRemote.ts` as part of PR-3a.
+ * Extracted from `src/main/device/androidTvRemote.ts`
  * The original singleton bridge now delegates to this class so behavior is
  * byte-for-byte identical for the running app, but the methods are now
  * unit-testable with a fake filesystem.
@@ -66,8 +66,6 @@ export class AndroidTvCertStore {
       this.fs.writeFile(certPath, certs.cert, 'utf8'),
       this.fs.writeFile(keyPath, certs.key, 'utf8'),
     ]);
-    // PR-QW-logger revision: ILogger is now synchronous-by-contract, so the
-    // `await` is unnecessary here (and would trigger @typescript-eslint/await-thenable).
     this.logger.info('androidTvCertStore', 'Generated new client certificate', { certKey });
     return certs;
   }
@@ -108,10 +106,7 @@ export class AndroidTvCertStore {
         oldCertKey,
         newCertKey,
       });
-    } catch {
-      // Old cert did not exist either — nothing to migrate. Silent on purpose
-      // so users who pair a brand-new device do not see scary log lines.
-    }
+    } catch {} // eslint-disable-line no-empty
   }
 
   /**

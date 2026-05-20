@@ -1,19 +1,3 @@
-// PR-renderer-3 (Wave 14): extract updater status management from App.tsx.
-//
-// This hook owns:
-//   - the UpdaterStatus state slice
-//   - the onUpdaterStatus push subscription (from PR QW-2 / Wave 4)
-//   - the refreshUpdaterStatusInBackground helper
-//   - the rollback-version-changed side effect
-//     (clear suppressed/dismissed when the backup rotates)
-//   - initialUpdaterStatus value so App.tsx has zero knowledge of the shape
-//
-// App.tsx uses this as:
-//   const { updaterStatus, refreshUpdaterStatusInBackground } = useUpdaterStatus(bridgeReady);
-//
-// The hook is tested in src/renderer/hooks/__tests__/useUpdaterStatus.test.tsx
-// using the jsdom + RTL harness from PR-renderer-infra.
-
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { getDesktopApi, type UpdaterStatus } from '../api';
@@ -53,8 +37,6 @@ export function useUpdaterStatus(
   // Return type is inferred by TS — avoids importing React.Dispatch explicitly.
   const [updaterStatus, setUpdaterStatus] = useState<UpdaterStatus>(INITIAL_UPDATER_STATUS);
 
-  // Stable callback ref so the useEffect cleanup path doesn't capture a
-  // stale closure (the refresh function itself calls getDesktopApi() inline).
   const refreshRef = useRef<(() => Promise<void>) | undefined>(undefined);
 
   const refreshUpdaterStatusInBackground = useCallback(async () => {
@@ -69,17 +51,10 @@ export function useUpdaterStatus(
         message: (error as Error).message || 'Update check failed.',
       }));
     }
-    // getDesktopApi() reads window.gtvRemote at call time so no deps needed.
-    // setUpdaterStatus is stable (from useState). ESLint exhaustive-deps
-    // wants [] and that's correct here.
   }, []);
 
   refreshRef.current = refreshUpdaterStatusInBackground;
 
-  // Subscribe to push events from the main process.
-  // onUpdaterStatus was wired up in PR QW-2 (Wave 4) — the main process
-  // broadcasts on every status mutation so the renderer reacts immediately
-  // without polling.
   useEffect(() => {
     if (!bridgeReady) return;
     const unsubscribe = getDesktopApi().onUpdaterStatus((status) => {
@@ -88,9 +63,6 @@ export function useUpdaterStatus(
     return unsubscribe;
   }, [bridgeReady]);
 
-  // If the rollback version changes (e.g. user installed a new update so a
-  // new previous-version backup is now on disk), forget any prior
-  // "Don't show again" / "Dismissed" choice so the banner re-appears.
   useEffect(() => {
     const rollbackVersion = updaterStatus.rollbackVersion;
     if (!rollbackVersion) return;

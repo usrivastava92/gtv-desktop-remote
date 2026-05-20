@@ -9,12 +9,6 @@ import type {
   SavedDevice,
 } from '../shared/types';
 
-// PR-renderer-1 (Wave 12): pure formatting/event helpers in lib/pure.
-// PR-renderer-2 (Wave 13): pure device-selection derivers in lib/deviceSelection.
-//
-// Both were inline in App.tsx until extracted. Zero semantic change at
-// the call sites; the helpers now live under unit tests that run in the
-// jsdom + RTL harness from PR-renderer-infra.
 import { useDeviceScanner } from './hooks/useDeviceScanner';
 import { usePairingFlow } from './hooks/usePairingFlow';
 import { useRemoteSession } from './hooks/useRemoteSession';
@@ -36,19 +30,10 @@ const initialDraft: DeviceDraft = {
   pairingPort: 0,
 };
 
-// PR-renderer-6: keyboardCommandMap moved to src/renderer/lib/remoteCommands.ts
-// as KEYBOARD_COMMAND_MAP (imported above).
-
 const ASSISTANT_VOICE_MIN_CHUNK_BYTES = 8 * 1024;
 const ASSISTANT_VOICE_INITIAL_CHUNK_BYTES = 8 * 1024;
 const ASSISTANT_VOICE_STREAM_CHUNK_BYTES = 20 * 1024;
 
-// PR-renderer-6: burstSensitiveCommands, MAX_QUEUED_COMMANDS, QueuedCommandBatch
-// moved to src/renderer/hooks/useRemoteSession.ts (imported above).
-
-// PR-renderer-2: DevicePickerSelection now lives in lib/deviceSelection
-// so the resolveSelectedDevice helper can return it. Re-exported under
-// the original local name to avoid touching every call site.
 type DevicePickerSelection = DevicePickerSelectionFromLib;
 
 type IconName =
@@ -76,12 +61,6 @@ type IconName =
   | 'remote'
   | 'assistant';
 
-// PR-renderer-3: getDesktopApi is duplicated in src/renderer/api.ts so
-// that hooks in src/renderer/hooks/ can import it without a circular dep
-// on App.tsx. The inline copy below remains for App's own use — importing
-// from './api' would violate the import-x/order group ordering (sibling
-// imports must precede parent imports, but App's parent imports appear
-// first due to the existing block shape). Zero behavioural difference.
 function getDesktopApi() {
   const api = window.gtvRemote;
 
@@ -93,13 +72,6 @@ function getDesktopApi() {
 
   return api;
 }
-
-// PR-renderer-1: isEditableTarget / sanitizePairCode / classes /
-// shouldRestartPairingFlow moved to src/renderer/lib/pure.ts (imported at
-// the top of this file). 4 pure helpers, 0 semantic change.
-
-// PCM helpers (convertFloat32ToPcm16, downsampleTo8kMono, toBase64) moved to
-// src/shared/audio.ts (QW-1) — imported at the top of this file.
 
 function Icon({ name, className }: { name: IconName; className?: string }) {
   const props = {
@@ -363,8 +335,6 @@ function App() {
     dismissedRollbackVersion,
     setDismissedRollbackVersion
   );
-  // PR-renderer-6: commandQueueRef, queuedCommandCountRef, isProcessingQueueRef
-  // moved to useRemoteSession hook.
   const assistantLongPressTimerRef = useRef<number | null>(null);
   const assistantStartingRef = useRef(false);
   const assistantActiveRef = useRef(false);
@@ -379,12 +349,6 @@ function App() {
   const assistantChunkCountRef = useRef(0);
   const assistantFirstChunkSentRef = useRef(false);
 
-  // PR-renderer-2: replaced the inline derivation block (the Map opts
-  // + findDiscoveredForSaved closure + the two array derivations + the
-  // IIFE) with calls to the pure helpers in lib/deviceSelection. Same
-  // shape, same identity priority matrix (MAC-first → host fallback),
-  // same key format. The local `findDiscoveredForSaved` wrapper keeps
-  // the in-component call sites unchanged.
   const findDiscoveredForSaved = (savedDevice: { host: string; macAddress?: string }) =>
     findDiscoveredForSavedPure(savedDevice, discoveredDevices);
   const pairedNetworkDevices = derivePairedNetworkDevices(bootstrap.devices, discoveredDevices);
@@ -790,8 +754,6 @@ function App() {
     return () => {
       window.clearInterval(intervalId);
     };
-    // These session functions intentionally close over refs; re-running this poll on every render
-    // can tear down an active microphone stream.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bridgeReady, isConnected, currentView]);
 
@@ -820,7 +782,6 @@ function App() {
     return () => {
       window.clearInterval(intervalId);
     };
-    // See polling effect above; keep this tied to connection/view changes only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bridgeReady, isConnected, currentView]);
 
@@ -909,7 +870,6 @@ function App() {
       clearAssistantLongPressTimer();
       void stopAssistantSession();
     };
-    // Keyboard listeners should not be recreated for each command queue render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bridgeReady, isConnected, currentView, remoteDisabled]);
 
@@ -1069,10 +1029,6 @@ function App() {
       setBusy(false);
     }
   }
-
-  // PR-renderer-6: createCommandRequest, recordQueuedCommandDrop, enqueueCommand,
-  // flushQueuedCommands, handleCommand all moved to useRemoteSession hook.
-  // App.tsx calls handleCommand (from the hook) directly at call sites.
 
   async function handleSendText() {
     if (!textInput.trim()) {

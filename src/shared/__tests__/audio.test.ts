@@ -84,8 +84,6 @@ describe('downsampleTo8kMono', () => {
   });
 
   it('averages source samples within each output window', () => {
-    // 16 kHz → 8 kHz, ratio = 2. Source has alternating +1 / -1 samples;
-    // averaged in pairs they produce 0 → encoded as 0.
     const source = new Float32Array([1, -1, 1, -1, 1, -1, 1, -1]);
     const bytes = downsampleTo8kMono(source, 16_000);
     const view = new Int16Array(bytes.buffer, bytes.byteOffset, bytes.byteLength / 2);

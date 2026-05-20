@@ -7,9 +7,6 @@ import {
 } from '../tlsConnector';
 
 describe('createNodeTlsConnector', () => {
-  // We can't safely open a real TLS connection in a unit test, but we CAN
-  // assert the factory returns a valid `ITlsConnector` with the expected
-  // signature.
   it('returns an object satisfying the ITlsConnector contract', () => {
     const connector: ITlsConnector = createNodeTlsConnector();
     expect(typeof connector.connect).toBe('function');
@@ -22,10 +19,6 @@ describe('createNodeTlsConnector', () => {
 });
 
 describe('ITlsConnector contract (fake-based)', () => {
-  // The point of the port is testability — assert that a hand-rolled fake
-  // satisfies the interface. If the interface ever drifts in a way that
-  // breaks this fake, every consumer in src/main/device/androidTvRemote.ts
-  // also needs updating.
   it('a minimal fake connector satisfies the interface', () => {
     interface FakeSocketLike {
       readonly writes: TlsConnectionOptions[];
@@ -34,8 +27,6 @@ describe('ITlsConnector contract (fake-based)', () => {
     const fake: ITlsConnector = {
       connect(options) {
         writes.push(options);
-        // We return a minimal object cast to TLSSocket — the real consumer
-        // only invokes methods we mock in the larger transport tests.
         /* eslint-disable @typescript-eslint/no-empty-function -- deliberate no-op fakes */
         const socketLike: FakeSocketLike & {
           on(): void;

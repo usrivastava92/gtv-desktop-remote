@@ -1,10 +1,10 @@
 /**
- * Pure helpers extracted from `src/main/updater.ts` as part of PR-6.
+ * Pure helpers extracted from `src/main/updater.ts`
  *
  * Nothing here touches Electron, the filesystem, or the network. The full
  * updater (download / install / rollback orchestration) remains in
  * `src/main/updater.ts` for now; that big slice is the subject of a future
- * `PR-6b` wave once the FSM lives on top of these pure foundations.
+ * `` wave once the FSM lives on top of these pure foundations.
  *
  * **Why this matters:** the updater historically mixed pure version comparison
  * with side-effecting dialog calls and disk IO, which made it impossible to

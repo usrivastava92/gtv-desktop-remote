@@ -21,10 +21,6 @@ describe('isEditableTarget (jsdom)', () => {
   );
 
   it('returns true for a contenteditable host', () => {
-    // jsdom's contenteditable attribute -> isContentEditable getter mapping
-    // is incomplete, so override the getter directly. This matches what
-    // the production check actually relies on at runtime in Electron's
-    // chromium renderer (where the spec'd boolean getter does work).
     const el = document.createElement('div');
     Object.defineProperty(el, 'isContentEditable', { value: true, configurable: true });
     expect(isEditableTarget(el)).toBe(true);
@@ -79,10 +75,6 @@ describe('classes', () => {
   });
 
   it('handles the common conditional toggle pattern', () => {
-    // Use Math.random-derived values so TS const-narrowing can't fold the
-    // && expressions into trivially-true/trivially-false (which lint
-    // would then flag as @typescript-eslint/no-unnecessary-condition).
-    // The if/else just makes the truth values dynamic from TS's POV.
     const active = Date.now() > 0; // always true at runtime
     const disabled = Date.now() < 0; // always false at runtime
     expect(classes('btn', active && 'btn-active', disabled && 'btn-disabled')).toBe(

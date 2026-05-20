@@ -59,17 +59,11 @@ function makeFakes(opts: { startSessionId?: number; pending?: boolean } = {}) {
     },
   };
 
-  // PR-QW-adopt-logger: shared IClock from core/clock requires `nowDate()`
-  // too. Inline both methods rather than importing createFakeClock so the
-  // test stays self-contained (and explicit about how time advances).
   const clock: IClock = {
     now: () => timeNow,
     nowDate: () => new Date(timeNow),
   };
 
-  // PR-QW-adopt-logger: shared ILogger has 3 levels and is synchronous.
-  // Tests still only care about info(), but warn/error are needed to
-  // satisfy the interface.
   const logger: ILogger = {
     info: (scope, message, details) => {
       logs.push({ scope, message, details: details as Record<string, unknown> | undefined });
