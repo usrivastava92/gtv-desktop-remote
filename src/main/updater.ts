@@ -7,7 +7,12 @@ import { promisify } from 'node:util';
 import { app, BrowserWindow, dialog, shell } from 'electron';
 
 import { getRuntimeConfig } from '../backend/core/runtimeConfig';
-import { createInitialUpdaterStatus, mergeUpdaterStatus } from '../backend/updater/updaterStatus';
+import {
+  applyUpdaterEvent,
+  createInitialUpdaterStatus,
+  mergeUpdaterStatus,
+  type UpdaterEvent,
+} from '../backend/updater/updaterStatus';
 import {
   compareVersions,
   findBestMacAsset,
@@ -86,11 +91,32 @@ export function subscribeUpdaterStatus(listener: UpdaterStatusListener): () => v
 
 function setUpdaterStatus(next: Partial<UpdaterStatus>) {
   // PR-6a: delegate the merge to the pure `mergeUpdaterStatus` helper, then
-  // mutate the module-level singleton in place. (Future PR-6b will migrate
-  // call sites to dispatch `UpdaterEvent`s through `applyUpdaterEvent`
-  // instead, but that's a per-call-site mechanical change.)
+  // mutate the module-level singleton in place. (PR-6b adds an
+  // `UpdaterEvent`-dispatch alternative — `dispatchUpdaterEvent` — that uses
+  // `applyUpdaterEvent` internally and reuses the listener fan-out below via
+  // `publishUpdaterStatus`.)
   const merged = mergeUpdaterStatus(updaterStatus, next, app.getVersion());
   Object.assign(updaterStatus, merged);
+  publishUpdaterStatus();
+}
+
+/**
+ * PR-6b: dispatch a typed `UpdaterEvent` and let `applyUpdaterEvent` (the
+ * pure reducer in src/backend/updater/updaterStatus.ts) compute the new
+ * status. Identical listener fan-out as `setUpdaterStatus`.
+ *
+ * This is the migration target for the 16+ inline `setUpdaterStatus({...})`
+ * call sites. Migration is per-site and can land incrementally; both code
+ * paths produce byte-identical output via the same reducer.
+ */
+function dispatchUpdaterEvent(event: UpdaterEvent) {
+  const next = applyUpdaterEvent(updaterStatus, event, app.getVersion());
+  Object.assign(updaterStatus, next);
+  publishUpdaterStatus();
+}
+
+/** Shared fan-out used by both `setUpdaterStatus` and `dispatchUpdaterEvent`. */
+function publishUpdaterStatus() {
   const snapshot = snapshotUpdaterStatus();
   for (const listener of updaterStatusListeners) {
     try {
@@ -530,11 +556,17 @@ async function downloadFile(
 }
 
 async function checkForMacUpdate() {
+  // PR-6b: first call site migrated from `setUpdaterStatus(partial)` to
+  // `dispatchUpdaterEvent`. The reducer's `check-started` event covers
+  // `inProgress: true`, `stage: 'checking'`, and the "Checking…" message.
+  // The two extra fields previously set inline (`lastCheckedAt`,
+  // `updateAvailable: false`, `updateInstallable: false`) are followed up
+  // with a `setUpdaterStatus(partial)` so this PR introduces zero behavior
+  // change. Future PR-6c will extend `check-started` to optionally carry
+  // these fields and collapse the two calls.
+  dispatchUpdaterEvent({ type: 'check-started' });
   setUpdaterStatus({
-    inProgress: true,
-    stage: 'checking',
     lastCheckedAt: new Date().toISOString(),
-    message: 'Checking for updates...',
     updateAvailable: false,
     updateInstallable: false,
   });
