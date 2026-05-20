@@ -1,4 +1,8 @@
-import type { IMetricsRecorder } from '../backend/metrics/IMetricsRecorder';
+import {
+  createEmptyMetricsCounters,
+  createEmptyMetricsSnapshot,
+  type IMetricsRecorder,
+} from '../backend/metrics/IMetricsRecorder';
 import type {
   CommandDispatchRequest,
   CommandDropReason,
@@ -20,19 +24,12 @@ const CONNECT_STALL_MS = 15_000;
 const SEND_STALL_MS = 15_000;
 const INBOUND_STALL_MS = 45_000;
 
-function createCounters(): CommandMetricsCounters {
-  return {
-    totalSubmitted: 0,
-    totalSucceeded: 0,
-    totalDropped: 0,
-    totalFailed: 0,
-    rendererDrops: 0,
-    backpressureEvents: 0,
-    connectAttempts: 0,
-    connectFailures: 0,
-    stallWarnings: 0,
-  };
-}
+// PR-5a follow-up: counters + (zero-timestamp) snapshot shapes are owned by
+// `src/backend/metrics/IMetricsRecorder.ts`. Local helpers below adapt them
+// for the production store, where the snapshot wants `generatedAt: Date.now()`
+// rather than the zero used by the noop/empty case.
+
+const createCounters: () => CommandMetricsCounters = createEmptyMetricsCounters;
 
 function createTransportSnapshot(): CommandMetricsTransportSnapshot {
   return {
@@ -43,13 +40,9 @@ function createTransportSnapshot(): CommandMetricsTransportSnapshot {
 }
 
 function createEmptySnapshot(): CommandMetricsSnapshot {
-  return {
-    generatedAt: Date.now(),
-    counters: createCounters(),
-    transport: createTransportSnapshot(),
-    warnings: [],
-    recentCommands: [],
-  };
+  // The shared helper sets `generatedAt: 0`. Production traces want the wall
+  // time at which the snapshot was built, so we stamp it here.
+  return { ...createEmptyMetricsSnapshot(), generatedAt: Date.now() };
 }
 
 export class CommandMetricsStore implements IMetricsRecorder {
