@@ -5,6 +5,7 @@ import tls from 'node:tls';
 
 import { createNodeFileSystem, type IFileSystem } from '../../backend/core/fileSystem';
 import { AndroidTvCertStore } from '../../backend/devices/credentials/androidTvCertStore';
+import { parseFramedBuffer } from '../../backend/transport/framing/frameParser';
 import type { CommandDispatchRequest } from '../../shared/types';
 import { getAppDataPath, logError, logInfo } from '../logger';
 import { commandMetricsStore } from '../metrics';
@@ -347,48 +348,31 @@ class NativeRemoteClient {
     return this.socket;
   }
 
+  /**
+   * PR-3b: framing was a 40-line inline varint parser. It now delegates to
+   * the pure `parseFramedBuffer` helper in `src/backend/transport/framing/`,
+   * which is unit-tested byte-by-byte (partial reads, multi-frame chunks,
+   * malformed varints, streaming windows). Behavior is byte-identical to
+   * the previous inline implementation — same malformed-frame error message,
+   * same buffer-clear-on-error semantics, same socket destroy on bad input.
+   */
   private flushBuffer(): void {
-    while (this.buffer.length > 0) {
-      const frame = this.readNextFrame();
-      if (!frame) {
-        return;
-      }
+    const result = parseFramedBuffer(this.buffer);
+    this.buffer = Buffer.from(result.remaining);
 
+    if (result.error) {
+      this.socket?.destroy(result.error);
+      // `parseFramedBuffer` already cleared remaining on error; defensive:
+      this.buffer = Buffer.alloc(0);
+      // Still hand off any frames that were successfully parsed before the
+      // malformed varint — matches previous inline behavior where each
+      // frame was processed inside the while-loop before the bad byte hit.
+    }
+
+    for (const frame of result.frames) {
       const message = parseRemoteMessage(frame);
       this.handleMessage(message);
     }
-  }
-
-  private readNextFrame(): Buffer | undefined {
-    let length = 0;
-    let shift = 0;
-
-    for (let index = 0; index < this.buffer.length; index++) {
-      const byte = this.buffer[index];
-      length |= (byte & 0x7f) << shift;
-
-      if ((byte & 0x80) === 0) {
-        const headerLength = index + 1;
-        const frameLength = headerLength + length;
-
-        if (this.buffer.length < frameLength) {
-          return undefined;
-        }
-
-        const frame = this.buffer.subarray(0, frameLength);
-        this.buffer = this.buffer.subarray(frameLength);
-        return frame;
-      }
-
-      shift += 7;
-      if (shift > 28) {
-        this.buffer = Buffer.alloc(0);
-        this.socket?.destroy(new Error('Received an invalid remote protocol frame.'));
-        return undefined;
-      }
-    }
-
-    return undefined;
   }
 
   private handleMessage(message: {
