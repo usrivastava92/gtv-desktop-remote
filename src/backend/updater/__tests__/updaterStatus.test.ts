@@ -515,4 +515,70 @@ describe('applyUpdaterEvent — every event transition', () => {
     applyUpdaterEvent(initial, { type: 'install-started' }, V);
     expect(initial).toEqual(before);
   });
+
+  // ── PR-6h new events ────────────────────────────────────────────────────
+
+  it('check-completed-no-asset → updateAvailable:true + updateInstallable:false + stage:failed (PR-6h)', () => {
+    // Distinct outcome: the release exists on GitHub but no compatible macOS
+    // asset was found. updateAvailable:true so the UI can say "new version
+    // exists" but updateInstallable:false so the install button stays hidden.
+    const next = applyUpdaterEvent(
+      initial,
+      {
+        type: 'check-completed-no-asset',
+        latestVersion: '2.5.0',
+        message: 'Release 2.5.0 has no compatible macOS asset.',
+      },
+      V
+    );
+    expect(next).toMatchObject({
+      inProgress: false,
+      stage: 'failed',
+      latestVersion: '2.5.0',
+      updateAvailable: true,
+      updateInstallable: false,
+      message: 'Release 2.5.0 has no compatible macOS asset.',
+    });
+  });
+
+  it('check-started after check-completed-no-asset clears the no-asset state (PR-6h)', () => {
+    // Ensures the user can retry by clicking "check for updates" without
+    // being stuck in the no-asset state indefinitely.
+    const noAsset = applyUpdaterEvent(
+      initial,
+      {
+        type: 'check-completed-no-asset',
+        latestVersion: '2.5.0',
+        message: 'no asset',
+      },
+      V
+    );
+    const retrying = applyUpdaterEvent(noAsset, { type: 'check-started' }, V);
+    expect(retrying).toMatchObject({ inProgress: true, stage: 'checking' });
+    expect(retrying.updateAvailable).toBe(false);
+  });
+
+  it('rollback-availability-changed dispatched by clearRollbackBackup clears metadata (PR-6h)', () => {
+    // clearRollbackBackup now dispatches rollback-availability-changed
+    // (available:false) instead of the raw setUpdaterStatus patch. The
+    // reducer must clear version + createdAt fields identically.
+    const withRollback = applyUpdaterEvent(
+      initial,
+      {
+        type: 'rollback-availability-changed',
+        available: true,
+        version: '1.1.0',
+        createdAt: '2024-11-01T00:00:00Z',
+      },
+      V
+    );
+    const cleared = applyUpdaterEvent(
+      withRollback,
+      { type: 'rollback-availability-changed', available: false },
+      V
+    );
+    expect(cleared.rollbackAvailable).toBe(false);
+    expect(cleared.rollbackVersion).toBeUndefined();
+    expect(cleared.rollbackCreatedAt).toBeUndefined();
+  });
 });

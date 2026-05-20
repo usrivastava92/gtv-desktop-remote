@@ -56,6 +56,9 @@ export function createInitialUpdaterStatus(currentVersion: string): UpdaterStatu
  *     tries to set it (matching the existing Object.assign(..., {
  *     currentVersion: app.getVersion() }) ordering).
  */
+// PR-6h: still exported for test use (updaterStatus.test.ts uses it to
+// build fixture states). The only *production* external caller —
+// `setUpdaterStatus` in updater.ts — has been deleted.
 export function mergeUpdaterStatus(
   prev: UpdaterStatus,
   next: Partial<UpdaterStatus>,
@@ -74,6 +77,15 @@ export function mergeUpdaterStatus(
 export type UpdaterEvent =
   | { type: 'check-started' }
   | { type: 'check-failed'; message: string }
+  | {
+      // PR-6h: distinct from check-failed (the check succeeded — the release
+      // exists on GitHub — but no compatible macOS asset was found for this
+      // architecture). Renderer can show "no compatible download" vs generic
+      // "check failed" error differently.
+      type: 'check-completed-no-asset';
+      latestVersion: string;
+      message: string;
+    }
   | {
       type: 'check-completed-no-update';
       latestVersion: string;
@@ -157,6 +169,22 @@ export function applyUpdaterEvent(
           progressPercent: undefined,
           etaSeconds: undefined,
           updateAvailable: false,
+          updateInstallable: false,
+          message: event.message,
+        },
+        currentVersion
+      );
+    case 'check-completed-no-asset':
+      // PR-6h: release exists on GitHub but no compatible macOS asset found.
+      // updateAvailable:true (new version exists) but updateInstallable:false
+      // (can't install). stage:'failed' so the renderer shows an error state.
+      return mergeUpdaterStatus(
+        prev,
+        {
+          inProgress: false,
+          stage: 'failed',
+          latestVersion: event.latestVersion,
+          updateAvailable: true,
           updateInstallable: false,
           message: event.message,
         },
