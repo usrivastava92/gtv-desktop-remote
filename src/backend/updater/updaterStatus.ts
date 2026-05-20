@@ -115,7 +115,9 @@ export function applyUpdaterEvent(
     case 'check-started':
       return mergeUpdaterStatus(
         prev,
-        { inProgress: true, stage: 'checking', message: 'Checking for updates…' },
+        // PR-6b: use the 3-dot ellipsis string the inline `setUpdaterStatus`
+        // call sites have always used (matches the existing UX exactly).
+        { inProgress: true, stage: 'checking', message: 'Checking for updates...' },
         currentVersion
       );
     case 'check-failed':
