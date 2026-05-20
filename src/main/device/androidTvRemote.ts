@@ -453,7 +453,7 @@ class NativeRemoteClient {
   }
 }
 
-class AndroidTvRemoteBridge {
+export class AndroidTvRemoteBridge {
   private readonly sessions = new Map<string, DeviceSession>();
 
   private getStateDir(): string {
@@ -768,4 +768,15 @@ class AndroidTvRemoteBridge {
   }
 }
 
-export const androidTvRemoteBridge = new AndroidTvRemoteBridge();
+/**
+ * Factory: construct a fresh bridge. New code (PR-5 onward) should prefer this
+ * over the singleton so each test gets an isolated session map. Production code
+ * continues to use the `androidTvRemoteBridge` singleton below for backward
+ * compatibility.
+ */
+export function createAndroidTvRemoteBridge(): AndroidTvRemoteBridge {
+  return new AndroidTvRemoteBridge();
+}
+
+// Existing process-wide singleton — preserved for backward compatibility.
+export const androidTvRemoteBridge = createAndroidTvRemoteBridge();

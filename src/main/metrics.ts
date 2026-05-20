@@ -51,7 +51,7 @@ function createEmptySnapshot(): CommandMetricsSnapshot {
   };
 }
 
-class CommandMetricsStore {
+export class CommandMetricsStore {
   private readonly commands = new Map<string, CommandMetricsRecord>();
 
   private readonly counters = createCounters();
@@ -448,7 +448,7 @@ class CommandMetricsStore {
 }
 
 /* eslint-disable @typescript-eslint/no-empty-function */
-class NoopCommandMetricsStore {
+export class NoopCommandMetricsStore {
   recordRendererDrop(_report: CommandDropReport): void {}
 
   recordIpcReceived(_request: CommandDispatchRequest): void {}
@@ -497,6 +497,25 @@ class NoopCommandMetricsStore {
 }
 /* eslint-enable @typescript-eslint/no-empty-function */
 
-export const commandMetricsStore = isDebugTelemetryEnabled()
-  ? new CommandMetricsStore()
-  : new NoopCommandMetricsStore();
+/**
+ * Factory: construct a fresh metrics store for tests or future composition
+ * roots. Production code continues to use the `commandMetricsStore` singleton
+ * below; new code (PR-5 onward) should prefer this factory + dependency
+ * injection. Pass `forceEnabled=true` to bypass the debug-telemetry flag.
+ */
+export function createCommandMetricsStore(
+  forceEnabled?: boolean
+): CommandMetricsStore | NoopCommandMetricsStore {
+  if (forceEnabled === true) {
+    return new CommandMetricsStore();
+  }
+  if (forceEnabled === false) {
+    return new NoopCommandMetricsStore();
+  }
+  return isDebugTelemetryEnabled() ? new CommandMetricsStore() : new NoopCommandMetricsStore();
+}
+
+// Existing process-wide singleton — preserved for backward compatibility. All
+// existing call sites continue to work unchanged. Prefer the factory above for
+// new code and tests.
+export const commandMetricsStore = createCommandMetricsStore();
