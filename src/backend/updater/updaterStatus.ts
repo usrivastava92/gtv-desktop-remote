@@ -152,7 +152,15 @@ export function applyUpdaterEvent(
         prev,
         // PR-6b: use the 3-dot ellipsis string the inline `setUpdaterStatus`
         // call sites have always used (matches the existing UX exactly).
-        { inProgress: true, stage: 'checking', message: 'Checking for updates...' },
+        // PR-6h: also clear updateAvailable/updateInstallable so user can retry
+        // from a no-asset state without being stuck indefinitely.
+        {
+          inProgress: true,
+          stage: 'checking',
+          message: 'Checking for updates...',
+          updateAvailable: false,
+          updateInstallable: false,
+        },
         currentVersion
       );
     case 'check-failed':
