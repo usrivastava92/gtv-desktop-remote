@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { downsampleTo8kMono, toBase64 } from '../shared/audio';
 import type {
   BootstrapState,
   CommandDispatchRequest,
@@ -40,7 +41,6 @@ const keyboardCommandMap: Partial<Record<string, RemoteCommand>> = {
   P: 'power',
 };
 
-const ASSISTANT_VOICE_SAMPLE_RATE = 8_000;
 const ASSISTANT_VOICE_MIN_CHUNK_BYTES = 8 * 1024;
 const ASSISTANT_VOICE_INITIAL_CHUNK_BYTES = 8 * 1024;
 const ASSISTANT_VOICE_STREAM_CHUNK_BYTES = 20 * 1024;
@@ -126,51 +126,8 @@ function shouldRestartPairingFlow(message: string): boolean {
   );
 }
 
-function convertFloat32ToPcm16(source: Float32Array): Int16Array {
-  const output = new Int16Array(source.length);
-  for (let index = 0; index < source.length; index += 1) {
-    const sample = Math.max(-1, Math.min(1, source[index] ?? 0));
-    output[index] = sample < 0 ? Math.round(sample * 0x8000) : Math.round(sample * 0x7fff);
-  }
-  return output;
-}
-
-function downsampleTo8kMono(source: Float32Array, inputSampleRate: number): Uint8Array {
-  if (inputSampleRate <= ASSISTANT_VOICE_SAMPLE_RATE) {
-    return new Uint8Array(convertFloat32ToPcm16(source).buffer);
-  }
-
-  const ratio = inputSampleRate / ASSISTANT_VOICE_SAMPLE_RATE;
-  const outputLength = Math.max(1, Math.floor(source.length / ratio));
-  const output = new Float32Array(outputLength);
-  let outputIndex = 0;
-  let sourceIndex = 0;
-
-  while (outputIndex < outputLength) {
-    const nextSourceIndex = Math.min(source.length, Math.round((outputIndex + 1) * ratio));
-    let total = 0;
-    let count = 0;
-
-    for (let index = Math.floor(sourceIndex); index < nextSourceIndex; index += 1) {
-      total += source[index] ?? 0;
-      count += 1;
-    }
-
-    output[outputIndex] = count > 0 ? total / count : 0;
-    outputIndex += 1;
-    sourceIndex = nextSourceIndex;
-  }
-
-  return new Uint8Array(convertFloat32ToPcm16(output).buffer);
-}
-
-function toBase64(bytes: Uint8Array): string {
-  let binary = '';
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
-  }
-  return btoa(binary);
-}
+// PCM helpers (convertFloat32ToPcm16, downsampleTo8kMono, toBase64) moved to
+// src/shared/audio.ts (QW-1) — imported at the top of this file.
 
 function Icon({ name, className }: { name: IconName; className?: string }) {
   const props = {
