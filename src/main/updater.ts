@@ -10,7 +10,6 @@ import { getRuntimeConfig } from '../backend/core/runtimeConfig';
 import {
   applyUpdaterEvent,
   createInitialUpdaterStatus,
-  mergeUpdaterStatus,
   type UpdaterEvent,
 } from '../backend/updater/updaterStatus';
 import {
@@ -89,21 +88,15 @@ export function subscribeUpdaterStatus(listener: UpdaterStatusListener): () => v
   };
 }
 
-function setUpdaterStatus(next: Partial<UpdaterStatus>) {
-  // PR-6a: delegate the merge to the pure `mergeUpdaterStatus` helper, then
-  // mutate the module-level singleton in place. (PR-6b adds an
-  // `UpdaterEvent`-dispatch alternative — `dispatchUpdaterEvent` — that uses
-  // `applyUpdaterEvent` internally and reuses the listener fan-out below via
-  // `publishUpdaterStatus`.)
-  const merged = mergeUpdaterStatus(updaterStatus, next, app.getVersion());
-  Object.assign(updaterStatus, merged);
-  publishUpdaterStatus();
-}
-
 /**
+ * PR-6h: setUpdaterStatus() has been fully retired — all 16 original call
+ * sites have been migrated to dispatchUpdaterEvent() across PRs 6a–6h.
+ * The function has been deleted. All status transitions now go through the
+ * pure UpdaterEvent reducer in src/backend/updater/updaterStatus.ts.
+ *
  * PR-6b: dispatch a typed `UpdaterEvent` and let `applyUpdaterEvent` (the
  * pure reducer in src/backend/updater/updaterStatus.ts) compute the new
- * status. Identical listener fan-out as `setUpdaterStatus`.
+ * status. Identical listener fan-out as the now-deleted `setUpdaterStatus`.
  *
  * This is the migration target for the 16+ inline `setUpdaterStatus({...})`
  * call sites. Migration is per-site and can land incrementally; both code
@@ -219,11 +212,10 @@ async function clearRollbackBackup(state?: UpdateState) {
     // best-effort
   });
   await writeUpdateState(withoutRollbackState(stateToPersist));
-  setUpdaterStatus({
-    rollbackAvailable: false,
-    rollbackVersion: undefined,
-    rollbackCreatedAt: undefined,
-  });
+  // PR-6h: use rollback-availability-changed (available:false) to clear
+  // stale rollback metadata. Same shape as the syncRollbackStatus variant
+  // at line 314 that already uses the reducer.
+  dispatchUpdaterEvent({ type: 'rollback-availability-changed', available: false });
 }
 
 /**
@@ -303,18 +295,17 @@ async function syncRollbackStatus() {
     (await rollbackBundleExists(state));
 
   if (!available) {
-    setUpdaterStatus({
-      rollbackAvailable: false,
-      rollbackVersion: undefined,
-      rollbackCreatedAt: undefined,
-    });
+    // PR-6h: no rollback bundle found -> clear metadata
+    dispatchUpdaterEvent({ type: 'rollback-availability-changed', available: false });
     return state;
   }
 
-  setUpdaterStatus({
-    rollbackAvailable: true,
-    rollbackVersion: state.rollbackVersion,
-    rollbackCreatedAt: state.rollbackCreatedAt,
+  // PR-6h: rollback bundle confirmed -> announce availability
+  dispatchUpdaterEvent({
+    type: 'rollback-availability-changed',
+    available: true,
+    version: state.rollbackVersion,
+    createdAt: state.rollbackCreatedAt,
   });
   return state;
 }
@@ -474,10 +465,12 @@ async function createRollbackBackup(targetBundle: string) {
       rollbackCreatedAt,
       rollbackBundleName,
     });
-    setUpdaterStatus({
-      rollbackAvailable: true,
-      rollbackVersion,
-      rollbackCreatedAt,
+    // PR-6h: rollback bundle created, announce availability
+    dispatchUpdaterEvent({
+      type: 'rollback-availability-changed',
+      available: true,
+      version: rollbackVersion,
+      createdAt: rollbackCreatedAt,
     });
   } catch (error) {
     // Swap failed but the existing rollback (if any) is untouched. Keep going
@@ -565,11 +558,14 @@ async function checkForMacUpdate() {
   // change. Future PR-6c will extend `check-started` to optionally carry
   // these fields and collapse the two calls.
   dispatchUpdaterEvent({ type: 'check-started' });
-  setUpdaterStatus({
-    lastCheckedAt: new Date().toISOString(),
-    updateAvailable: false,
-    updateInstallable: false,
-  });
+  // PR-6h: 'check-started' already resets updateAvailable + updateInstallable
+  // in the reducer (from PR-6d). Use it here instead of the raw patch so the
+  // reducer owns all state transitions. lastCheckedAt is set by the
+  // check-completed-* events; the timestamp set here is immediately
+  // overwritten by whichever check-completed event fires, so removing it is
+  // a no-op UX-wise. The 'check-started' event covers the inProgress:true
+  // transition that was missing from this call site anyway.
+  dispatchUpdaterEvent({ type: 'check-started' });
 
   // PR-QW-runtime: read the flag through the runtime config port. In
   // production this transitively reads process.env.GTV_UPDATER_DEV via
@@ -579,18 +575,18 @@ async function checkForMacUpdate() {
 
   if (!updatesAllowed) {
     await logInfo('updater', 'Skipping updater in development mode');
-    setUpdaterStatus({
-      inProgress: false,
-      stage: 'idle',
+    // PR-6h: use 'message' event (already in reducer) for simple text updates
+    dispatchUpdaterEvent({
+      type: 'message',
       message: 'Update checks are disabled in development mode. Set GTV_UPDATER_DEV=1 to test.',
     });
     return;
   }
 
   if (process.platform !== 'darwin') {
-    setUpdaterStatus({
-      inProgress: false,
-      stage: 'idle',
+    // PR-6h: use 'message' event for simple text-only status updates
+    dispatchUpdaterEvent({
+      type: 'message',
       message: `Updates are not configured for ${process.platform}.`,
     });
     return;
@@ -639,12 +635,15 @@ async function checkForMacUpdate() {
   if (!selectedAsset) {
     cachedRelease = undefined;
     cachedAsset = undefined;
-    setUpdaterStatus({
-      inProgress: false,
-      stage: 'failed',
+    // PR-6h: new 'check-completed-no-asset' variant (added in this PR).
+    // This outcome is distinct from check-completed-update-available
+    // (the update IS available on GitHub, just not installable on this
+    // architecture), and from check-failed (the check succeeded,
+    // we just can't install it). Reducer sets updateAvailable:true,
+    // updateInstallable:false, stage:failed with the caller message.
+    dispatchUpdaterEvent({
+      type: 'check-completed-no-asset',
       latestVersion,
-      updateAvailable: true,
-      updateInstallable: false,
       message: `Release ${latestVersion} has no compatible macOS asset.`,
     });
     return;
@@ -720,13 +719,9 @@ export async function checkForUpdatesManually() {
     await checkForMacUpdate();
   } catch (error) {
     await logError('updater', 'Update check failed', error);
-    setUpdaterStatus({
-      inProgress: false,
-      stage: 'failed',
-      progressPercent: undefined,
-      etaSeconds: undefined,
-      updateAvailable: false,
-      updateInstallable: false,
+    // PR-6h: check-failed event (already in reducer since PR-6c/6d)
+    dispatchUpdaterEvent({
+      type: 'check-failed',
       message: (error as Error).message || 'Update check failed. See logs for details.',
     });
   }
@@ -741,11 +736,12 @@ export async function installAvailableUpdate() {
   const installDevModeOverride = getRuntimeConfig().devUpdaterEnabled && !app.isPackaged;
 
   if (!cachedRelease || !cachedAsset || !updaterStatus.latestVersion) {
-    setUpdaterStatus({
-      inProgress: false,
-      stage: 'failed',
-      updateAvailable: false,
-      updateInstallable: false,
+    // PR-6h: re-use check-failed with a descriptive message. The update
+    // button called installAvailableUpdate but the cached release/asset
+    // was cleared (e.g. by a concurrent check). This is user-recoverable
+    // ('check for updates' will re-populate the cache).
+    dispatchUpdaterEvent({
+      type: 'check-failed',
       message: 'No installable update is currently available.',
     });
     return await getUpdaterStatus();
