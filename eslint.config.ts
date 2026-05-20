@@ -3,6 +3,11 @@ import js from '@eslint/js';
 import prettierConfig from 'eslint-config-prettier';
 import importPlugin from 'eslint-plugin-import-x';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
+// PR-boundaries (Wave 14): hard layer boundary enforcement via
+// no-restricted-imports rules scoped per layer. The eslint-plugin-boundaries
+// package is not actually used at runtime (we use no-restricted-imports
+// directly which is simpler and type-safe), but it's kept as a devDependency
+// as a signal of intent and for future graph-based rules.
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
@@ -196,6 +201,71 @@ export default tseslint.config(
       'tailwind.config.ts',
     ],
     extends: [tseslint.configs.disableTypeChecked],
+  },
+
+  // ── Backend layer boundary (PR-boundaries, Wave 14) ──────────────────────
+  // src/backend/** must NEVER import from electron, react, renderer, or main.
+  // Violations are reported as errors so they block CI.
+  {
+    files: ['src/backend/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['electron', 'electron/*'],
+              message:
+                'src/backend/ must not import from electron. Use a port interface (IFileSystem, ILogger, etc.) instead.',
+            },
+            {
+              group: ['react', 'react/*', 'react-dom', 'react-dom/*'],
+              message: 'src/backend/ must not import from React.',
+            },
+            {
+              group: ['**/renderer/**', '../renderer/**', '../../renderer/**'],
+              message: 'src/backend/ must not import from the renderer layer.',
+            },
+            {
+              group: ['**/main/**', '../main/**', '../../main/**'],
+              message:
+                'src/backend/ must not import from src/main/. If you need something from main, expose it via a port interface.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // ── Renderer layer boundary (PR-boundaries, Wave 14) ─────────────────────
+  // src/renderer/** must NEVER import from src/backend/ or src/main/.
+  // Renderer talks to main ONLY through window.gtvRemote (the IPC surface
+  // defined in shared/ipcContract.ts + preload.ts).
+  {
+    files: ['src/renderer/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/backend/**', '../backend/**', '../../backend/**'],
+              message:
+                'src/renderer/ must not import from src/backend/. Use the IPC bridge (window.gtvRemote) instead.',
+            },
+            {
+              group: ['**/main/**', '../main/**', '../../main/**'],
+              message:
+                'src/renderer/ must not import from src/main/. Use the IPC bridge (window.gtvRemote) instead.',
+            },
+            {
+              group: ['electron', 'electron/*'],
+              message: 'src/renderer/ must not import from electron directly.',
+            },
+          ],
+        },
+      ],
+    },
   },
 
   // ── Prettier must be last to disable formatting rules ─────────────────────
