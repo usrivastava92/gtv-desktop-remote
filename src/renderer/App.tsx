@@ -1173,9 +1173,10 @@ function App() {
       return;
     }
 
-    const lastBatch = commandQueueRef.current[commandQueueRef.current.length - 1] as
-      | QueuedCommandBatch
-      | undefined;
+    // PR-QW-renderer-strict: noUncheckedIndexedAccess makes the `[n]` access
+    // already return `QueuedCommandBatch | undefined`, so the explicit `as`
+    // narrowing is now redundant.
+    const lastBatch = commandQueueRef.current[commandQueueRef.current.length - 1];
     if (
       lastBatch &&
       burstSensitiveCommands.has(request.command) &&
@@ -1204,7 +1205,14 @@ function App() {
 
     try {
       while (commandQueueRef.current.length > 0) {
+        // PR-QW-renderer-strict: noUncheckedIndexedAccess widens `[0]` to
+        // include undefined. The `length > 0` guard above makes this
+        // unreachable, but TS can't prove that — early-out keeps the
+        // type narrowed for the rest of the loop body.
         const currentBatch = commandQueueRef.current[0];
+        if (!currentBatch) {
+          break;
+        }
         const request = currentBatch.requests.shift();
 
         if (!request) {
@@ -1773,7 +1781,7 @@ function App() {
                     key={index}
                     className={classes('ui-code-slot', filled && 'ui-code-slot-filled')}
                   >
-                    {char || '_'}
+                    {char ?? '_'}
                   </span>
                 );
               })}
