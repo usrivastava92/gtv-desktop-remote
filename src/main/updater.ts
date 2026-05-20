@@ -6,6 +6,13 @@ import { promisify } from 'node:util';
 
 import { app, BrowserWindow, dialog, shell } from 'electron';
 
+import {
+  compareVersions,
+  findBestMacAsset,
+  formatMinutesUntil,
+  isDmgAsset,
+  normalizeVersion,
+} from '../backend/updater/version';
 import type { UpdaterStatus } from '../shared/types';
 
 import { getAppDataPath, logError, logInfo } from './logger';
@@ -89,28 +96,7 @@ async function showUpdaterDialog(
   return await dialog.showMessageBox(options);
 }
 
-function normalizeVersion(value: string) {
-  return value.trim().replace(/^v/i, '');
-}
-
-function compareVersions(a: string, b: string) {
-  const aParts = normalizeVersion(a)
-    .split('.')
-    .map((part) => Number.parseInt(part, 10) || 0);
-  const bParts = normalizeVersion(b)
-    .split('.')
-    .map((part) => Number.parseInt(part, 10) || 0);
-
-  const max = Math.max(aParts.length, bParts.length);
-  for (let i = 0; i < max; i += 1) {
-    const left = aParts[i] ?? 0;
-    const right = bParts[i] ?? 0;
-    if (left > right) return 1;
-    if (left < right) return -1;
-  }
-
-  return 0;
-}
+// normalizeVersion + compareVersions extracted to src/backend/updater/version.ts (PR-6).
 
 async function readUpdateState(): Promise<UpdateState> {
   const statePath = getAppDataPath('updater-state.json');
@@ -268,23 +254,7 @@ async function syncRollbackStatus() {
   return state;
 }
 
-function formatMinutesUntil(epochSeconds: number): string {
-  const deltaSeconds = epochSeconds - Math.floor(Date.now() / 1000);
-  if (!Number.isFinite(deltaSeconds) || deltaSeconds <= 0) {
-    return 'shortly';
-  }
-
-  const minutes = Math.ceil(deltaSeconds / 60);
-  if (minutes <= 1) {
-    return 'in about a minute';
-  }
-  if (minutes < 60) {
-    return `in about ${String(minutes)} minutes`;
-  }
-
-  const hours = Math.ceil(minutes / 60);
-  return `in about ${String(hours)} hour${hours > 1 ? 's' : ''}`;
-}
+// formatMinutesUntil extracted to src/backend/updater/version.ts (PR-6).
 
 async function requestJson<T>(url: string): Promise<T> {
   const controller = new AbortController();
@@ -336,25 +306,7 @@ async function requestJson<T>(url: string): Promise<T> {
   }
 }
 
-function isDmgAsset(asset: ReleaseAsset) {
-  return asset.name.endsWith('.dmg');
-}
-
-function findBestMacAsset(assets: ReleaseAsset[]) {
-  const arch = process.arch;
-  const preferredZip = assets.find((asset) => asset.name.endsWith(`-mac-${arch}.zip`));
-  if (preferredZip) return preferredZip;
-
-  const anyZip = assets.find(
-    (asset) => asset.name.includes('-mac-') && asset.name.endsWith('.zip')
-  );
-  if (anyZip) return anyZip;
-
-  const preferredDmg = assets.find((asset) => asset.name.endsWith(`-mac-${arch}.dmg`));
-  if (preferredDmg) return preferredDmg;
-
-  return assets.find((asset) => asset.name.includes('-mac-') && isDmgAsset(asset));
-}
+// isDmgAsset + findBestMacAsset extracted to src/backend/updater/version.ts (PR-6).
 
 function getBundlePathFromExecPath() {
   return path.resolve(process.execPath, '..', '..', '..');
