@@ -1,3 +1,4 @@
+import { createSystemClock, type IClock } from '../backend/core/clock';
 import {
   createEmptyMetricsCounters,
   createEmptyMetricsSnapshot,
@@ -39,13 +40,20 @@ function createTransportSnapshot(): CommandMetricsTransportSnapshot {
   };
 }
 
-function createEmptySnapshot(): CommandMetricsSnapshot {
+function createEmptySnapshot(clock: IClock): CommandMetricsSnapshot {
   // The shared helper sets `generatedAt: 0`. Production traces want the wall
-  // time at which the snapshot was built, so we stamp it here.
-  return { ...createEmptyMetricsSnapshot(), generatedAt: Date.now() };
+  // time at which the snapshot was built, so we stamp it here through the
+  // IClock port (PR-QW-clock — replaces direct Date.now()).
+  return { ...createEmptyMetricsSnapshot(), generatedAt: clock.now() };
 }
 
 export class CommandMetricsStore implements IMetricsRecorder {
+  // PR-QW-clock: the clock is constructor-injected so tests can drive the
+  // `generatedAt` field deterministically via `createFakeClock()`. Defaults
+  // to `createSystemClock()` so existing call sites and production code keep
+  // their current behavior verbatim.
+  private readonly clock: IClock;
+
   private readonly commands = new Map<string, CommandMetricsRecord>();
 
   private readonly counters = createCounters();
@@ -53,6 +61,10 @@ export class CommandMetricsStore implements IMetricsRecorder {
   private transport = createTransportSnapshot();
 
   private warnings: MetricsWarning[] = [];
+
+  constructor(options?: { clock?: IClock }) {
+    this.clock = options?.clock ?? createSystemClock();
+  }
 
   private readonly warningTimestamps = new Map<string, number>();
 
@@ -329,7 +341,9 @@ export class CommandMetricsStore implements IMetricsRecorder {
   getSnapshot(): CommandMetricsSnapshot {
     this.detectStalls();
     return {
-      generatedAt: Date.now(),
+      // PR-QW-clock: route the snapshot's `generatedAt` through the IClock port.
+      // Future PRs migrate the remaining ~28 `Date.now()` reads in this file.
+      generatedAt: this.clock.now(),
       counters: { ...this.counters },
       transport: { ...this.transport },
       warnings: this.warnings.map((warning) => ({ ...warning })),
@@ -443,6 +457,14 @@ export class CommandMetricsStore implements IMetricsRecorder {
 
 /* eslint-disable @typescript-eslint/no-empty-function */
 export class NoopCommandMetricsStore implements IMetricsRecorder {
+  // PR-QW-clock: even the noop needs a clock so getSnapshot's `generatedAt`
+  // is testable. Defaults to system clock; tests can pass a fake.
+  private readonly clock: IClock;
+
+  constructor(options?: { clock?: IClock }) {
+    this.clock = options?.clock ?? createSystemClock();
+  }
+
   recordRendererDrop(_report: CommandDropReport): void {}
 
   recordIpcReceived(_request: CommandDispatchRequest): void {}
@@ -486,7 +508,7 @@ export class NoopCommandMetricsStore implements IMetricsRecorder {
   recordSocketClosed(_host: string): void {}
 
   getSnapshot(): CommandMetricsSnapshot {
-    return createEmptySnapshot();
+    return createEmptySnapshot(this.clock);
   }
 }
 /* eslint-enable @typescript-eslint/no-empty-function */
@@ -498,15 +520,27 @@ export class NoopCommandMetricsStore implements IMetricsRecorder {
  * injection. Pass `forceEnabled=true` to bypass the debug-telemetry flag.
  */
 export function createCommandMetricsStore(
-  forceEnabled?: boolean
+  forceEnabledOrOptions?: boolean | { forceEnabled?: boolean; clock?: IClock },
+  legacyClock?: IClock
 ): CommandMetricsStore | NoopCommandMetricsStore {
+  // PR-QW-clock: factory accepts both the legacy `boolean` first arg (kept
+  // for back-compat with every existing call site) and a new options bag
+  // that carries the optional clock. Tests use `{ forceEnabled: true, clock }`.
+  const options =
+    typeof forceEnabledOrOptions === 'object'
+      ? forceEnabledOrOptions
+      : { forceEnabled: forceEnabledOrOptions, clock: legacyClock };
+  const { forceEnabled, clock } = options;
+
   if (forceEnabled === true) {
-    return new CommandMetricsStore();
+    return new CommandMetricsStore({ clock });
   }
   if (forceEnabled === false) {
-    return new NoopCommandMetricsStore();
+    return new NoopCommandMetricsStore({ clock });
   }
-  return isDebugTelemetryEnabled() ? new CommandMetricsStore() : new NoopCommandMetricsStore();
+  return isDebugTelemetryEnabled()
+    ? new CommandMetricsStore({ clock })
+    : new NoopCommandMetricsStore({ clock });
 }
 
 // Existing process-wide singleton — preserved for backward compatibility. All
