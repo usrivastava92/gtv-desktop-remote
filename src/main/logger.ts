@@ -3,7 +3,9 @@ import path from 'node:path';
 
 import { app } from 'electron';
 
-type LogLevel = 'INFO' | 'ERROR';
+import type { ILogger } from '../backend/core/logger';
+
+type LogLevel = 'INFO' | 'WARN' | 'ERROR';
 
 function getLogPath(): string {
   return path.join(app.getPath('userData'), 'gtv-remote.log');
@@ -51,10 +53,34 @@ export async function logInfo(scope: string, message: string, details?: unknown)
   await write('INFO', scope, message, details);
 }
 
+export async function logWarn(scope: string, message: string, details?: unknown): Promise<void> {
+  await write('WARN', scope, message, details);
+}
+
 export async function logError(scope: string, message: string, details?: unknown): Promise<void> {
   await write('ERROR', scope, message, details);
 }
 
 export function getLoggerPath(): string {
   return getLogPath();
+}
+
+/**
+ * PR-QW-logger: production binding of the `ILogger` port (declared in
+ * `src/backend/core/logger.ts`). Composition roots call this once and pass
+ * the resulting `ILogger` into backend services so the services never have
+ * to import this file directly.
+ *
+ * The factory is deliberately stateless — it returns a fresh object each
+ * call so multiple composition roots (e.g. AppFacade + UpdaterService) can
+ * each hold their own reference without sharing instance state. The
+ * underlying `write` function is module-level (writes to a single log file),
+ * so all returned loggers ultimately produce the same on-disk side effect.
+ */
+export function createNodeLogger(): ILogger {
+  return {
+    info: logInfo,
+    warn: logWarn,
+    error: logError,
+  };
 }
