@@ -6,6 +6,7 @@ import { promisify } from 'node:util';
 
 import { app, BrowserWindow, dialog, shell } from 'electron';
 
+import { createInitialUpdaterStatus, mergeUpdaterStatus } from '../backend/updater/updaterStatus';
 import {
   compareVersions,
   findBestMacAsset,
@@ -49,15 +50,11 @@ let cachedRelease: ReleasePayload | undefined;
 let cachedAsset: ReleaseAsset | undefined;
 let activeBackgroundCheck: Promise<void> | undefined;
 
-const updaterStatus: UpdaterStatus = {
-  inProgress: false,
-  stage: 'idle',
-  currentVersion: app.getVersion(),
-  message: 'No update check has run yet.',
-  updateAvailable: false,
-  updateInstallable: false,
-  rollbackAvailable: false,
-};
+// PR-6a: initial status now comes from the pure helper in
+// src/backend/updater/updaterStatus.ts. The helper is unit-tested in
+// isolation so a future drift in the "fresh app" state is caught before it
+// reaches users.
+const updaterStatus: UpdaterStatus = createInitialUpdaterStatus(app.getVersion());
 
 /**
  * Subscribers receive a fresh snapshot of `UpdaterStatus` every time the
@@ -85,7 +82,12 @@ export function subscribeUpdaterStatus(listener: UpdaterStatusListener): () => v
 }
 
 function setUpdaterStatus(next: Partial<UpdaterStatus>) {
-  Object.assign(updaterStatus, next, { currentVersion: app.getVersion() });
+  // PR-6a: delegate the merge to the pure `mergeUpdaterStatus` helper, then
+  // mutate the module-level singleton in place. (Future PR-6b will migrate
+  // call sites to dispatch `UpdaterEvent`s through `applyUpdaterEvent`
+  // instead, but that's a per-call-site mechanical change.)
+  const merged = mergeUpdaterStatus(updaterStatus, next, app.getVersion());
+  Object.assign(updaterStatus, merged);
   const snapshot = snapshotUpdaterStatus();
   for (const listener of updaterStatusListeners) {
     try {
