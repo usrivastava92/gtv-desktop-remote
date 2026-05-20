@@ -7,6 +7,10 @@ import { createNodeFileSystem, type IFileSystem } from '../../backend/core/fileS
 import { AndroidTvCertStore } from '../../backend/devices/credentials/androidTvCertStore';
 import { parseFramedBuffer } from '../../backend/transport/framing/frameParser';
 import {
+  createFramedTlsTransportOverSocket,
+  type IFramedTlsTransport,
+} from '../../backend/transport/tls/framedTlsTransport';
+import {
   createNodeTlsConnector,
   type ITlsConnector,
 } from '../../backend/transport/tls/tlsConnector';
@@ -115,6 +119,15 @@ function normalizeRemoteError(error: unknown, fallback: string): Error {
 
 class NativeRemoteClient {
   private socket: TLSSocket | undefined;
+
+  // PR-3d: framed transport wraps the write+drain side of the socket. Created
+  // alongside `this.socket` at the end of connect() (after the TLSSocket is
+  // ready) and torn down in disconnect(). All outbound writes go through
+  // `this.transport.send(...)`; the inline `socket.once('drain')` block
+  // becomes `this.transport.onDrain(...)`. The inbound side (data/close
+  // listeners + flushBuffer) intentionally stays on the socket directly for
+  // this PR — PR-3e moves it.
+  private transport: IFramedTlsTransport | undefined;
 
   private connectPromise: Promise<void> | undefined;
 
@@ -239,6 +252,9 @@ class NativeRemoteClient {
 
       socket.once('remote-protocol-ready', finishProtocolHandshake);
       this.socket = socket;
+      // PR-3d: wrap the live socket in the framed transport port now that it
+      // exists. Every send/drain call from here on goes through the port.
+      this.transport = createFramedTlsTransportOverSocket(socket);
     }).finally(() => {
       this.connectPromise = undefined;
     });
@@ -265,19 +281,26 @@ class NativeRemoteClient {
     this.socket.destroy();
     commandMetricsStore.recordSocketClosed(this.host);
     this.socket = undefined;
+    // PR-3d: tear down the transport alongside the socket so any stray
+    // `transport.send` after disconnect throws cleanly rather than writing
+    // to a destroyed socket.
+    this.transport = undefined;
     this.protocolReady = false;
     this.buffer = Buffer.alloc(0);
   }
 
   sendCommand(request: CommandDispatchRequest): void {
-    const socket = this.getSocket();
-    const wroteImmediately = socket.write(createRemoteKeyInject(request.command));
+    // PR-3d: routed through IFramedTlsTransport. send() returns the same
+    // `wroteImmediately` boolean that socket.write did, and onDrain() has
+    // identical semantics to `socket.once('drain', ...)`.
+    const transport = this.getTransport();
+    const wroteImmediately = transport.send(createRemoteKeyInject(request.command));
     commandMetricsStore.recordSocketWrite(request, {
       host: this.host,
       buffered: !wroteImmediately,
     });
     if (!wroteImmediately) {
-      socket.once('drain', () => {
+      transport.onDrain(() => {
         commandMetricsStore.recordSocketDrain(this.host, request.id);
       });
     }
@@ -289,17 +312,22 @@ class NativeRemoteClient {
       throw new Error('Text cannot be empty.');
     }
 
-    const socket = this.getSocket();
-    socket.write(
+    // PR-3d
+    this.getTransport().send(
       createImeBatchEditMessage(this.state.imeCounter, this.state.imeFieldCounter, value)
     );
   }
 
   async startVoiceSession(): Promise<number> {
+    // PR-3d: writes go through the transport port; the
+    // `socket.once('remote-voice-begin')` event listener stays on the raw
+    // socket because that event is protocol-state plumbing on top of the
+    // parsed inbound stream, not a transport-level concern. PR-3e moves it.
     const socket = this.getSocket();
+    const transport = this.getTransport();
     if (this.state.voiceSessionId) {
       const existingSessionId = this.state.voiceSessionId;
-      socket.write(createRemoteVoiceBegin(existingSessionId));
+      transport.send(createRemoteVoiceBegin(existingSessionId));
       return existingSessionId;
     }
 
@@ -319,17 +347,17 @@ class NativeRemoteClient {
         socket.once('remote-voice-begin', onVoiceBegin);
       });
 
-    socket.write(createRemoteKeyInjectRaw('KEYCODE_SEARCH', 'START_LONG'));
+    transport.send(createRemoteKeyInjectRaw('KEYCODE_SEARCH', 'START_LONG'));
 
     let sessionId: number;
     try {
       sessionId = await waitForVoiceBegin();
     } catch {
-      socket.write(createRemoteKeyInjectRaw('KEYCODE_SEARCH', 'SHORT'));
+      transport.send(createRemoteKeyInjectRaw('KEYCODE_SEARCH', 'SHORT'));
       sessionId = await waitForVoiceBegin();
     }
 
-    socket.write(createRemoteVoiceBegin(sessionId));
+    transport.send(createRemoteVoiceBegin(sessionId));
     return sessionId;
   }
 
@@ -338,14 +366,15 @@ class NativeRemoteClient {
       return;
     }
 
-    const socket = this.getSocket();
-    socket.write(createRemoteVoicePayload(sessionId, samples));
+    // PR-3d
+    this.getTransport().send(createRemoteVoicePayload(sessionId, samples));
   }
 
   stopVoiceSession(sessionId: number): void {
-    const socket = this.getSocket();
-    socket.write(createRemoteVoiceEnd(sessionId));
-    socket.write(createRemoteKeyInjectRaw('KEYCODE_SEARCH', 'END_LONG'));
+    // PR-3d
+    const transport = this.getTransport();
+    transport.send(createRemoteVoiceEnd(sessionId));
+    transport.send(createRemoteKeyInjectRaw('KEYCODE_SEARCH', 'END_LONG'));
     if (this.state.voiceSessionId === sessionId) {
       this.state.voiceSessionId = undefined;
     }
@@ -357,6 +386,19 @@ class NativeRemoteClient {
     }
 
     return this.socket;
+  }
+
+  /**
+   * PR-3d: like `getSocket()` but returns the framed transport port.
+   * Throws the same "Connection has been lost." error so the existing
+   * error-handling behavior at call sites stays identical.
+   */
+  private getTransport(): IFramedTlsTransport {
+    if (!this.transport || this.transport.destroyed) {
+      throw new Error('Connection has been lost.');
+    }
+
+    return this.transport;
   }
 
   /**
