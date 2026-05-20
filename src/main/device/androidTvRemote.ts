@@ -1,13 +1,15 @@
-import { promises as fs } from 'node:fs';
-import path from 'node:path';
+// fs moved to AndroidTvCertStore (PR-3a); the bridge keeps a single shared
+// IFileSystem only for the directory-recursive reset() below.
 import type { TLSSocket } from 'node:tls';
 import tls from 'node:tls';
 
+import { createNodeFileSystem, type IFileSystem } from '../../backend/core/fileSystem';
+import { AndroidTvCertStore } from '../../backend/devices/credentials/androidTvCertStore';
 import type { CommandDispatchRequest } from '../../shared/types';
 import { getAppDataPath, logError, logInfo } from '../logger';
 import { commandMetricsStore } from '../metrics';
 
-import { generateCertificate, type PemPair } from './protocol/certificate';
+import type { PemPair } from './protocol/certificate';
 import {
   createImeBatchEditMessage,
   createRemoteConfigure,
@@ -455,19 +457,28 @@ class NativeRemoteClient {
 
 export class AndroidTvRemoteBridge {
   private readonly sessions = new Map<string, DeviceSession>();
+  // Cert storage is delegated to AndroidTvCertStore (PR-3a). The bridge
+  // continues to expose the original method signatures for backward compat;
+  // they thin-delegate to certStore. Production wires the real node:fs +
+  // real getAppDataPath; tests of the bridge itself will inject fakes in a
+  // future PR (PR-5 onward, when this whole class is broken up).
+  private readonly fs: IFileSystem = createNodeFileSystem();
 
-  private getStateDir(): string {
-    return getAppDataPath('androidtvremote');
-  }
+  private readonly certStore = new AndroidTvCertStore(
+    this.fs,
+    {
+      getCertStateDir: () => getAppDataPath('androidtvremote'),
+      getAppDataPath: (...segments) => getAppDataPath(...segments),
+    },
+    {
+      info: (scope, message, details) => logInfo(scope, message, details),
+      warn: (scope, message, details) => logInfo(scope, `WARN ${message}`, details),
+      error: (scope, message, details) => logInfo(scope, `ERROR ${message}`, details),
+    }
+  );
 
   private getFilesForCertKey(certKey: string): { certPath: string; keyPath: string } {
-    const safeKey = certKey.replaceAll(':', '_').replaceAll('/', '_');
-    const stateDir = this.getStateDir();
-
-    return {
-      certPath: path.join(stateDir, `${safeKey}.cert.pem`),
-      keyPath: path.join(stateDir, `${safeKey}.key.pem`),
-    };
+    return this.certStore.getFilesForCertKey(certKey);
   }
 
   /** @deprecated Use getFilesForCertKey with a macAddress-based key */
@@ -480,37 +491,7 @@ export class AndroidTvRemoteBridge {
    * Safe to call even if the old file doesn't exist.
    */
   async migratePersistedCerts(oldCertKey: string, newCertKey: string): Promise<void> {
-    const oldFiles = this.getFilesForCertKey(oldCertKey);
-    const newFiles = this.getFilesForCertKey(newCertKey);
-
-    // Nothing to migrate if they are the same key or new file already exists
-    if (oldFiles.certPath === newFiles.certPath) {
-      return;
-    }
-
-    try {
-      await fs.access(newFiles.certPath);
-      // New cert already exists — remove the old IP-keyed file if present
-      await Promise.all([
-        fs.rm(oldFiles.certPath, { force: true }),
-        fs.rm(oldFiles.keyPath, { force: true }),
-      ]);
-    } catch {
-      // New cert does not exist — try to rename old one
-      try {
-        await fs.mkdir(this.getStateDir(), { recursive: true });
-        await Promise.all([
-          fs.rename(oldFiles.certPath, newFiles.certPath),
-          fs.rename(oldFiles.keyPath, newFiles.keyPath),
-        ]);
-        await logInfo('androidtvremote', 'Migrated persisted client certificate', {
-          oldCertKey,
-          newCertKey,
-        });
-      } catch {
-        // Old cert did not exist either — nothing to migrate
-      }
-    }
+    await this.certStore.migrate(oldCertKey, newCertKey);
   }
 
   /**
@@ -522,30 +503,11 @@ export class AndroidTvRemoteBridge {
   }
 
   private async loadOrCreateCerts(certKey: string): Promise<PemPair> {
-    const { certPath, keyPath } = this.getFilesForCertKey(certKey);
-
-    try {
-      const [cert, key] = await Promise.all([
-        fs.readFile(certPath, 'utf8'),
-        fs.readFile(keyPath, 'utf8'),
-      ]);
-
-      return { cert, key };
-    } catch {
-      const certs = generateCertificate(SERVICE_NAME);
-      await fs.mkdir(this.getStateDir(), { recursive: true });
-      await Promise.all([
-        fs.writeFile(certPath, certs.cert, 'utf8'),
-        fs.writeFile(keyPath, certs.key, 'utf8'),
-      ]);
-      await logInfo('androidtvremote', 'Generated new client certificate', { certKey });
-      return certs;
-    }
+    return this.certStore.loadOrCreate(certKey);
   }
 
   private async clearPersistedHostState(certKey: string): Promise<void> {
-    const { certPath, keyPath } = this.getFilesForCertKey(certKey);
-    await Promise.all([fs.rm(certPath, { force: true }), fs.rm(keyPath, { force: true })]);
+    await this.certStore.clear(certKey);
   }
 
   private async clearHostSession(
@@ -690,7 +652,7 @@ export class AndroidTvRemoteBridge {
     }
 
     this.sessions.clear();
-    await fs.rm(this.getStateDir(), { force: true, recursive: true });
+    await this.fs.rmRecursive(getAppDataPath('androidtvremote'));
   }
 
   async sendCommand(
