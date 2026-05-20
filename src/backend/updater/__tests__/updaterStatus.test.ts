@@ -256,6 +256,73 @@ describe('applyUpdaterEvent — every event transition', () => {
     expect(failed).toMatchObject({ inProgress: false, stage: 'failed', message: 'disk full' });
   });
 
+  it('install-started → sets progress:95 + eta:10 + caller-supplied message (PR-6f UX-parity)', () => {
+    // installAvailableUpdate transitions the download bar through 95 %
+    // before showing the install dialog. The ASCII '...' format (vs the
+    // default '…' ellipsis) is the caller's exact UX.
+    const next = applyUpdaterEvent(
+      initial,
+      { type: 'install-started', message: 'Installing update...' },
+      V
+    );
+    expect(next).toMatchObject({
+      inProgress: true,
+      stage: 'installing',
+      progressPercent: 95,
+      etaSeconds: 10,
+      message: 'Installing update...',
+    });
+  });
+
+  it('install-completed → sets progress:100 + eta:0 + honors dev-mode message (PR-6f UX-parity)', () => {
+    // installAvailableUpdate branches the message for the dev-updater
+    // override; the reducer must accept the caller value verbatim.
+    const next = applyUpdaterEvent(
+      initial,
+      {
+        type: 'install-completed',
+        latestVersion: '2.0.0',
+        message: 'Dev mode: install step skipped.',
+      },
+      V
+    );
+    expect(next).toMatchObject({
+      inProgress: false,
+      stage: 'completed',
+      progressPercent: 100,
+      etaSeconds: 0,
+      updateAvailable: false,
+      updateInstallable: false,
+      message: 'Dev mode: install step skipped.',
+    });
+  });
+
+  it('install-failed → clears progress/eta/updateAvailable/updateInstallable (PR-6f)', () => {
+    // Mirrors PR-6d's check-failed shape: a failed install must hide the
+    // progress bar and the 'Update available' CTA so the user can re-run
+    // the check from a clean state.
+    const downloading = applyUpdaterEvent(
+      initial,
+      {
+        type: 'download-progress',
+        progressPercent: 70,
+        etaSeconds: 5,
+        latestVersion: '2.0.0',
+      },
+      V
+    );
+    const next = applyUpdaterEvent(downloading, { type: 'install-failed', message: 'oom' }, V);
+    expect(next).toMatchObject({
+      inProgress: false,
+      stage: 'failed',
+      message: 'oom',
+      updateAvailable: false,
+      updateInstallable: false,
+    });
+    expect(next.progressPercent).toBeUndefined();
+    expect(next.etaSeconds).toBeUndefined();
+  });
+
   it('rollback transitions clear rollback metadata on completion', () => {
     const withRollback = applyUpdaterEvent(
       initial,

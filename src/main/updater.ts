@@ -812,23 +812,19 @@ export async function installAvailableUpdate() {
       }
     );
 
-    setUpdaterStatus({
-      inProgress: true,
-      stage: 'installing',
-      progressPercent: 95,
-      etaSeconds: 10,
+    // PR-6f: migrate to dispatchUpdaterEvent. Reducer was extended in this
+    // same PR to honor caller-supplied messages and to mirror the
+    // inline-shape progress/eta values for byte-identical UX.
+    dispatchUpdaterEvent({
+      type: 'install-started',
       message: 'Installing update...',
     });
 
     await installMacUpdateFromZip(tmpZipPath);
 
-    setUpdaterStatus({
-      inProgress: false,
-      stage: 'completed',
-      progressPercent: 100,
-      etaSeconds: 0,
-      updateAvailable: false,
-      updateInstallable: false,
+    dispatchUpdaterEvent({
+      type: 'install-completed',
+      latestVersion: version,
       message: installDevModeOverride
         ? 'Dev mode: install step skipped.'
         : `Update ${version} installed.`,
@@ -866,13 +862,13 @@ export async function installAvailableUpdate() {
     // and the user can re-trigger a fresh check instead of being stuck on a broken install.
     cachedRelease = undefined;
     cachedAsset = undefined;
-    setUpdaterStatus({
-      inProgress: false,
-      stage: 'failed',
-      progressPercent: undefined,
-      etaSeconds: undefined,
-      updateAvailable: false,
-      updateInstallable: false,
+    // PR-6f: migrate to dispatchUpdaterEvent. Reducer's install-failed
+    // variant was extended in this PR to clear progressPercent/etaSeconds/
+    // updateAvailable/updateInstallable, mirroring the prior inline shape
+    // for byte-identical UX. cachedRelease/cachedAsset clearing above stays
+    // inline (it's transport state, not status).
+    dispatchUpdaterEvent({
+      type: 'install-failed',
       message: `Update ${version} failed during download or install. Please try again.`,
     });
     await showUpdaterDialog({
