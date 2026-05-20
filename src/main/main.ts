@@ -512,7 +512,7 @@ function registerIpc() {
 if (hasSingleInstanceLock) {
   void app.whenReady().then(async () => {
     try {
-      initCapture(process.cwd());
+      initCapture(app.isPackaged ? app.getAppPath() : path.resolve(__dirname, '..', '..'));
       registerIpc();
       await bootstrapApp();
     } catch (error) {
