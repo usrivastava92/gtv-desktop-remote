@@ -347,6 +347,10 @@ async function bootstrapApp() {
   buildApplicationMenu();
   if (process.platform === 'darwin') {
     app.dock?.hide();
+    const micGranted = await app.requestMediaAccess('microphone');
+    if (!micGranted) {
+      await logInfo('main', 'Microphone access not granted — voice assistant will be unavailable');
+    }
   }
   windowRef = await createWindow();
   tray = new Tray(createTrayImage());
