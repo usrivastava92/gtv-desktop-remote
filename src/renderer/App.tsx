@@ -1361,25 +1361,18 @@ function App() {
     }
   }
 
+  // QW-2: subscribe to push-style updater status changes (replaces the prior
+  // 1.5s setInterval polling loop). The main process broadcasts on every
+  // status mutation via `updater:statusChanged`, so the renderer reacts
+  // immediately and consumes zero CPU when nothing is happening.
   useEffect(() => {
     if (!bridgeReady) {
       return;
     }
-
-    const timer = window.setInterval(() => {
-      void getDesktopApi()
-        .getUpdaterStatus()
-        .then((status) => {
-          setUpdaterStatus(status);
-        })
-        .catch(() => {
-          // Ignore polling failures; existing state remains visible.
-        });
-    }, 1500);
-
-    return () => {
-      window.clearInterval(timer);
-    };
+    const unsubscribe = getDesktopApi().onUpdaterStatus((status) => {
+      setUpdaterStatus(status);
+    });
+    return unsubscribe;
   }, [bridgeReady]);
 
   // If the rollback version actually changes (e.g. user installed a new update so a new

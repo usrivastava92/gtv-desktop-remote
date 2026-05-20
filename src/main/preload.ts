@@ -49,6 +49,21 @@ const api = {
   getUpdaterStatus: (): Promise<UpdaterStatus> => ipcRenderer.invoke('updater:status'),
   installAvailableUpdate: (): Promise<UpdaterStatus> => ipcRenderer.invoke('updater:install'),
   rollbackToPreviousVersion: (): Promise<UpdaterStatus> => ipcRenderer.invoke('updater:rollback'),
+  /**
+   * Subscribe to push-style updater status updates. The main process emits
+   * `updater:statusChanged` whenever the underlying state changes; this
+   * replaces the prior 1.5s polling loop in the renderer (QW-2).
+   * Returns an unsubscribe function — callers MUST call it on unmount.
+   */
+  onUpdaterStatus: (listener: (status: UpdaterStatus) => void): (() => void) => {
+    const wrapped = (_event: unknown, status: UpdaterStatus) => {
+      listener(status);
+    };
+    ipcRenderer.on('updater:statusChanged', wrapped);
+    return () => {
+      ipcRenderer.off('updater:statusChanged', wrapped);
+    };
+  },
 };
 
 contextBridge.exposeInMainWorld('gtvRemote', api);

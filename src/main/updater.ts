@@ -59,8 +59,42 @@ const updaterStatus: UpdaterStatus = {
   rollbackAvailable: false,
 };
 
+/**
+ * Subscribers receive a fresh snapshot of `UpdaterStatus` every time the
+ * status changes. Registered by `subscribeUpdaterStatus` and called
+ * synchronously from `setUpdaterStatus`. QW-2 uses this to push the status
+ * to the renderer over IPC, replacing the previous 1.5s polling loop.
+ */
+type UpdaterStatusListener = (status: UpdaterStatus) => void;
+const updaterStatusListeners = new Set<UpdaterStatusListener>();
+
+/** Snapshot the current status. Defensive copy so callers cannot mutate. */
+function snapshotUpdaterStatus(): UpdaterStatus {
+  return { ...updaterStatus };
+}
+
+/**
+ * Subscribe to updater status changes. Returns an unsubscribe function.
+ * Listeners receive a defensive copy of the status on every change.
+ */
+export function subscribeUpdaterStatus(listener: UpdaterStatusListener): () => void {
+  updaterStatusListeners.add(listener);
+  return () => {
+    updaterStatusListeners.delete(listener);
+  };
+}
+
 function setUpdaterStatus(next: Partial<UpdaterStatus>) {
   Object.assign(updaterStatus, next, { currentVersion: app.getVersion() });
+  const snapshot = snapshotUpdaterStatus();
+  for (const listener of updaterStatusListeners) {
+    try {
+      listener(snapshot);
+    } catch (error) {
+      // Listener errors must never affect the update flow. We log and move on.
+      void logError('updater', 'Updater status listener threw', { error });
+    }
+  }
 }
 
 function getDialogParentWindow(): BrowserWindow | undefined {
