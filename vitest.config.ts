@@ -33,10 +33,14 @@ export default defineConfig({
         'src/renderer/vite-env.d.ts',
       ],
       thresholds: {
-        statements: 30,
-        branches: 95,
-        functions: 75,
-        lines: 30,
+        // Wave 18 (final): ratcheted to just below actual coverage.
+        // Actual as of Wave 17: statements 33%, branches 98%, functions 79%, lines 33%.
+        // Set 2% below actuals to give a safe floor without failing on the current codebase.
+        // Re-ratchet after App.tsx gains RTL tests (the big remaining gap).
+        statements: 32,
+        branches: 97,
+        functions: 78,
+        lines: 32,
       },
     },
     projects: [
