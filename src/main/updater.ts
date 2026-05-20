@@ -775,11 +775,12 @@ export async function installAvailableUpdate() {
   const tmpZipPath = path.join(os.tmpdir(), cachedAsset.name);
 
   try {
-    setUpdaterStatus({
-      inProgress: true,
-      stage: 'downloading',
-      progressPercent: 0,
-      etaSeconds: undefined,
+    // PR-6e: migrate to dispatchUpdaterEvent. Reducer was extended in this
+    // same PR to honor a caller-supplied message so the prior "Downloading
+    // update X..." (ASCII "...") format is preserved.
+    dispatchUpdaterEvent({
+      type: 'download-started',
+      latestVersion: version,
       message: `Downloading update ${version}...`,
     });
 
@@ -800,15 +801,13 @@ export async function installAvailableUpdate() {
             ? Math.min(100, Math.floor((downloadedBytes / totalBytes) * 100))
             : undefined;
 
-        setUpdaterStatus({
-          inProgress: true,
-          stage: 'downloading',
+        // PR-6e: migrate to dispatchUpdaterEvent. The reducer derives the
+        // exact same UX message + stage from `latestVersion + progressPercent`.
+        dispatchUpdaterEvent({
+          type: 'download-progress',
+          latestVersion: version,
           progressPercent,
           etaSeconds,
-          message:
-            progressPercent !== undefined
-              ? `Downloading update ${version}... ${String(progressPercent)}%`
-              : `Downloading update ${version}...`,
         });
       }
     );
