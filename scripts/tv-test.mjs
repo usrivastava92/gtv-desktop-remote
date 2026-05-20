@@ -74,14 +74,19 @@ console.log(`🔐 Cert:   ${certPath}`);
 
 // ── Load compiled protobuf codecs from dist-electron ─────────────────────────
 
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+
 const DIST = path.join(ROOT, 'dist-electron');
 if (!fs.existsSync(DIST)) {
   console.error(`\n❌ dist-electron/ not found. Run: npm run build`);
   process.exit(1);
 }
 
-const { createRemoteKeyInject, createRemoteConfigure, createRemotePingResponse, parseRemoteMessage } =
-  await import(path.join(DIST, 'backend/protocol/androidtv/remote.js'));
+const { createRemoteKeyInject, createRemoteConfigure, createRemoteSetActive, createRemotePingResponse, parseRemoteMessage } =
+  require(path.join(DIST, 'backend/protocol/androidtv/remote.js'));
+const { parseFramedBuffer } =
+  require(path.join(DIST, 'backend/transport/framing/frameParser.js'));
 
 // ── Varint frame parser (inline — avoids module resolution issues) ─────────────
 
@@ -114,10 +119,15 @@ function parseFrames(buffer) {
   const frames = [];
   let offset = 0;
   while (offset < buffer.length) {
+    const startOffset = offset;
     const varint = readVarint(buffer, offset);
     if (!varint) break;
     const frameEnd = varint.offset + varint.value;
-    if (frameEnd > buffer.length) break;
+    if (frameEnd > buffer.length) {
+      // incomplete frame — wait for more data
+      offset = startOffset;
+      break;
+    }
     frames.push(buffer.slice(varint.offset, frameEnd));
     offset = frameEnd;
   }
@@ -159,8 +169,7 @@ const socket = tls.connect({
 let buffer = Buffer.alloc(0);
 
 function send(payload) {
-  const frame = frameBuffer(payload);
-  socket.write(frame);
+  socket.write(payload);
   txCount++;
 }
 
@@ -170,8 +179,13 @@ socket.on('secureConnect', () => {
 
 socket.on('data', (chunk) => {
   buffer = Buffer.concat([buffer, chunk]);
-  const { frames, remaining } = parseFrames(buffer);
-  buffer = remaining;
+  const { frames, remaining, error } = parseFramedBuffer(buffer);
+  buffer = Buffer.from(remaining);
+  if (error) {
+    console.error(`\n❌ Frame parse error: ${error.message}`);
+    socket.destroy();
+    return;
+  }
 
   for (const frame of frames) {
     rxCount++;
@@ -191,12 +205,13 @@ socket.on('data', (chunk) => {
 
       if (msg.remotePingRequest?.val1 !== undefined) {
         send(createRemotePingResponse(msg.remotePingRequest.val1));
-        console.log(`📥 [rx-${rxCount}] ping → pong (val1=${msg.remotePingRequest.val1})`);
+        console.log(`📥 [rx-${rxCount}] ping ↔ pong (val1=${msg.remotePingRequest.val1})`);
         return;
       }
 
       if (msg.remoteSetActive) {
-        console.log(`📥 [rx-${rxCount}] remoteSetActive`);
+        send(createRemoteSetActive(REMOTE_FEATURES));
+        console.log(`📥 [rx-${rxCount}] remoteSetActive → replied`);
         return;
       }
 
@@ -225,7 +240,8 @@ socket.on('data', (chunk) => {
         return;
       }
 
-      console.log(`📥 [rx-${rxCount}] ${key ?? 'unknown'}: ${JSON.stringify(msg[key ?? ''] ?? msg)}`);
+      // Unknown message — log raw hex for diagnosis but don't close
+      console.log(`📥 [rx-${rxCount}] unknown field, raw hex: ${frame.toString('hex')}`);
     } catch (e) {
       console.log(`📥 [rx-${rxCount}] <parse error: ${e.message}> hex: ${frame.toString('hex').slice(0, 40)}`);
     }
@@ -248,25 +264,35 @@ socket.on('timeout', () => {
   process.exit(1);
 });
 
-socket.setTimeout(10_000);
+socket.setTimeout(30_000);
 
 // ── Wait for protocol ready then run the test sequence ────────────────────────
 
 socket.once('protocol-ready', async () => {
   console.log('🚀 Starting test sequence...\n');
-  await sleep(500);
 
-  for (const { command, label, delayAfterMs } of COMMANDS) {
-    const frame = createRemoteKeyInject(command);
-    send(frame);
-    txCount++; // already counted in send() but label it
-    console.log(`📤 [tx-${txCount}] ${label}`);
-    await sleep(delayAfterMs);
+  // Keep-alive: send remoteSetActive every 3s so TV doesn't close connection
+  const keepAlive = setInterval(() => {
+    if (!socket.destroyed) {
+      socket.write(createRemoteSetActive(REMOTE_FEATURES));
+    }
+  }, 3_000);
+
+  try {
+    for (const { command, label, delayAfterMs } of COMMANDS) {
+      if (socket.destroyed) break;
+      const frame = createRemoteKeyInject(command);
+      send(frame);
+      console.log(`📤 [tx-${txCount}] ${label}`);
+      await sleep(delayAfterMs);
+    }
+
+    console.log('\n✅ Test sequence complete.');
+    console.log(`   Sent ${txCount} frames, received ${rxCount} frames`);
+    console.log('   Disconnecting in 1s...\n');
+    await sleep(1000);
+  } finally {
+    clearInterval(keepAlive);
+    socket.destroy();
   }
-
-  console.log('\n✅ Test sequence complete.');
-  console.log(`   Sent ${txCount} frames, received ${rxCount} frames`);
-  console.log('   Disconnecting in 1s...\n');
-  await sleep(1000);
-  socket.destroy();
 });
