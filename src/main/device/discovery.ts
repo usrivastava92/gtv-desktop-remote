@@ -182,10 +182,10 @@ async function resolveHostToIp(hostName: string): Promise<string | undefined> {
 export async function discoverGoogleTvDevices(): Promise<DiscoveredDevice[]> {
   const [remoteInstances, castInstances, adbConnectInstances, adbPairInstances] = await Promise.all(
     [
-      browseServiceInstances('_androidtvremote2._tcp', 1500).catch(() => []),
-      browseServiceInstances('_googlecast._tcp').catch(() => []),
-      browseServiceInstances('_adb-tls-connect._tcp', 1500).catch(() => []),
-      browseServiceInstances('_adb-tls-pairing._tcp', 1500).catch(() => []),
+      browseServiceInstances('_androidtvremote2._tcp', 3000).catch(() => []),
+      browseServiceInstances('_googlecast._tcp', 3000).catch(() => []),
+      browseServiceInstances('_adb-tls-connect._tcp', 3000).catch(() => []),
+      browseServiceInstances('_adb-tls-pairing._tcp', 3000).catch(() => []),
     ]
   );
 
