@@ -18,6 +18,8 @@ interface FakeSocket {
   written: Buffer[];
   writeReturnValue: boolean;
   drainHandlers: (() => void)[];
+  // PR-3e: track data listeners for onData test coverage.
+  dataHandlers: ((chunk: Buffer | string) => void)[];
 }
 
 /**
@@ -27,15 +29,18 @@ interface FakeSocket {
  */
 function makeFakeSocket(): FakeSocket & {
   write(buffer: Buffer): boolean;
+  on(event: string, handler: (chunk?: Buffer | string) => void): unknown;
   once(event: string, handler: () => void): unknown;
   removeListener(event: string, handler: () => void): unknown;
   fireDrain(): void;
+  fireData(chunk: Buffer | string): void;
 } {
   const state: FakeSocket = {
     destroyed: false,
     written: [],
     writeReturnValue: true,
     drainHandlers: [],
+    dataHandlers: [],
   };
   return {
     ...state,
@@ -51,6 +56,9 @@ function makeFakeSocket(): FakeSocket & {
     get drainHandlers() {
       return state.drainHandlers;
     },
+    get dataHandlers() {
+      return state.dataHandlers;
+    },
     get writeReturnValue() {
       return state.writeReturnValue;
     },
@@ -60,6 +68,14 @@ function makeFakeSocket(): FakeSocket & {
     write(buffer: Buffer): boolean {
       state.written.push(buffer);
       return state.writeReturnValue;
+    },
+    on(event: string, handler: (chunk: Buffer | string) => void) {
+      // PR-3e: only the 'data' event is supported here — that's all
+      // createFramedTlsTransportOverSocket calls into.
+      if (event === 'data') {
+        state.dataHandlers.push(handler);
+      }
+      return this;
     },
     once(event: string, handler: () => void) {
       if (event === 'drain') {
@@ -73,12 +89,24 @@ function makeFakeSocket(): FakeSocket & {
         if (idx >= 0) {
           state.drainHandlers.splice(idx, 1);
         }
+      } else if (event === 'data') {
+        // PR-3e: TS allows `(chunk) => void` to be compared against
+        // `() => void` here via bivariance — no cast needed at all.
+        const idx = state.dataHandlers.indexOf(handler);
+        if (idx >= 0) {
+          state.dataHandlers.splice(idx, 1);
+        }
       }
       return this;
     },
     fireDrain() {
       const pending = state.drainHandlers.splice(0);
       for (const h of pending) h();
+    },
+    fireData(chunk: Buffer | string) {
+      for (const h of state.dataHandlers.slice()) {
+        h(chunk);
+      }
     },
   };
 }
@@ -135,6 +163,37 @@ describe('IFramedTlsTransport — production binding over socket', () => {
     unsubscribe();
     expect(socket.drainHandlers).toHaveLength(0);
     socket.fireDrain();
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it('onData subscribes via socket.on(data) and dispatches chunks as Buffer', () => {
+    const socket = makeFakeSocket();
+    const transport = createFramedTlsTransportOverSocket(socket as never);
+    const handler = vi.fn();
+    transport.onData(handler);
+    expect(socket.dataHandlers).toHaveLength(1);
+    socket.fireData(Buffer.from([1, 2, 3]));
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect((handler.mock.calls[0]?.[0] as Buffer).equals(Buffer.from([1, 2, 3]))).toBe(true);
+  });
+
+  it('onData normalises string chunks to Buffer (encoding-set sockets)', () => {
+    const socket = makeFakeSocket();
+    const transport = createFramedTlsTransportOverSocket(socket as never);
+    const handler = vi.fn();
+    transport.onData(handler);
+    socket.fireData('hi');
+    expect((handler.mock.calls[0]?.[0] as Buffer).toString('utf8')).toBe('hi');
+  });
+
+  it('onData unsubscribe removes the listener and stops future dispatches', () => {
+    const socket = makeFakeSocket();
+    const transport = createFramedTlsTransportOverSocket(socket as never);
+    const handler = vi.fn();
+    const unsubscribe = transport.onData(handler);
+    unsubscribe();
+    expect(socket.dataHandlers).toHaveLength(0);
+    socket.fireData(Buffer.from([1]));
     expect(handler).not.toHaveBeenCalled();
   });
 });
@@ -194,5 +253,33 @@ describe('IFramedTlsTransport — createFakeFramedTlsTransport', () => {
   it('satisfies the IFramedTlsTransport interface (compile-time gate)', () => {
     const t: IFramedTlsTransport = createFakeFramedTlsTransport();
     expect(t.destroyed).toBe(false);
+  });
+
+  it('emitData delivers chunks to onData subscribers in subscription order', () => {
+    const t = createFakeFramedTlsTransport();
+    const a = vi.fn();
+    const b = vi.fn();
+    t.onData(a);
+    t.onData(b);
+    t.emitData(Buffer.from([7]));
+    expect(a).toHaveBeenCalledTimes(1);
+    expect(b).toHaveBeenCalledTimes(1);
+    expect((a.mock.calls[0]?.[0] as Buffer).equals(Buffer.from([7]))).toBe(true);
+  });
+
+  it('onData unsubscribe stops future emitData dispatch', () => {
+    const t = createFakeFramedTlsTransport();
+    const a = vi.fn();
+    const unsubscribe = t.onData(a);
+    unsubscribe();
+    t.emitData(Buffer.from([1]));
+    expect(a).not.toHaveBeenCalled();
+  });
+
+  it('emitData with no subscribers is a no-op (no throw)', () => {
+    const t = createFakeFramedTlsTransport();
+    expect(() => {
+      t.emitData(Buffer.from([0xff]));
+    }).not.toThrow();
   });
 });
