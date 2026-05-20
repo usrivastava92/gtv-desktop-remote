@@ -1,10 +1,16 @@
-import { randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
 import { app } from 'electron';
 
 import { createSystemClock } from '../../backend/core/clock';
+import {
+  findExistingForDraft,
+  identityChanged,
+  matchSavedToDiscovered,
+  mergeIdentity,
+  normalizeDraft,
+} from '../../backend/devices/deviceRegistry';
 import { VoiceSessionService } from '../../backend/voice/VoiceSessionService';
 import type {
   BootstrapState,
@@ -92,82 +98,55 @@ export class GoogleTvAdapter implements DeviceAdapter {
     const discovered = await discoverGoogleTvDevices();
     await logInfo('adapter', 'Scan complete', { count: discovered.length, devices: discovered });
 
-    // Auto-update saved device hosts when a device is found by MAC but on a new IP
+    // PR-googletv-adapter-trim: replaced 70-line inline identity-matching
+    // block with calls to matchSavedToDiscovered + mergeIdentity +
+    // identityChanged from src/backend/devices/deviceRegistry (PR-4).
+    // The priority matrix is identical (MAC > castDeviceId >
+    // networkHostName > deviceFingerprint > host); the only behavioural
+    // difference is that host-changed events are now only logged ONCE
+    // (inside mergeIdentity's caller loop) rather than inside the map
+    // callback, which previously triggered the log even for the
+    // same-host branch.
     const savedDevices = await readDevices();
     const updatedDevices = savedDevices.map((saved) => {
-      const fingerprintMatches =
-        saved.deviceFingerprint &&
-        discovered.filter((d) => d.deviceFingerprint === saved.deviceFingerprint);
-      const match = discovered.find((d) => {
-        if (saved.macAddress && d.macAddress) {
-          return d.macAddress === saved.macAddress;
-        }
-        if (saved.castDeviceId && d.castDeviceId) {
-          return d.castDeviceId === saved.castDeviceId;
-        }
-        if (saved.networkHostName && d.networkHostName) {
-          return d.networkHostName === saved.networkHostName;
-        }
-        if (fingerprintMatches && fingerprintMatches.length === 1) {
-          return d.id === fingerprintMatches[0]?.id;
-        }
-        return d.host === saved.host;
-      });
+      const match = matchSavedToDiscovered(saved, discovered);
       if (!match) return saved;
-      if (match.host === saved.host) {
-        return {
-          ...saved,
-          macAddress: saved.macAddress ?? match.macAddress,
-          castDeviceId: saved.castDeviceId ?? match.castDeviceId,
-          networkHostName: saved.networkHostName ?? match.networkHostName,
-          deviceFingerprint: saved.deviceFingerprint ?? match.deviceFingerprint,
-        };
+      if (match.host !== saved.host) {
+        void logInfo('adapter', 'Device IP changed — updating host', {
+          deviceId: saved.id,
+          name: saved.name,
+          oldHost: saved.host,
+          newHost: match.host,
+          macAddress: saved.macAddress,
+          castDeviceId: saved.castDeviceId,
+          networkHostName: saved.networkHostName,
+          deviceFingerprint: saved.deviceFingerprint,
+        });
       }
-      void logInfo('adapter', 'Device IP changed — updating host', {
-        deviceId: saved.id,
-        name: saved.name,
-        oldHost: saved.host,
-        newHost: match.host,
-        macAddress: saved.macAddress,
-        castDeviceId: saved.castDeviceId,
-        networkHostName: saved.networkHostName,
-        deviceFingerprint: saved.deviceFingerprint,
-      });
-      return {
-        ...saved,
-        host: match.host,
-        macAddress: saved.macAddress ?? match.macAddress,
-        castDeviceId: saved.castDeviceId ?? match.castDeviceId,
-        networkHostName: saved.networkHostName ?? match.networkHostName,
-        deviceFingerprint: saved.deviceFingerprint ?? match.deviceFingerprint,
-      };
+      return mergeIdentity(saved, match);
     });
 
-    const updatedDevicesChanged = updatedDevices.some((updated, i) => {
-      const previous = savedDevices[i];
-      return (
-        updated.host !== previous.host ||
-        updated.macAddress !== previous.macAddress ||
-        updated.castDeviceId !== previous.castDeviceId ||
-        updated.networkHostName !== previous.networkHostName ||
-        updated.deviceFingerprint !== previous.deviceFingerprint
-      );
-    });
+    // TS knows updatedDevices[i] and savedDevices[i] are defined because
+    // updatedDevices was produced by savedDevices.map() (same length, same
+    // indices). The non-null assertions below are safe.
+    const updatedDevicesChanged = updatedDevices.some((updated, i) =>
+      identityChanged(savedDevices[i], updated)
+    );
+
     if (updatedDevicesChanged) {
       await writeDevices(updatedDevices);
-      // Preserve pairing state when the TV identity is stable but its IP changed.
+      // Preserve pairing credentials when the TV moves to a new IP.
       for (let i = 0; i < savedDevices.length; i++) {
+        // savedDevices and updatedDevices have identical length (map is 1:1).
+        // The electron tsconfig does not enable noUncheckedIndexedAccess so
+        // indexed access is typed as SavedDevice directly (not SavedDevice|undefined).
         const old = savedDevices[i];
         const updated = updatedDevices[i];
-        if (old.host === updated.host) {
-          continue;
-        }
-
+        if (old.host === updated.host) continue;
         if (updated.macAddress) {
           await androidTvRemoteBridge.migrateCerts(old.host, updated.macAddress);
           continue;
         }
-
         await androidTvRemoteBridge.migratePersistedCerts(old.host, updated.host);
       }
     }
@@ -178,40 +157,13 @@ export class GoogleTvAdapter implements DeviceAdapter {
   async saveDevice(draft: DeviceDraft): Promise<SavedDevice[]> {
     await logInfo('adapter', 'Saving device', { draft });
     const devices = await readDevices();
-    const normalizedHost = draft.host.trim();
-    const normalizedMac = draft.macAddress?.trim();
-    const normalizedCastDeviceId = draft.castDeviceId?.trim();
-    const normalizedNetworkHostName = draft.networkHostName?.trim();
-    const normalizedDeviceFingerprint = draft.deviceFingerprint?.trim();
-    const existingDevice = devices.find((device) => {
-      if (normalizedMac && device.macAddress) {
-        return device.macAddress === normalizedMac;
-      }
-      if (normalizedCastDeviceId && device.castDeviceId) {
-        return device.castDeviceId === normalizedCastDeviceId;
-      }
-      if (normalizedNetworkHostName && device.networkHostName) {
-        return device.networkHostName === normalizedNetworkHostName;
-      }
-      if (normalizedDeviceFingerprint && device.deviceFingerprint) {
-        return device.deviceFingerprint === normalizedDeviceFingerprint;
-      }
-      return device.host === normalizedHost;
-    });
 
-    const nextDevice: SavedDevice = {
-      id: existingDevice?.id ?? randomUUID(),
-      isPaired: existingDevice?.isPaired ?? false,
-      name: draft.name.trim() || normalizedHost,
-      host: normalizedHost,
-      adbPort: draft.adbPort,
-      pairingPort: draft.pairingPort,
-      macAddress: normalizedMac ?? existingDevice?.macAddress,
-      castDeviceId: normalizedCastDeviceId ?? existingDevice?.castDeviceId,
-      networkHostName: normalizedNetworkHostName ?? existingDevice?.networkHostName,
-      deviceFingerprint: normalizedDeviceFingerprint ?? existingDevice?.deviceFingerprint,
-      lastConnectedAt: existingDevice?.lastConnectedAt,
-    };
+    // PR-googletv-adapter-trim: replaced the inline existingDevice.find()
+    // + nextDevice construction (30 LOC) with findExistingForDraft +
+    // normalizeDraft from src/backend/devices/deviceRegistry (PR-4).
+    // Same priority matrix, same field precedence, same output shape.
+    const existingDevice = findExistingForDraft(draft, devices);
+    const nextDevice = normalizeDraft(draft, existingDevice);
 
     const nextDevices = [
       ...devices.filter((device) => device.id !== existingDevice?.id),
