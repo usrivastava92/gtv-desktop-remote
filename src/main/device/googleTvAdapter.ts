@@ -4,6 +4,7 @@ import path from 'node:path';
 
 import { app } from 'electron';
 
+import { VoiceSessionService } from '../../backend/voice/VoiceSessionService';
 import type {
   BootstrapState,
   CommandDispatchRequest,
@@ -39,10 +40,29 @@ export class GoogleTvAdapter implements DeviceAdapter {
 
   private scanPromise: Promise<DiscoveredDevice[]> | undefined;
 
-  private assistantVoiceStats = new Map<
-    number,
-    { chunks: number; bytes: number; startedAt: number }
-  >();
+  // PR-5b: voice-session lifecycle (stats accounting + progress logging)
+  // is owned by VoiceSessionService now. Constructor-injected with a
+  // production default that wires it to the singleton bridge + logger +
+  // system clock — tests / future callers can pass their own.
+  private readonly voiceSessions: VoiceSessionService;
+
+  constructor(voiceSessions?: VoiceSessionService) {
+    this.voiceSessions =
+      voiceSessions ??
+      new VoiceSessionService(
+        {
+          start: (host, macAddress) => androidTvRemoteBridge.startAssistantVoice(host, macAddress),
+          sendChunk: (host, sessionId, chunk, macAddress) =>
+            androidTvRemoteBridge.sendAssistantVoiceChunk(host, sessionId, chunk, macAddress),
+          stop: (host, sessionId, macAddress) =>
+            androidTvRemoteBridge.stopAssistantVoice(host, sessionId, macAddress),
+          hasPending: (host, macAddress) =>
+            androidTvRemoteBridge.hasPendingAssistantVoiceSession(host, macAddress),
+        },
+        { now: () => Date.now() },
+        { info: (scope, message, details) => logInfo(scope, message, details) }
+      );
+  }
 
   async listDevices(): Promise<SavedDevice[]> {
     return readDevices();
@@ -420,91 +440,59 @@ export class GoogleTvAdapter implements DeviceAdapter {
     );
   }
 
+  // PR-5b: delegate the four voice-session operations to VoiceSessionService.
+  // The adapter is responsible only for: (a) gating on activeDevice, and
+  // (b) translating activeDevice → VoiceSessionTarget.
+
   async startAssistantVoice(): Promise<number> {
     if (!this.activeDevice) {
       throw new Error('No active device connected.');
     }
-
-    const sessionId = await androidTvRemoteBridge.startAssistantVoice(
-      this.activeDevice.host,
-      this.activeDevice.macAddress
-    );
-    await logInfo('adapter', 'Assistant voice session started', {
+    return this.voiceSessions.start({
       deviceId: this.activeDevice.id,
       host: this.activeDevice.host,
-      sessionId,
+      macAddress: this.activeDevice.macAddress,
     });
-    this.assistantVoiceStats.set(sessionId, { chunks: 0, bytes: 0, startedAt: Date.now() });
-    return sessionId;
   }
 
   async sendAssistantVoiceChunk(sessionId: number, chunkBase64: string): Promise<void> {
     if (!this.activeDevice) {
       throw new Error('No active device connected.');
     }
-
-    const chunk = Buffer.from(chunkBase64, 'base64');
-    await androidTvRemoteBridge.sendAssistantVoiceChunk(
-      this.activeDevice.host,
-      sessionId,
-      chunk,
-      this.activeDevice.macAddress
-    );
-
-    const stats = this.assistantVoiceStats.get(sessionId);
-    if (stats) {
-      stats.chunks += 1;
-      stats.bytes += chunk.length;
-      if (stats.chunks % 10 === 0) {
-        await logInfo('adapter', 'Assistant voice chunk progress', {
-          deviceId: this.activeDevice.id,
-          host: this.activeDevice.host,
-          sessionId,
-          chunks: stats.chunks,
-          bytes: stats.bytes,
-        });
-      }
-    } else {
-      await logInfo('adapter', 'Assistant voice chunk sent without tracked session', {
+    await this.voiceSessions.sendChunk(
+      {
         deviceId: this.activeDevice.id,
         host: this.activeDevice.host,
-        sessionId,
-        bytes: chunk.length,
-      });
-    }
+        macAddress: this.activeDevice.macAddress,
+      },
+      sessionId,
+      chunkBase64
+    );
   }
 
   async stopAssistantVoice(sessionId: number): Promise<void> {
     if (!this.activeDevice) {
       throw new Error('No active device connected.');
     }
-
-    await androidTvRemoteBridge.stopAssistantVoice(
-      this.activeDevice.host,
-      sessionId,
-      this.activeDevice.macAddress
+    await this.voiceSessions.stop(
+      {
+        deviceId: this.activeDevice.id,
+        host: this.activeDevice.host,
+        macAddress: this.activeDevice.macAddress,
+      },
+      sessionId
     );
-    const stats = this.assistantVoiceStats.get(sessionId);
-    this.assistantVoiceStats.delete(sessionId);
-    await logInfo('adapter', 'Assistant voice session ended', {
-      deviceId: this.activeDevice.id,
-      host: this.activeDevice.host,
-      sessionId,
-      chunks: stats?.chunks ?? 0,
-      bytes: stats?.bytes ?? 0,
-      durationMs: stats ? Date.now() - stats.startedAt : undefined,
-    });
   }
 
   async hasPendingAssistantVoiceSession(): Promise<boolean> {
     if (!this.activeDevice) {
       return false;
     }
-
-    return androidTvRemoteBridge.hasPendingAssistantVoiceSession(
-      this.activeDevice.host,
-      this.activeDevice.macAddress
-    );
+    return this.voiceSessions.hasPending({
+      deviceId: this.activeDevice.id,
+      host: this.activeDevice.host,
+      macAddress: this.activeDevice.macAddress,
+    });
   }
 
   getCapabilities(): Promise<DeviceCapabilities> {
