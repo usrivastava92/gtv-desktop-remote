@@ -633,14 +633,26 @@ function App() {
 
       assistantVoiceSessionIdRef.current = sessionId;
       assistantFirstChunkSentRef.current = false;
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          channelCount: 1,
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false,
-        },
-      });
+      let mediaStream: MediaStream;
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            channelCount: 1,
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+          },
+        });
+      } catch (micError) {
+        const isPermissionDenied =
+          micError instanceof DOMException &&
+          (micError.name === 'NotAllowedError' || micError.name === 'PermissionDeniedError');
+        throw new Error(
+          isPermissionDenied
+            ? 'Microphone access denied. Enable it in System Settings → Privacy & Security → Microphone.'
+            : `Microphone unavailable: ${(micError as Error).message}`
+        );
+      }
       if (assistantSessionTokenRef.current !== sessionToken) {
         for (const track of mediaStream.getTracks()) {
           track.stop();
