@@ -94,8 +94,8 @@ export type UpdaterEvent =
       etaSeconds: number | undefined;
       latestVersion: string;
     }
-  | { type: 'install-started' }
-  | { type: 'install-completed'; latestVersion: string }
+  | { type: 'install-started'; message?: string }
+  | { type: 'install-completed'; latestVersion: string; message?: string }
   | { type: 'install-failed'; message: string }
   | { type: 'rollback-started' }
   | { type: 'rollback-completed' }
@@ -223,27 +223,56 @@ export function applyUpdaterEvent(
         currentVersion
       );
     case 'install-started':
+      // PR-6f: installAvailableUpdate sets progressPercent:95 + etaSeconds:10
+      // inline so the download progress bar smoothly transitions past 'almost
+      // done' before the install dialog appears. Reducer now sets those so
+      // the migrated call site is a 1:1 swap. Caller message wins so the
+      // ASCII "Installing update..." format is preserved verbatim.
       return mergeUpdaterStatus(
         prev,
-        { inProgress: true, stage: 'installing', message: 'Installing update…' },
+        {
+          inProgress: true,
+          stage: 'installing',
+          progressPercent: 95,
+          etaSeconds: 10,
+          message: event.message ?? 'Installing update…',
+        },
         currentVersion
       );
     case 'install-completed':
+      // PR-6f: also sets progressPercent:100 + etaSeconds:0 to match the
+      // inline shape (UX wants the bar to settle at 100 % before the
+      // "Relaunch now / Later" dialog). Caller message wins so the dev-mode
+      // override message ("Dev mode: install step skipped.") survives.
       return mergeUpdaterStatus(
         prev,
         {
           inProgress: false,
           stage: 'completed',
+          progressPercent: 100,
+          etaSeconds: 0,
           updateAvailable: false,
           updateInstallable: false,
-          message: `Installed ${event.latestVersion}. Relaunching…`,
+          message: event.message ?? `Installed ${event.latestVersion}. Relaunching…`,
         },
         currentVersion
       );
     case 'install-failed':
+      // PR-6f: also clears progressPercent/etaSeconds/updateAvailable/
+      // updateInstallable to match the inline shape (UI hides the progress
+      // bar and the "Update available" CTA after a failed install). Mirrors
+      // PR-6d's check-failed reducer revision.
       return mergeUpdaterStatus(
         prev,
-        { inProgress: false, stage: 'failed', message: event.message },
+        {
+          inProgress: false,
+          stage: 'failed',
+          progressPercent: undefined,
+          etaSeconds: undefined,
+          updateAvailable: false,
+          updateInstallable: false,
+          message: event.message,
+        },
         currentVersion
       );
     case 'rollback-started':
