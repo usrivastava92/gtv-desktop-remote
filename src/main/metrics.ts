@@ -437,7 +437,9 @@ export class CommandMetricsStore implements IMetricsRecorder {
   }
 
   private logMetric(event: string, details: Record<string, unknown>): void {
-    void logInfo('metrics', event, details);
+    if (event === 'warning' || event === 'command_failed' || event === 'connect_failed') {
+      void logInfo('metrics', event, details);
+    }
   }
 }
 
