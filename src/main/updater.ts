@@ -6,6 +6,7 @@ import { promisify } from 'node:util';
 
 import { app, BrowserWindow, dialog, shell } from 'electron';
 
+import { getRuntimeConfig } from '../backend/core/runtimeConfig';
 import { createInitialUpdaterStatus, mergeUpdaterStatus } from '../backend/updater/updaterStatus';
 import {
   compareVersions,
@@ -43,7 +44,9 @@ const RELEASE_OWNER = 'usrivastava92';
 const RELEASE_REPO = 'gtv-desktop-remote';
 const CHECK_TIMEOUT_MS = 15_000;
 const BACKGROUND_CHECK_DEBOUNCE_MS = 15 * 60 * 1_000;
-const DEV_UPDATER_ENABLED = process.env.GTV_UPDATER_DEV === '1';
+// PR-QW-runtime: was `const DEV_UPDATER_ENABLED = process.env.GTV_UPDATER_DEV === '1';`
+// Now sourced from the runtime config port so tests can flip the flag without
+// monkey-patching process.env (which leaks across vitest workers).
 const ROLLBACK_DIR_NAME = 'rollback';
 
 let cachedRelease: ReleasePayload | undefined;
@@ -482,7 +485,7 @@ async function installMacUpdateFromZip(zipPath: string) {
 
   await logInfo('updater', 'Installing update bundle', { sourceBundle, targetBundle });
 
-  if (DEV_UPDATER_ENABLED && !app.isPackaged) {
+  if (getRuntimeConfig().devUpdaterEnabled && !app.isPackaged) {
     await logInfo('updater', 'Dev mode update install skipped', { sourceBundle, targetBundle });
     return;
   }
@@ -536,7 +539,11 @@ async function checkForMacUpdate() {
     updateInstallable: false,
   });
 
-  const updatesAllowed = app.isPackaged || DEV_UPDATER_ENABLED;
+  // PR-QW-runtime: read the flag through the runtime config port. In
+  // production this transitively reads process.env.GTV_UPDATER_DEV via
+  // createNodeRuntimeConfig(); in tests, callers install a fake config via
+  // setRuntimeConfig(createRuntimeConfig({ devUpdaterEnabled: ... })).
+  const updatesAllowed = app.isPackaged || getRuntimeConfig().devUpdaterEnabled;
 
   if (!updatesAllowed) {
     await logInfo('updater', 'Skipping updater in development mode');
@@ -690,6 +697,11 @@ export async function checkForUpdatesManually() {
 }
 
 export async function installAvailableUpdate() {
+  // PR-QW-runtime: hoist the dev-override check into a single local so the
+  // status `message` and the subsequent skip-relaunch branch stay in lockstep
+  // and the runtime config port is read exactly once per install call.
+  const installDevModeOverride = getRuntimeConfig().devUpdaterEnabled && !app.isPackaged;
+
   if (!cachedRelease || !cachedAsset || !updaterStatus.latestVersion) {
     setUpdaterStatus({
       inProgress: false,
@@ -780,13 +792,12 @@ export async function installAvailableUpdate() {
       etaSeconds: 0,
       updateAvailable: false,
       updateInstallable: false,
-      message:
-        DEV_UPDATER_ENABLED && !app.isPackaged
-          ? 'Dev mode: install step skipped.'
-          : `Update ${version} installed.`,
+      message: installDevModeOverride
+        ? 'Dev mode: install step skipped.'
+        : `Update ${version} installed.`,
     });
 
-    if (DEV_UPDATER_ENABLED && !app.isPackaged) {
+    if (installDevModeOverride) {
       await showUpdaterDialog({
         type: 'info',
         buttons: ['OK'],
@@ -899,7 +910,12 @@ export async function rollbackToPreviousVersion() {
       rollbackVersion: state.rollbackVersion,
     });
 
-    if (DEV_UPDATER_ENABLED && !app.isPackaged) {
+    // PR-QW-runtime: hoist the dev-override check into a single local so all
+    // three branch points below stay in lockstep and the runtime config port
+    // is read exactly once per rollback call.
+    const devModeOverride = getRuntimeConfig().devUpdaterEnabled && !app.isPackaged;
+
+    if (devModeOverride) {
       await logInfo('updater', 'Dev mode rollback restore skipped', {
         rollbackBundlePath,
         targetBundle,
@@ -920,13 +936,12 @@ export async function rollbackToPreviousVersion() {
       rollbackCreatedAt: undefined,
       updateAvailable: false,
       updateInstallable: false,
-      message:
-        DEV_UPDATER_ENABLED && !app.isPackaged
-          ? 'Dev mode: rollback restore skipped.'
-          : `Rolled back to ${state.rollbackVersion}.`,
+      message: devModeOverride
+        ? 'Dev mode: rollback restore skipped.'
+        : `Rolled back to ${state.rollbackVersion}.`,
     });
 
-    if (DEV_UPDATER_ENABLED && !app.isPackaged) {
+    if (devModeOverride) {
       await showUpdaterDialog({
         type: 'info',
         buttons: ['OK'],
