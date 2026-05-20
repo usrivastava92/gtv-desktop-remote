@@ -268,9 +268,9 @@ class NativeRemoteClient {
     let sessionId: number;
     try {
       sessionId = await waitForVoiceBegin();
-    } catch {
-      transport.send(createRemoteKeyInjectRaw('KEYCODE_SEARCH', 'SHORT'));
-      sessionId = await waitForVoiceBegin();
+    } catch (err) {
+      transport.send(createRemoteKeyInjectRaw('KEYCODE_SEARCH', 'END_LONG'));
+      throw err;
     }
 
     transport.send(createRemoteVoiceBegin(sessionId));

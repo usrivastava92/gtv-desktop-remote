@@ -88,7 +88,7 @@ export const REMOTE_CONNECT_TIMEOUT_MS = 10_000;
 /**
  * Voice session initialization timeout. Abort if TV doesn't open session in time.
  */
-export const REMOTE_VOICE_BEGIN_TIMEOUT_MS = 2_000;
+export const REMOTE_VOICE_BEGIN_TIMEOUT_MS = 5_000;
 
 /**
  * Service name advertised to the TV during pairing.
