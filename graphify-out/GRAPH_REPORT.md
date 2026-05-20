@@ -1,7 +1,7 @@
-# Graph Report - /Users/usrivastava/workspace/github/gtv-desktop-remote  (2026-05-19)
+# Graph Report - /Users/usrivastava/workspace/github/gtv-desktop-remote  (2026-05-20)
 
 ## Corpus Check
-- 37 files · ~53,816 words
+- 37 files · ~58,774 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
