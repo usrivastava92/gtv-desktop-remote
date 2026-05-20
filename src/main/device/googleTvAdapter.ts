@@ -4,6 +4,7 @@ import path from 'node:path';
 
 import { app } from 'electron';
 
+import { createSystemClock } from '../../backend/core/clock';
 import { VoiceSessionService } from '../../backend/voice/VoiceSessionService';
 import type {
   BootstrapState,
@@ -16,7 +17,7 @@ import type {
   PairingRequest,
   SavedDevice,
 } from '../../shared/types';
-import { getAppDataPath, logError, logInfo } from '../logger';
+import { createNodeLogger, getAppDataPath, logError, logInfo } from '../logger';
 import { commandMetricsStore } from '../metrics';
 
 import { androidTvRemoteBridge } from './androidTvRemote';
@@ -47,6 +48,11 @@ export class GoogleTvAdapter implements DeviceAdapter {
   private readonly voiceSessions: VoiceSessionService;
 
   constructor(voiceSessions?: VoiceSessionService) {
+    // PR-QW-adopt-logger (Wave 9): swap the inline ad-hoc clock + logger
+    // adapters for the canonical createSystemClock() and createNodeLogger()
+    // factories. Removes two micro-implementations that were already drifting
+    // (the clock missed `nowDate`; the logger faked the sync contract by
+    // accident).
     this.voiceSessions =
       voiceSessions ??
       new VoiceSessionService(
@@ -59,8 +65,8 @@ export class GoogleTvAdapter implements DeviceAdapter {
           hasPending: (host, macAddress) =>
             androidTvRemoteBridge.hasPendingAssistantVoiceSession(host, macAddress),
         },
-        { now: () => Date.now() },
-        { info: (scope, message, details) => logInfo(scope, message, details) }
+        createSystemClock(),
+        createNodeLogger()
       );
   }
 

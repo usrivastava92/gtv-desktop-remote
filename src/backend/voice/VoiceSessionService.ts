@@ -12,7 +12,16 @@
  * The service deliberately does NOT know about `SavedDevice` or `host`.
  * The caller passes a `VoiceSessionTarget` per call; the service decides
  * everything else (session id ownership, stats lifecycle, log cadence).
+ *
+ * PR-QW-adopt-logger (Wave 9): the previously-local `IVoiceLogger` and
+ * `IClock` interfaces are replaced by the shared `ILogger` (PR-QW-logger)
+ * and `IClock` (PR-QW-clock) ports. Removes 2 duplicate interface
+ * declarations and lets callers pass `silentLogger` /
+ * `createInMemoryLogger()` directly without an adapter.
  */
+import type { IClock } from '../core/clock';
+import type { ILogger } from '../core/logger';
+
 export interface VoiceSessionTarget {
   /** Stable id of the device the caller has resolved (used in log details). */
   deviceId: string;
@@ -34,16 +43,6 @@ export interface IVoiceTransport {
   hasPending(host: string, macAddress?: string): Promise<boolean>;
 }
 
-/** Minimal clock port — only `now()` is needed for stats and durations. */
-export interface IClock {
-  now(): number;
-}
-
-/** Minimal logger port. Mirrors the shape of `src/main/logger.ts:logInfo`. */
-export interface IVoiceLogger {
-  info(scope: string, message: string, details?: Record<string, unknown>): Promise<void>;
-}
-
 interface SessionStats {
   chunks: number;
   bytes: number;
@@ -60,14 +59,15 @@ export class VoiceSessionService {
   constructor(
     private readonly transport: IVoiceTransport,
     private readonly clock: IClock,
-    private readonly logger: IVoiceLogger
+    private readonly logger: ILogger
   ) {}
 
   /** Begin a voice session for the given device. Returns the transport's
    * session id, which the caller must echo back on chunk / stop. */
   async start(target: VoiceSessionTarget): Promise<number> {
     const sessionId = await this.transport.start(target.host, target.macAddress);
-    await this.logger.info('adapter', 'Assistant voice session started', {
+    // PR-QW-adopt-logger: ILogger is synchronous-by-contract — no await.
+    this.logger.info('adapter', 'Assistant voice session started', {
       deviceId: target.deviceId,
       host: target.host,
       sessionId,
@@ -98,7 +98,7 @@ export class VoiceSessionService {
       stats.chunks += 1;
       stats.bytes += chunk.length;
       if (stats.chunks % VOICE_PROGRESS_LOG_EVERY_N_CHUNKS === 0) {
-        await this.logger.info('adapter', 'Assistant voice chunk progress', {
+        this.logger.info('adapter', 'Assistant voice chunk progress', {
           deviceId: target.deviceId,
           host: target.host,
           sessionId,
@@ -107,7 +107,7 @@ export class VoiceSessionService {
         });
       }
     } else {
-      await this.logger.info('adapter', 'Assistant voice chunk sent without tracked session', {
+      this.logger.info('adapter', 'Assistant voice chunk sent without tracked session', {
         deviceId: target.deviceId,
         host: target.host,
         sessionId,
@@ -121,7 +121,7 @@ export class VoiceSessionService {
     await this.transport.stop(target.host, sessionId, target.macAddress);
     const stats = this.stats.get(sessionId);
     this.stats.delete(sessionId);
-    await this.logger.info('adapter', 'Assistant voice session ended', {
+    this.logger.info('adapter', 'Assistant voice session ended', {
       deviceId: target.deviceId,
       host: target.host,
       sessionId,
