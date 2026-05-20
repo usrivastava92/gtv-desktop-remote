@@ -3,12 +3,9 @@ import { useEffect, useRef, useState } from 'react';
 import { downsampleTo8kMono, toBase64 } from '../shared/audio';
 import type {
   BootstrapState,
-  CommandDispatchRequest,
   DeviceCapabilities,
   DeviceDraft,
   DiscoveredDevice,
-  RemoteCommand,
-  RemoteCommandSource,
   SavedDevice,
 } from '../shared/types';
 
@@ -20,6 +17,7 @@ import type {
 // jsdom + RTL harness from PR-renderer-infra.
 import { useDeviceScanner } from './hooks/useDeviceScanner';
 import { usePairingFlow } from './hooks/usePairingFlow';
+import { useRemoteSession } from './hooks/useRemoteSession';
 import { useUpdaterStatus } from './hooks/useUpdaterStatus';
 import {
   derivePairedNetworkDevices,
@@ -29,6 +27,7 @@ import {
   type DevicePickerSelection as DevicePickerSelectionFromLib,
 } from './lib/deviceSelection';
 import { classes, isEditableTarget, sanitizePairCode, shouldRestartPairingFlow } from './lib/pure';
+import { KEYBOARD_COMMAND_MAP } from './lib/remoteCommands';
 
 const initialDraft: DeviceDraft = {
   name: '',
@@ -37,39 +36,15 @@ const initialDraft: DeviceDraft = {
   pairingPort: 0,
 };
 
-const keyboardCommandMap: Partial<Record<string, RemoteCommand>> = {
-  ArrowUp: 'up',
-  ArrowDown: 'down',
-  ArrowLeft: 'left',
-  ArrowRight: 'right',
-  Enter: 'select',
-  Escape: 'back',
-  Backspace: 'back',
-  h: 'home',
-  H: 'home',
-  ' ': 'play_pause',
-  k: 'play_pause',
-  K: 'play_pause',
-  '+': 'volume_up',
-  '=': 'volume_up',
-  '-': 'volume_down',
-  _: 'volume_down',
-  p: 'power',
-  P: 'power',
-};
+// PR-renderer-6: keyboardCommandMap moved to src/renderer/lib/remoteCommands.ts
+// as KEYBOARD_COMMAND_MAP (imported above).
 
 const ASSISTANT_VOICE_MIN_CHUNK_BYTES = 8 * 1024;
 const ASSISTANT_VOICE_INITIAL_CHUNK_BYTES = 8 * 1024;
 const ASSISTANT_VOICE_STREAM_CHUNK_BYTES = 20 * 1024;
 
-const burstSensitiveCommands = new Set<RemoteCommand>(['up', 'down', 'left', 'right', 'select']);
-const MAX_QUEUED_COMMANDS = 100;
-
-interface QueuedCommandBatch {
-  command: RemoteCommand;
-  source: RemoteCommandSource;
-  requests: CommandDispatchRequest[];
-}
+// PR-renderer-6: burstSensitiveCommands, MAX_QUEUED_COMMANDS, QueuedCommandBatch
+// moved to src/renderer/hooks/useRemoteSession.ts (imported above).
 
 // PR-renderer-2: DevicePickerSelection now lives in lib/deviceSelection
 // so the resolveSelectedDevice helper can return it. Re-exported under
@@ -354,7 +329,16 @@ function App() {
     powerToggle: true,
   });
   const [devicePickerOpen, setDevicePickerOpen] = useState(true);
-  const [busy, setBusy] = useState(false);
+  const { busy, setBusy, handleCommand } = useRemoteSession((error: Error) => {
+    setBootstrap((current) => ({
+      ...current,
+      deviceState: {
+        ...current.deviceState,
+        status: 'error',
+        message: error.message,
+      },
+    }));
+  });
   const { discoveredDevices, setDiscoveredDevices, scanning, handleScanDevices } =
     useDeviceScanner();
   const [bridgeReady, setBridgeReady] = useState(false);
@@ -379,9 +363,8 @@ function App() {
     dismissedRollbackVersion,
     setDismissedRollbackVersion
   );
-  const commandQueueRef = useRef<QueuedCommandBatch[]>([]);
-  const queuedCommandCountRef = useRef(0);
-  const isProcessingQueueRef = useRef(false);
+  // PR-renderer-6: commandQueueRef, queuedCommandCountRef, isProcessingQueueRef
+  // moved to useRemoteSession hook.
   const assistantLongPressTimerRef = useRef<number | null>(null);
   const assistantStartingRef = useRef(false);
   const assistantActiveRef = useRef(false);
@@ -896,7 +879,7 @@ function App() {
         return;
       }
 
-      const command = keyboardCommandMap[event.key];
+      const command = KEYBOARD_COMMAND_MAP[event.key];
       if (!command) {
         return;
       }
@@ -1087,111 +1070,9 @@ function App() {
     }
   }
 
-  function createCommandRequest(
-    command: RemoteCommand,
-    source: RemoteCommandSource
-  ): CommandDispatchRequest {
-    return {
-      id: crypto.randomUUID(),
-      command,
-      issuedAt: Date.now(),
-      source,
-    };
-  }
-
-  function recordQueuedCommandDrop(request: CommandDispatchRequest) {
-    void getDesktopApi().recordCommandDrop({
-      ...request,
-      droppedAt: Date.now(),
-      dropReason: 'renderer_burst_limit',
-      pendingCommandCount: queuedCommandCountRef.current,
-    });
-  }
-
-  function enqueueCommand(request: CommandDispatchRequest) {
-    if (queuedCommandCountRef.current >= MAX_QUEUED_COMMANDS) {
-      recordQueuedCommandDrop(request);
-      return;
-    }
-
-    // PR-QW-renderer-strict: noUncheckedIndexedAccess makes the `[n]` access
-    // already return `QueuedCommandBatch | undefined`, so the explicit `as`
-    // narrowing is now redundant.
-    const lastBatch = commandQueueRef.current[commandQueueRef.current.length - 1];
-    if (
-      lastBatch &&
-      burstSensitiveCommands.has(request.command) &&
-      lastBatch.command === request.command &&
-      lastBatch.source === request.source
-    ) {
-      lastBatch.requests.push(request);
-    } else {
-      commandQueueRef.current.push({
-        command: request.command,
-        source: request.source,
-        requests: [request],
-      });
-    }
-
-    queuedCommandCountRef.current += 1;
-    void flushQueuedCommands();
-  }
-
-  async function flushQueuedCommands() {
-    if (isProcessingQueueRef.current) {
-      return;
-    }
-
-    isProcessingQueueRef.current = true;
-
-    try {
-      while (commandQueueRef.current.length > 0) {
-        // PR-QW-renderer-strict: noUncheckedIndexedAccess widens `[0]` to
-        // include undefined. The `length > 0` guard above makes this
-        // unreachable, but TS can't prove that — early-out keeps the
-        // type narrowed for the rest of the loop body.
-        const currentBatch = commandQueueRef.current[0];
-        if (!currentBatch) {
-          break;
-        }
-        const request = currentBatch.requests.shift();
-
-        if (!request) {
-          commandQueueRef.current.shift();
-          continue;
-        }
-
-        try {
-          await getDesktopApi().sendCommand(request);
-        } catch (error) {
-          setBootstrap((current) => ({
-            ...current,
-            deviceState: {
-              ...current.deviceState,
-              status: 'error',
-              message: (error as Error).message,
-            },
-          }));
-        } finally {
-          queuedCommandCountRef.current = Math.max(0, queuedCommandCountRef.current - 1);
-          if (currentBatch.requests.length === 0) {
-            commandQueueRef.current.shift();
-          }
-        }
-      }
-    } finally {
-      isProcessingQueueRef.current = false;
-      if (commandQueueRef.current.length > 0) {
-        void flushQueuedCommands();
-      }
-    }
-  }
-
-  function handleCommand(command: RemoteCommand, source: RemoteCommandSource = 'button') {
-    const request = createCommandRequest(command, source);
-
-    enqueueCommand(request);
-  }
+  // PR-renderer-6: createCommandRequest, recordQueuedCommandDrop, enqueueCommand,
+  // flushQueuedCommands, handleCommand all moved to useRemoteSession hook.
+  // App.tsx calls handleCommand (from the hook) directly at call sites.
 
   async function handleSendText() {
     if (!textInput.trim()) {
