@@ -212,29 +212,35 @@ class NativeRemoteClient {
         void logError('androidtvremote', 'Remote socket error', normalized);
       };
 
+      // PR-3f: socket.setTimeout still owns the timeout VALUE (the transport
+      // intentionally doesn't take ownership of timeout configuration since
+      // the value is protocol-specific). The transport.onTimeout subscription
+      // below replaces the prior socket.on('timeout') listener.
       socket.setTimeout(REMOTE_CONNECT_TIMEOUT_MS);
-      socket.on('timeout', () => {
+      // PR-3f: ALL lifecycle handlers below now flow through IFramedTlsTransport
+      // (onTimeout / onError / onClose) and behavior-only handlers stay inline.
+      // Captured as named arrows so they can be attached after we construct
+      // the transport at the end of this block.
+      const onSocketTimeout = (): void => {
         socket.destroy(new Error('Remote connection timed out.'));
-      });
-      socket.on('secureConnect', () => {
+      };
+      const onSecureConnect = (): void => {
+        // secureConnect is NOT a transport-level event (it's TLS handshake
+        // completion). It stays a raw socket listener.
         this.state.lastActivityAt = Date.now();
-      });
-      // PR-3e: inbound data now flows through IFramedTlsTransport.onData
-      // instead of socket.on('data') directly. The transport normalises the
-      // chunk to Buffer (never string) so we can drop the inner Buffer.from
-      // conversion. The transport is wrapped on `socket` just below this
-      // block; we set up the subscription AFTER constructing the transport
-      // for clarity. To preserve the previous registration order, we attach
-      // listeners on socket first and wire the transport's onData after the
-      // transport is constructed.
+      };
+      socket.on('secureConnect', onSecureConnect);
+      // PR-3e: inbound data now flows through IFramedTlsTransport.onData.
       const onInboundChunk = (chunk: Buffer): void => {
         commandMetricsStore.recordInboundMessage(this.host);
         this.state.lastActivityAt = Date.now();
         this.buffer = Buffer.concat([this.buffer, chunk]);
         this.flushBuffer();
       };
-      socket.on('error', fail);
-      socket.on('close', () => {
+      const onSocketError = (error: Error): void => {
+        fail(error);
+      };
+      const onSocketClose = (): void => {
         commandMetricsStore.recordSocketClosed(this.host);
         this.socket = undefined;
         this.protocolReady = false;
@@ -243,7 +249,7 @@ class NativeRemoteClient {
           settled = true;
           reject(new Error(`Could not connect to ${this.host}.`));
         }
-      });
+      };
 
       const finishProtocolHandshake = () => {
         if (settled) {
@@ -260,13 +266,16 @@ class NativeRemoteClient {
 
       socket.once('remote-protocol-ready', finishProtocolHandshake);
       this.socket = socket;
-      // PR-3d: wrap the live socket in the framed transport port now that it
-      // exists. Every send/drain call from here on goes through the port.
+      // PR-3d: wrap the live socket in the framed transport port.
       this.transport = createFramedTlsTransportOverSocket(socket);
-      // PR-3e: subscribe the inbound dispatch via the transport's onData.
-      // No need to track the unsubscribe handle — disconnect() destroys the
-      // socket, which Node's net layer cleans up via removeAllListeners.
+      // PR-3e: inbound data via transport.onData.
       this.transport.onData(onInboundChunk);
+      // PR-3f: lifecycle (error/close/timeout) via the transport contract.
+      // disconnect() destroys the socket which Node cleans up via
+      // removeAllListeners, so we don't track these unsubscribe handles.
+      this.transport.onError(onSocketError);
+      this.transport.onClose(onSocketClose);
+      this.transport.onTimeout(onSocketTimeout);
     }).finally(() => {
       this.connectPromise = undefined;
     });

@@ -76,6 +76,30 @@ export interface IFramedTlsTransport {
    */
   onData(handler: (chunk: Buffer) => void): () => void;
 
+  /**
+   * Subscribe to fatal socket errors. Mirrors `socket.on('error', cb)` —
+   * fires zero or more times before close. Returns an unsubscribe.
+   * PR-3f completion of the lifecycle side of the transport contract.
+   */
+  onError(handler: (error: Error) => void): () => void;
+
+  /**
+   * Subscribe to socket close events. Fires exactly once after the socket
+   * is destroyed (whether by remote disconnect, fatal error, or local
+   * `disconnect()`). Returns an unsubscribe.
+   */
+  onClose(handler: () => void): () => void;
+
+  /**
+   * Subscribe to socket timeout events. The underlying socket's idle
+   * timeout was configured via `socket.setTimeout(ms)` before this
+   * transport was created — the transport intentionally does NOT own
+   * timeout configuration since the value depends on the caller's
+   * protocol (e.g. REMOTE_CONNECT_TIMEOUT_MS for the connect handshake).
+   * Returns an unsubscribe.
+   */
+  onTimeout(handler: () => void): () => void;
+
   /** Mirrors `socket.destroyed`. Used by `NativeRemoteClient.isConnected`. */
   readonly destroyed: boolean;
 }
@@ -113,6 +137,24 @@ export function createFramedTlsTransportOverSocket(socket: TLSSocket): IFramedTl
         socket.removeListener('data', listener);
       };
     },
+    onError(handler) {
+      socket.on('error', handler);
+      return () => {
+        socket.removeListener('error', handler);
+      };
+    },
+    onClose(handler) {
+      socket.on('close', handler);
+      return () => {
+        socket.removeListener('close', handler);
+      };
+    },
+    onTimeout(handler) {
+      socket.on('timeout', handler);
+      return () => {
+        socket.removeListener('timeout', handler);
+      };
+    },
     get destroyed() {
       return socket.destroyed;
     },
@@ -140,6 +182,12 @@ export function createFakeFramedTlsTransport(): IFramedTlsTransport & {
    * subscribe via separate transports.
    */
   emitData(chunk: Buffer): void;
+  /** PR-3f: trigger every active onError subscriber with `error`. */
+  emitError(error: Error): void;
+  /** PR-3f: trigger every active onClose subscriber. */
+  emitClose(): void;
+  /** PR-3f: trigger every active onTimeout subscriber. */
+  emitTimeout(): void;
   /** Mutates `destroyed`. */
   setDestroyed(value: boolean): void;
 } {
@@ -151,6 +199,10 @@ export function createFakeFramedTlsTransport(): IFramedTlsTransport & {
   // factory can verify multi-subscriber dispatch the same way the
   // production binding does.
   const dataSubscribers: ((chunk: Buffer) => void)[] = [];
+  // PR-3f: lifecycle subscribers.
+  const errorSubscribers: ((error: Error) => void)[] = [];
+  const closeSubscribers: (() => void)[] = [];
+  const timeoutSubscribers: (() => void)[] = [];
 
   return {
     get writes(): readonly Buffer[] {
@@ -168,6 +220,21 @@ export function createFakeFramedTlsTransport(): IFramedTlsTransport & {
     emitData(chunk) {
       for (const handler of dataSubscribers.slice()) {
         handler(chunk);
+      }
+    },
+    emitError(error) {
+      for (const handler of errorSubscribers.slice()) {
+        handler(error);
+      }
+    },
+    emitClose() {
+      for (const handler of closeSubscribers.slice()) {
+        handler();
+      }
+    },
+    emitTimeout() {
+      for (const handler of timeoutSubscribers.slice()) {
+        handler();
       }
     },
     setDestroyed(value) {
@@ -197,6 +264,33 @@ export function createFakeFramedTlsTransport(): IFramedTlsTransport & {
         const index = dataSubscribers.indexOf(handler);
         if (index >= 0) {
           dataSubscribers.splice(index, 1);
+        }
+      };
+    },
+    onError(handler) {
+      errorSubscribers.push(handler);
+      return () => {
+        const index = errorSubscribers.indexOf(handler);
+        if (index >= 0) {
+          errorSubscribers.splice(index, 1);
+        }
+      };
+    },
+    onClose(handler) {
+      closeSubscribers.push(handler);
+      return () => {
+        const index = closeSubscribers.indexOf(handler);
+        if (index >= 0) {
+          closeSubscribers.splice(index, 1);
+        }
+      };
+    },
+    onTimeout(handler) {
+      timeoutSubscribers.push(handler);
+      return () => {
+        const index = timeoutSubscribers.indexOf(handler);
+        if (index >= 0) {
+          timeoutSubscribers.splice(index, 1);
         }
       };
     },
