@@ -1,14 +1,14 @@
 /**
  * `IMetricsRecorder` is the port that every device-side service can depend on
  * instead of importing the concrete `commandMetricsStore` singleton from
- * `src/main/metrics.ts`. PR-5a introduces this interface so that future
+ * `src/main/metrics.ts`. introduces this interface so that future
  * extracted services (`PairingService`, `RemoteCommandService`,
- * `VoiceSessionService` in PR-5b/d) take metrics recording as a constructor
+ * `VoiceSessionService` /d) take metrics recording as a constructor
  * dependency, which makes them unit-testable with a fake.
  *
  * The interface mirrors the public surface of `CommandMetricsStore` and
  * `NoopCommandMetricsStore` in `src/main/metrics.ts` exactly. The existing
- * concrete classes already satisfy this shape — PR-5a adds an explicit
+ * concrete classes already satisfy this shape — this file adds an explicit
  * `implements IMetricsRecorder` annotation in metrics.ts so a future drift
  * fails the build instead of silently breaking.
  *

@@ -25,11 +25,6 @@ const CONNECT_STALL_MS = 15_000;
 const SEND_STALL_MS = 15_000;
 const INBOUND_STALL_MS = 45_000;
 
-// PR-5a follow-up: counters + (zero-timestamp) snapshot shapes are owned by
-// `src/backend/metrics/IMetricsRecorder.ts`. Local helpers below adapt them
-// for the production store, where the snapshot wants `generatedAt: Date.now()`
-// rather than the zero used by the noop/empty case.
-
 const createCounters: () => CommandMetricsCounters = createEmptyMetricsCounters;
 
 function createTransportSnapshot(): CommandMetricsTransportSnapshot {
@@ -41,17 +36,10 @@ function createTransportSnapshot(): CommandMetricsTransportSnapshot {
 }
 
 function createEmptySnapshot(clock: IClock): CommandMetricsSnapshot {
-  // The shared helper sets `generatedAt: 0`. Production traces want the wall
-  // time at which the snapshot was built, so we stamp it here through the
-  // IClock port (PR-QW-clock — replaces direct Date.now()).
   return { ...createEmptyMetricsSnapshot(), generatedAt: clock.now() };
 }
 
 export class CommandMetricsStore implements IMetricsRecorder {
-  // PR-QW-clock: the clock is constructor-injected so tests can drive the
-  // `generatedAt` field deterministically via `createFakeClock()`. Defaults
-  // to `createSystemClock()` so existing call sites and production code keep
-  // their current behavior verbatim.
   private readonly clock: IClock;
 
   private readonly commands = new Map<string, CommandMetricsRecord>();
@@ -341,8 +329,6 @@ export class CommandMetricsStore implements IMetricsRecorder {
   getSnapshot(): CommandMetricsSnapshot {
     this.detectStalls();
     return {
-      // PR-QW-clock: route the snapshot's `generatedAt` through the IClock port.
-      // Future PRs migrate the remaining ~28 `Date.now()` reads in this file.
       generatedAt: this.clock.now(),
       counters: { ...this.counters },
       transport: { ...this.transport },
@@ -457,8 +443,6 @@ export class CommandMetricsStore implements IMetricsRecorder {
 
 /* eslint-disable @typescript-eslint/no-empty-function */
 export class NoopCommandMetricsStore implements IMetricsRecorder {
-  // PR-QW-clock: even the noop needs a clock so getSnapshot's `generatedAt`
-  // is testable. Defaults to system clock; tests can pass a fake.
   private readonly clock: IClock;
 
   constructor(options?: { clock?: IClock }) {
@@ -516,16 +500,13 @@ export class NoopCommandMetricsStore implements IMetricsRecorder {
 /**
  * Factory: construct a fresh metrics store for tests or future composition
  * roots. Production code continues to use the `commandMetricsStore` singleton
- * below; new code (PR-5 onward) should prefer this factory + dependency
+ * below; new code ( onward) should prefer this factory + dependency
  * injection. Pass `forceEnabled=true` to bypass the debug-telemetry flag.
  */
 export function createCommandMetricsStore(
   forceEnabledOrOptions?: boolean | { forceEnabled?: boolean; clock?: IClock },
   legacyClock?: IClock
 ): CommandMetricsStore | NoopCommandMetricsStore {
-  // PR-QW-clock: factory accepts both the legacy `boolean` first arg (kept
-  // for back-compat with every existing call site) and a new options bag
-  // that carries the optional clock. Tests use `{ forceEnabled: true, clock }`.
   const options =
     typeof forceEnabledOrOptions === 'object'
       ? forceEnabledOrOptions
@@ -543,7 +524,4 @@ export function createCommandMetricsStore(
     : new NoopCommandMetricsStore({ clock });
 }
 
-// Existing process-wide singleton — preserved for backward compatibility. All
-// existing call sites continue to work unchanged. Prefer the factory above for
-// new code and tests.
 export const commandMetricsStore = createCommandMetricsStore();

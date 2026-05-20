@@ -4,7 +4,7 @@
  * swallow-everything default) or `createInMemoryLogger()` (the recording
  * factory below) to assert on what was written.
  *
- * PR-3a introduced the port. PR-QW-logger (Wave 8) adds:
+ * introduced the port. The full implementation adds:
  *   - level field to LogEntry for in-memory tests
  *   - createInMemoryLogger() factory that captures entries in call order
  *   - Note: `createNodeLogger()` lives in src/main/logger.ts so the backend
@@ -64,9 +64,6 @@ export const silentLogger: ILogger = {
 export function createInMemoryLogger(): ILogger & { readonly entries: readonly LogEntry[] } {
   const entries: LogEntry[] = [];
   const push = (level: LogLevel, scope: string, message: string, details?: unknown): void => {
-    // Note: we keep details as-is (no clone) so tests can use referential
-    // equality checks. Tests that mutate details after logging should clone
-    // explicitly themselves.
     entries.push({ level, scope, message, details });
   };
   return {

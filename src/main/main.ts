@@ -147,9 +147,6 @@ async function createWindow(): Promise<BrowserWindow> {
 
   attachWindowDiagnostics(window);
 
-  // QW-2: forward updater status changes to this window's renderer over IPC,
-  // replacing the renderer's 1.5s polling loop. The subscription is torn down
-  // when the window is destroyed so we never send to a stale webContents.
   const unsubscribeUpdater = subscribeUpdaterStatus((status) => {
     if (window.isDestroyed() || window.webContents.isDestroyed()) {
       return;
@@ -385,9 +382,6 @@ if (!hasSingleInstanceLock) {
   });
 }
 
-// PR-7: every channel string flows through INVOKE_CHANNELS, matching the
-// constants used in preload.ts. The contract in src/shared/ipcContract.ts has
-// a compile-time parity check that prevents the two halves from drifting.
 function registerIpc() {
   ipcMain.handle(INVOKE_CHANNELS.deviceBootstrap, async () => adapter.getBootstrapState());
   ipcMain.handle(INVOKE_CHANNELS.deviceScan, async () => adapter.scanForDevices());

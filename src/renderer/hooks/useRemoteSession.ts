@@ -1,16 +1,3 @@
-// PR-renderer-6: extract remote command busy/queue state from App.tsx
-//
-// This hook owns:
-//   - the busy state for command dispatch operations
-//   - the command queue and dispatch logic
-//   - refs for queue processing state
-//
-// App.tsx uses this as:
-//   const { busy, handleCommand } = useRemoteSession(onCommandError);
-//
-// The hook is designed to be lightweight and have minimal dependencies.
-// It accepts an onCommandError callback for error reporting to App's state.
-
 import { useCallback, useRef, useState } from 'react';
 
 import type {

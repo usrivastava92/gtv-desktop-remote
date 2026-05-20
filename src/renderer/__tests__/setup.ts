@@ -3,7 +3,7 @@ import { cleanup } from '@testing-library/react';
 import { afterEach } from 'vitest';
 
 /**
- * PR-renderer-infra (Wave 11) — renderer test bootstrap.
+ * — renderer test bootstrap.
  *
  * - `@testing-library/jest-dom/vitest` extends vitest's `expect` with
  *   matchers like `.toBeInTheDocument()` / `.toHaveTextContent()` for

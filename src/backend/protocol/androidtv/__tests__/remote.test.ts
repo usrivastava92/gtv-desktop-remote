@@ -15,8 +15,6 @@ import {
   parseRemoteMessage,
 } from '../remote';
 
-// Tests run from the repo root via vitest; resolve the fixture relative to the
-// test file's logical location in the source tree.
 const fixturesPath = path.resolve(__dirname, '..', '__fixtures__', 'remote.json');
 const fixtures = JSON.parse(readFileSync(fixturesPath, 'utf8')) as Record<string, string>;
 
@@ -68,8 +66,6 @@ describe('remote codec — golden encode', () => {
       });
     }
   });
-  // Force buf[0] usage on a typed access — noUncheckedIndexedAccess returns
-  // `number | undefined`, so we narrow it locally below.
 
   it('createRemoteKeyInjectRaw — long-press power', () => {
     expect(createRemoteKeyInjectRaw('KEYCODE_POWER', 'START_LONG').toString('hex')).toBe(
@@ -107,9 +103,6 @@ describe('remote codec — round-trip parse', () => {
 
   it('parses a ping-response frame', () => {
     const parsed = parseRemoteMessage(createRemotePingResponse(99));
-    // ping-response is the inverse direction of ping-request — encoder emits it,
-    // parser will reject it (it only knows ping-REQUEST). Asserting that the
-    // parse doesn't throw is the value here.
     expect(parsed).toBeDefined();
   });
 

@@ -1,6 +1,3 @@
-// fs moved to AndroidTvCertStore (PR-3a); the bridge keeps a single shared
-// IFileSystem only for the directory-recursive reset() below.
-// tls.connect call replaced with ITlsConnector port in PR-3c.
 import type { TLSSocket } from 'node:tls';
 
 import { createNodeFileSystem, type IFileSystem } from '../../backend/core/fileSystem';
@@ -58,13 +55,6 @@ const { PairingManager } = require('androidtv-remote/dist/pairing/PairingManager
 class NativeRemoteClient {
   private socket: TLSSocket | undefined;
 
-  // PR-3d: framed transport wraps the write+drain side of the socket. Created
-  // alongside `this.socket` at the end of connect() (after the TLSSocket is
-  // ready) and torn down in disconnect(). All outbound writes go through
-  // `this.transport.send(...)`; the inline `socket.once('drain')` block
-  // becomes `this.transport.onDrain(...)`. The inbound side (data/close
-  // listeners + flushBuffer) intentionally stays on the socket directly for
-  // this PR — PR-3e moves it.
   private transport: IFramedTlsTransport | undefined;
 
   private connectPromise: Promise<void> | undefined;
@@ -76,17 +66,12 @@ class NativeRemoteClient {
   private state: RemoteState = {
     imeCounter: 0,
     imeFieldCounter: 0,
-    // Timestamp of the last inbound data received from the TV.
-    // Used to detect half-open sockets that survive macOS app suspension.
     lastActivityAt: 0,
   };
 
   constructor(
     private readonly host: string,
     private readonly certs: PemPair,
-    // PR-3c: TLS factory injected as an ITlsConnector so tests can swap in a
-    // FakeTlsSocket without monkey-patching node:tls. Production defaults
-    // resolve to `createNodeTlsConnector()` in `AndroidTvRemoteBridge.getSession`.
     private readonly tlsConnector: ITlsConnector
   ) {}
 
@@ -99,12 +84,6 @@ class NativeRemoteClient {
   }
 
   async connect(commandId?: string): Promise<void> {
-    // After macOS suspends the app (e.g. 10 min in the background), the TLS socket
-    // may become half-open: `this.socket` is still alive locally but the TV has already
-    // closed its end. `socket.write()` silently buffers into the void and no `close`
-    // event fires until we attempt to read. Detect this by checking how long it has
-    // been since the last inbound message and force a reconnect if the connection
-    // appears stale.
     const isStale =
       this.socket &&
       !this.socket.destroyed &&
@@ -128,9 +107,6 @@ class NativeRemoteClient {
     }
 
     this.connectPromise = new Promise<void>((resolve, reject) => {
-      // PR-3c: socket factory goes through the ITlsConnector port. Production
-      // wires it to `node:tls.connect`; tests inject a fake to drive the
-      // socket lifecycle deterministically.
       const socket = this.tlsConnector.connect({
         cert: this.certs.cert,
         host: this.host,
@@ -150,25 +126,15 @@ class NativeRemoteClient {
         void logError('androidtvremote', 'Remote socket error', normalized);
       };
 
-      // PR-3f: socket.setTimeout still owns the timeout VALUE (the transport
-      // intentionally doesn't take ownership of timeout configuration since
-      // the value is protocol-specific). The transport.onTimeout subscription
-      // below replaces the prior socket.on('timeout') listener.
       socket.setTimeout(REMOTE_CONNECT_TIMEOUT_MS);
-      // PR-3f: ALL lifecycle handlers below now flow through IFramedTlsTransport
-      // (onTimeout / onError / onClose) and behavior-only handlers stay inline.
-      // Captured as named arrows so they can be attached after we construct
-      // the transport at the end of this block.
       const onSocketTimeout = (): void => {
         socket.destroy(new Error('Remote connection timed out.'));
       };
       const onSecureConnect = (): void => {
-        // secureConnect is NOT a transport-level event (it's TLS handshake
-        // completion). It stays a raw socket listener.
         this.state.lastActivityAt = Date.now();
       };
       socket.on('secureConnect', onSecureConnect);
-      // PR-3e: inbound data now flows through IFramedTlsTransport.onData.
+      // inbound data now flows through IFramedTlsTransport.onData.
       const onInboundChunk = (chunk: Buffer): void => {
         commandMetricsStore.recordInboundMessage(this.host);
         this.state.lastActivityAt = Date.now();
@@ -204,13 +170,10 @@ class NativeRemoteClient {
 
       socket.once('remote-protocol-ready', finishProtocolHandshake);
       this.socket = socket;
-      // PR-3d: wrap the live socket in the framed transport port.
+      // wrap the live socket in the framed transport port.
       this.transport = createFramedTlsTransportOverSocket(socket);
-      // PR-3e: inbound data via transport.onData.
+      // inbound data via transport.onData.
       this.transport.onData(onInboundChunk);
-      // PR-3f: lifecycle (error/close/timeout) via the transport contract.
-      // disconnect() destroys the socket which Node cleans up via
-      // removeAllListeners, so we don't track these unsubscribe handles.
       this.transport.onError(onSocketError);
       this.transport.onClose(onSocketClose);
       this.transport.onTimeout(onSocketTimeout);
@@ -240,18 +203,12 @@ class NativeRemoteClient {
     this.socket.destroy();
     commandMetricsStore.recordSocketClosed(this.host);
     this.socket = undefined;
-    // PR-3d: tear down the transport alongside the socket so any stray
-    // `transport.send` after disconnect throws cleanly rather than writing
-    // to a destroyed socket.
     this.transport = undefined;
     this.protocolReady = false;
     this.buffer = Buffer.alloc(0);
   }
 
   sendCommand(request: CommandDispatchRequest): void {
-    // PR-3d: routed through IFramedTlsTransport. send() returns the same
-    // `wroteImmediately` boolean that socket.write did, and onDrain() has
-    // identical semantics to `socket.once('drain', ...)`.
     const transport = this.getTransport();
     const wroteImmediately = transport.send(createRemoteKeyInject(request.command));
     commandMetricsStore.recordSocketWrite(request, {
@@ -271,17 +228,12 @@ class NativeRemoteClient {
       throw new Error('Text cannot be empty.');
     }
 
-    // PR-3d
     this.getTransport().send(
       createImeBatchEditMessage(this.state.imeCounter, this.state.imeFieldCounter, value)
     );
   }
 
   async startVoiceSession(): Promise<number> {
-    // PR-3d: writes go through the transport port; the
-    // `socket.once('remote-voice-begin')` event listener stays on the raw
-    // socket because that event is protocol-state plumbing on top of the
-    // parsed inbound stream, not a transport-level concern. PR-3e moves it.
     const socket = this.getSocket();
     const transport = this.getTransport();
     if (this.state.voiceSessionId) {
@@ -325,12 +277,10 @@ class NativeRemoteClient {
       return;
     }
 
-    // PR-3d
     this.getTransport().send(createRemoteVoicePayload(sessionId, samples));
   }
 
   stopVoiceSession(sessionId: number): void {
-    // PR-3d
     const transport = this.getTransport();
     transport.send(createRemoteVoiceEnd(sessionId));
     transport.send(createRemoteKeyInjectRaw('KEYCODE_SEARCH', 'END_LONG'));
@@ -348,7 +298,7 @@ class NativeRemoteClient {
   }
 
   /**
-   * PR-3d: like `getSocket()` but returns the framed transport port.
+   * like `getSocket()` but returns the framed transport port.
    * Throws the same "Connection has been lost." error so the existing
    * error-handling behavior at call sites stays identical.
    */
@@ -361,7 +311,7 @@ class NativeRemoteClient {
   }
 
   /**
-   * PR-3b: framing was a 40-line inline varint parser. It now delegates to
+   * framing was a 40-line inline varint parser. It now delegates to
    * the pure `parseFramedBuffer` helper in `src/backend/transport/framing/`,
    * which is unit-tested byte-by-byte (partial reads, multi-frame chunks,
    * malformed varints, streaming windows). Behavior is byte-identical to
@@ -376,9 +326,6 @@ class NativeRemoteClient {
       this.socket?.destroy(result.error);
       // `parseFramedBuffer` already cleared remaining on error; defensive:
       this.buffer = Buffer.alloc(0);
-      // Still hand off any frames that were successfully parsed before the
-      // malformed varint — matches previous inline behavior where each
-      // frame was processed inside the while-loop before the bad byte hit.
     }
 
     for (const frame of result.frames) {
@@ -453,26 +400,10 @@ class NativeRemoteClient {
 
 export class AndroidTvRemoteBridge {
   private readonly sessions = new Map<string, DeviceSession>();
-  // Cert storage is delegated to AndroidTvCertStore (PR-3a). The bridge
-  // continues to expose the original method signatures for backward compat;
-  // they thin-delegate to certStore. Production wires the real node:fs +
-  // real getAppDataPath; tests of the bridge itself will inject fakes in a
-  // future PR (PR-5 onward, when this whole class is broken up).
   private readonly fs: IFileSystem = createNodeFileSystem();
 
-  // PR-3c: the TLS connector port (defaulted to the production Node impl)
-  // is shared across every NativeRemoteClient this bridge spins up so a
-  // single fake connector swap covers every device-side TLS connection in
-  // tests.
   private readonly tlsConnector: ITlsConnector = createNodeTlsConnector();
 
-  // PR-QW-logger: was a hand-rolled inline { info, warn, error } adapter that
-  // (a) returned Promise<void> from each arrow (triggers no-misused-promises
-  // now that ILogger is synchronous-by-contract) and (b) faked the missing
-  // WARN level with `logInfo(scope, 'WARN ' + msg, details)`. Both problems
-  // go away by binding the official `createNodeLogger()` factory which
-  // fire-and-forgets internally and routes warn() to `logWarn` (a real WARN
-  // level in the file logger).
   private readonly certStore = new AndroidTvCertStore(
     this.fs,
     {
@@ -736,7 +667,7 @@ export class AndroidTvRemoteBridge {
 }
 
 /**
- * Factory: construct a fresh bridge. New code (PR-5 onward) should prefer this
+ * Factory: construct a fresh bridge. New code ( onward) should prefer this
  * over the singleton so each test gets an isolated session map. Production code
  * continues to use the `androidTvRemoteBridge` singleton below for backward
  * compatibility.

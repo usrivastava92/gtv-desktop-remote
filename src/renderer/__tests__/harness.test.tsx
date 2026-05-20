@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { describe, expect, it } from 'vitest';
 
 /**
- * PR-renderer-infra (Wave 11) harness smoke tests. Same role as PR-1's
+ * harness smoke tests. Same role as the backend
  * `src/backend/__tests__/harness.test.ts` — proves the renderer test
  * environment (jsdom + React 18 + @testing-library/react + jest-dom
  * matchers) is wired up end-to-end so subsequent PRs that extract real

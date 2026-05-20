@@ -1,6 +1,3 @@
-// Remote command utilities and constants
-// PR-renderer-6: extracted from App.tsx to reduce god component size
-
 import type { RemoteCommand } from '../../shared/types';
 
 /**

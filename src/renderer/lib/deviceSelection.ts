@@ -1,18 +1,3 @@
-// PR-renderer-2 (Wave 13): pure device-selection derivers extracted from
-// App.tsx body so they can be unit-tested in the jsdom + RTL harness
-// shipped in PR-renderer-infra. Zero React, zero IPC, zero DOM.
-//
-// The 4 helpers below mirror the inline shapes from App.tsx exactly:
-//   - findDiscoveredForSaved      (MAC-first identity match)
-//   - derivePairedNetworkDevices  (saved + paired, attach discovery)
-//   - deriveUnpairedNetworkDevices (discovered but not yet saved+paired)
-//   - resolveSelectedDevice       (DevicePickerSelection from key string)
-//
-// All 4 are referentially transparent given the inputs. The MAC-vs-host
-// identity matching is the same priority matrix the backend's
-// DeviceRegistry uses (PR-4) — keeping the renderer's matching parity
-// with the backend is critical for the Google TV non-regression gate.
-
 import type { DiscoveredDevice, SavedDevice } from '../../shared/types';
 
 /** A paired saved device augmented with its currently-discovered counterpart, if any. */
@@ -38,7 +23,7 @@ export type DevicePickerSelection =
  * recognized as long as its MAC is in the discovery pool.
  *
  * Mirrors the priority matrix used by DeviceRegistry in the backend
- * (PR-4) — keeping the renderer's match logic identical to the backend's
+ * Keeping the renderer's match logic identical to the backend's
  * is important for the Google TV non-regression gate (the same device
  * should never appear as both "paired" and "unpaired" in the picker).
  */
@@ -112,8 +97,6 @@ export function resolveSelectedDevice(
   pairedNetworkDevices: readonly PairedNetworkDevice[],
   unpairedNetworkDevices: readonly DiscoveredDevice[]
 ): DevicePickerSelection | undefined {
-  // Empty string is the App's "no selection" sentinel (it backs the
-  // useState initial value), so treat it the same as undefined.
   if (selectedDeviceKey == null || selectedDeviceKey === '') return undefined;
 
   const savedSelection = pairedNetworkDevices.find((option) => option.key === selectedDeviceKey);

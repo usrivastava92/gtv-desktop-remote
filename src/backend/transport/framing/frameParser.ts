@@ -1,6 +1,6 @@
 /**
  * Pure parser for varint-length-prefixed frames over the Android TV remote
- * protocol. Extracted in PR-3b from the inline `readNextFrame` + `flushBuffer`
+ * protocol. Extracted from the inline `readNextFrame` + `flushBuffer`
  * loop in `src/main/device/androidTvRemote.ts` so it is:
  *
  *   - unit-testable byte-by-byte without standing up a TLS socket;

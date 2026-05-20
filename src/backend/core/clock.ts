@@ -4,12 +4,12 @@
  * `vi.useFakeTimers()` (which leaks across vitest worker boundaries and has
  * bitten the metrics rate tests in the past).
  *
- * PR-QW-clock (Wave 8): defines the port + the two canonical implementations,
+ * defines the port + the two canonical implementations,
  * and adopts it at the single highest-traffic call site — the metrics
  * snapshot `generatedAt` field. Future PRs migrate the other ~28 `Date.now()`
  * call sites in `src/main/metrics.ts` and the `lastActivityAt` site in
  * `src/main/device/androidTvRemote.ts` per the now-familiar seam-first pattern
- * established by PR-3c and PR-6b.
+ * established by the transport and updater ports.
  */
 
 /**

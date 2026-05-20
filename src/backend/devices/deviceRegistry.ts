@@ -3,7 +3,6 @@ import type { DeviceDraft, DiscoveredDevice, SavedDevice } from '../../shared/ty
 /**
  * Pure identity-matching utilities for devices. Extracted from the inline
  * branches in `GoogleTvAdapter.runDeviceScan` and `GoogleTvAdapter.saveDevice`
- * as part of PR-4.
  *
  * **Google TV non-regression gate #2** (after the cert store). These functions
  * decide whether a freshly-discovered device on the network is "the same" as

@@ -3,7 +3,7 @@
  * overrides that production reads from `process.env` (or other ambient
  * sources) but tests need to control deterministically.
  *
- * Extracted in PR-QW-runtime to retire the inline
+ * Extracted to retire the inline
  * `process.env.GTV_UPDATER_DEV === '1'` read at module load time in
  * `src/main/updater.ts`, which made it impossible to assert behavior under
  * either dev-updater-enabled or dev-updater-disabled in a single test run.
@@ -40,21 +40,6 @@ export function createRuntimeConfig(partial: Partial<IRuntimeConfig> = {}): IRun
     devUpdaterEnabled: partial.devUpdaterEnabled ?? false,
   };
 }
-
-// ────────────────────────────────────────────────────────────────────────────
-// Module-level singleton accessor
-// ────────────────────────────────────────────────────────────────────────────
-//
-// `src/main/updater.ts` is currently a collection of top-level functions
-// (not a class), so we expose the config through a module-level singleton
-// with a `setRuntimeConfig(...)` setter for tests. Production wires it once
-// at startup (in `src/main/main.ts:initializeRuntime()` in a future PR; for
-// now `updater.ts` lazily defaults to `createNodeRuntimeConfig()` on first
-// access).
-//
-// Tests SHOULD call `setRuntimeConfig(createRuntimeConfig({ ... }))` in
-// `beforeEach` and `resetRuntimeConfig()` in `afterEach` to avoid leaking
-// flags across tests.
 
 let activeConfig: IRuntimeConfig | undefined;
 

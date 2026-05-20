@@ -52,8 +52,6 @@ describe('singleton accessor', () => {
     setRuntimeConfig(createRuntimeConfig({ devUpdaterEnabled: true }));
     expect(getRuntimeConfig().devUpdaterEnabled).toBe(true);
     resetRuntimeConfig();
-    // After reset, getRuntimeConfig() lazily reads process.env. Whatever the
-    // real env is, the value should match createNodeRuntimeConfig(process.env).
     expect(getRuntimeConfig()).toEqual(createNodeRuntimeConfig());
   });
 

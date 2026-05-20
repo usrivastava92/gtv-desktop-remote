@@ -63,9 +63,6 @@ describe('ILogger — createInMemoryLogger', () => {
   it('entries are read-only at the type level (compile-time gate)', () => {
     const logger = createInMemoryLogger();
     logger.info('s', 'm');
-    // The `as ReadonlyArray<LogEntry>` typing means callers cannot
-    // .push() onto the result — we assert behavior only, the compile-time
-    // gate is in the type signature.
     expect(Array.isArray(logger.entries)).toBe(true);
   });
 

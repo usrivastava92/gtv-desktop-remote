@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { applyUpdaterEvent, createInitialUpdaterStatus } from '../updaterStatus';
 
 /**
- * PR-6b: lock down the exact UX strings that the renderer displays. The first
+ * lock down the exact UX strings that the renderer displays. The first
  * migrated call site (`checkForMacUpdate` → `dispatchUpdaterEvent({ type: 'check-started' })`)
  * MUST emit the same `message` field the previous inline
  * `setUpdaterStatus({ message: 'Checking for updates...' })` did, or users

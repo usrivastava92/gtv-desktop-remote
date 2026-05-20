@@ -47,18 +47,9 @@ export class GoogleTvAdapter implements DeviceAdapter {
 
   private scanPromise: Promise<DiscoveredDevice[]> | undefined;
 
-  // PR-5b: voice-session lifecycle (stats accounting + progress logging)
-  // is owned by VoiceSessionService now. Constructor-injected with a
-  // production default that wires it to the singleton bridge + logger +
-  // system clock — tests / future callers can pass their own.
   private readonly voiceSessions: VoiceSessionService;
 
   constructor(voiceSessions?: VoiceSessionService) {
-    // PR-QW-adopt-logger (Wave 9): swap the inline ad-hoc clock + logger
-    // adapters for the canonical createSystemClock() and createNodeLogger()
-    // factories. Removes two micro-implementations that were already drifting
-    // (the clock missed `nowDate`; the logger faked the sync contract by
-    // accident).
     this.voiceSessions =
       voiceSessions ??
       new VoiceSessionService(
@@ -98,15 +89,6 @@ export class GoogleTvAdapter implements DeviceAdapter {
     const discovered = await discoverGoogleTvDevices();
     await logInfo('adapter', 'Scan complete', { count: discovered.length, devices: discovered });
 
-    // PR-googletv-adapter-trim: replaced 70-line inline identity-matching
-    // block with calls to matchSavedToDiscovered + mergeIdentity +
-    // identityChanged from src/backend/devices/deviceRegistry (PR-4).
-    // The priority matrix is identical (MAC > castDeviceId >
-    // networkHostName > deviceFingerprint > host); the only behavioural
-    // difference is that host-changed events are now only logged ONCE
-    // (inside mergeIdentity's caller loop) rather than inside the map
-    // callback, which previously triggered the log even for the
-    // same-host branch.
     const savedDevices = await readDevices();
     const updatedDevices = savedDevices.map((saved) => {
       const match = matchSavedToDiscovered(saved, discovered);
@@ -126,9 +108,6 @@ export class GoogleTvAdapter implements DeviceAdapter {
       return mergeIdentity(saved, match);
     });
 
-    // TS knows updatedDevices[i] and savedDevices[i] are defined because
-    // updatedDevices was produced by savedDevices.map() (same length, same
-    // indices). The non-null assertions below are safe.
     const updatedDevicesChanged = updatedDevices.some((updated, i) =>
       identityChanged(savedDevices[i], updated)
     );
@@ -137,9 +116,6 @@ export class GoogleTvAdapter implements DeviceAdapter {
       await writeDevices(updatedDevices);
       // Preserve pairing credentials when the TV moves to a new IP.
       for (let i = 0; i < savedDevices.length; i++) {
-        // savedDevices and updatedDevices have identical length (map is 1:1).
-        // The electron tsconfig does not enable noUncheckedIndexedAccess so
-        // indexed access is typed as SavedDevice directly (not SavedDevice|undefined).
         const old = savedDevices[i];
         const updated = updatedDevices[i];
         if (old.host === updated.host) continue;
@@ -158,10 +134,6 @@ export class GoogleTvAdapter implements DeviceAdapter {
     await logInfo('adapter', 'Saving device', { draft });
     const devices = await readDevices();
 
-    // PR-googletv-adapter-trim: replaced the inline existingDevice.find()
-    // + nextDevice construction (30 LOC) with findExistingForDraft +
-    // normalizeDraft from src/backend/devices/deviceRegistry (PR-4).
-    // Same priority matrix, same field precedence, same output shape.
     const existingDevice = findExistingForDraft(draft, devices);
     const nextDevice = normalizeDraft(draft, existingDevice);
 
@@ -397,10 +369,6 @@ export class GoogleTvAdapter implements DeviceAdapter {
       this.activeDevice.macAddress
     );
   }
-
-  // PR-5b: delegate the four voice-session operations to VoiceSessionService.
-  // The adapter is responsible only for: (a) gating on activeDevice, and
-  // (b) translating activeDevice → VoiceSessionTarget.
 
   async startAssistantVoice(): Promise<number> {
     if (!this.activeDevice) {

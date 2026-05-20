@@ -111,8 +111,6 @@ describe('formatMinutesUntil', () => {
   });
 
   it('defaults nowEpoch to Date.now() when omitted', () => {
-    // We can't pin Date.now without mocks; just assert the result is one of the
-    // valid shapes rather than a crash.
     const future = Math.floor(Date.now() / 1000) + 120;
     const result = formatMinutesUntil(future);
     expect(['in about a minute', 'in about 2 minutes']).toContain(result);
@@ -184,8 +182,6 @@ describe('findBestMacAsset — preference matrix', () => {
 
   it('defaults arch to process.arch when omitted', () => {
     const result = findBestMacAsset(assets);
-    // Whatever the host arch is, the result must include `-mac-` and end with .zip
-    // (since both arch zips are present in our fixture).
     expect(result?.name).toMatch(/-mac-(arm64|x64)\.zip$/);
   });
 });

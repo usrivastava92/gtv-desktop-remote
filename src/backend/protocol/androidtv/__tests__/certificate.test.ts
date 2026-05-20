@@ -45,8 +45,6 @@ describe('certificate generator', () => {
     const pair = generateCertificate('validity-check');
     const parsed = new X509Certificate(pair.cert);
     const notAfter = new Date(parsed.validTo);
-    // Validity must extend well past 2030 (protocol assumes we don't roll certs
-    // for years); the implementation sets year 2099.
     expect(notAfter.getUTCFullYear()).toBeGreaterThanOrEqual(2090);
   });
 

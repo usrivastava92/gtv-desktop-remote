@@ -48,19 +48,12 @@ const RELEASE_OWNER = 'usrivastava92';
 const RELEASE_REPO = 'gtv-desktop-remote';
 const CHECK_TIMEOUT_MS = 15_000;
 const BACKGROUND_CHECK_DEBOUNCE_MS = 15 * 60 * 1_000;
-// PR-QW-runtime: was `const DEV_UPDATER_ENABLED = process.env.GTV_UPDATER_DEV === '1';`
-// Now sourced from the runtime config port so tests can flip the flag without
-// monkey-patching process.env (which leaks across vitest workers).
 const ROLLBACK_DIR_NAME = 'rollback';
 
 let cachedRelease: ReleasePayload | undefined;
 let cachedAsset: ReleaseAsset | undefined;
 let activeBackgroundCheck: Promise<void> | undefined;
 
-// PR-6a: initial status now comes from the pure helper in
-// src/backend/updater/updaterStatus.ts. The helper is unit-tested in
-// isolation so a future drift in the "fresh app" state is caught before it
-// reaches users.
 const updaterStatus: UpdaterStatus = createInitialUpdaterStatus(app.getVersion());
 
 /**
@@ -89,12 +82,12 @@ export function subscribeUpdaterStatus(listener: UpdaterStatusListener): () => v
 }
 
 /**
- * PR-6h: setUpdaterStatus() has been fully retired — all 16 original call
+ * setUpdaterStatus() has been fully retired — all 16 original call
  * sites have been migrated to dispatchUpdaterEvent() across PRs 6a–6h.
  * The function has been deleted. All status transitions now go through the
  * pure UpdaterEvent reducer in src/backend/updater/updaterStatus.ts.
  *
- * PR-6b: dispatch a typed `UpdaterEvent` and let `applyUpdaterEvent` (the
+ * dispatch a typed `UpdaterEvent` and let `applyUpdaterEvent` (the
  * pure reducer in src/backend/updater/updaterStatus.ts) compute the new
  * status. Identical listener fan-out as the now-deleted `setUpdaterStatus`.
  *
@@ -154,7 +147,7 @@ async function showUpdaterDialog(
   return await dialog.showMessageBox(options);
 }
 
-// normalizeVersion + compareVersions extracted to src/backend/updater/version.ts (PR-6).
+// normalizeVersion + compareVersions extracted to src/backend/updater/version.ts.
 
 async function readUpdateState(): Promise<UpdateState> {
   const statePath = getAppDataPath('updater-state.json');
@@ -212,9 +205,6 @@ async function clearRollbackBackup(state?: UpdateState) {
     // best-effort
   });
   await writeUpdateState(withoutRollbackState(stateToPersist));
-  // PR-6h: use rollback-availability-changed (available:false) to clear
-  // stale rollback metadata. Same shape as the syncRollbackStatus variant
-  // at line 314 that already uses the reducer.
   dispatchUpdaterEvent({ type: 'rollback-availability-changed', available: false });
 }
 
@@ -245,8 +235,6 @@ async function recoverOrphanedRollbackState(state: UpdateState): Promise<UpdateS
       return state;
     }
 
-    // Best-effort: read the bundle's Info.plist to recover the version that was
-    // backed up. Falls back to the bundle's mtime if reading fails.
     let recoveredVersion: string | undefined;
     try {
       const infoPlist = await fs.readFile(path.join(bundlePath, 'Contents', 'Info.plist'), 'utf-8');
@@ -283,9 +271,6 @@ async function recoverOrphanedRollbackState(state: UpdateState): Promise<UpdateS
 async function syncRollbackStatus() {
   let state = await readUpdateState();
 
-  // If metadata is missing but a backup exists on disk, recover it. This
-  // self-heals state that older buggy code paths may have wiped after a
-  // failed re-backup attempt during install.
   if (!state.rollbackVersion || !state.rollbackBundleName) {
     state = await recoverOrphanedRollbackState(state);
   }
@@ -295,12 +280,12 @@ async function syncRollbackStatus() {
     (await rollbackBundleExists(state));
 
   if (!available) {
-    // PR-6h: no rollback bundle found -> clear metadata
+    // no rollback bundle found -> clear metadata
     dispatchUpdaterEvent({ type: 'rollback-availability-changed', available: false });
     return state;
   }
 
-  // PR-6h: rollback bundle confirmed -> announce availability
+  // rollback bundle confirmed -> announce availability
   dispatchUpdaterEvent({
     type: 'rollback-availability-changed',
     available: true,
@@ -310,7 +295,7 @@ async function syncRollbackStatus() {
   return state;
 }
 
-// formatMinutesUntil extracted to src/backend/updater/version.ts (PR-6).
+// formatMinutesUntil extracted to src/backend/updater/version.ts.
 
 async function requestJson<T>(url: string): Promise<T> {
   const controller = new AbortController();
@@ -328,8 +313,6 @@ async function requestJson<T>(url: string): Promise<T> {
     });
 
     if (!response.ok) {
-      // Surface a human-friendly message for GitHub rate limiting so the renderer
-      // can display *why* the check failed instead of "see logs".
       const remaining = response.headers.get('x-ratelimit-remaining');
       const resetHeader = response.headers.get('x-ratelimit-reset');
       const retryAfter = response.headers.get('retry-after');
@@ -362,7 +345,7 @@ async function requestJson<T>(url: string): Promise<T> {
   }
 }
 
-// isDmgAsset + findBestMacAsset extracted to src/backend/updater/version.ts (PR-6).
+// isDmgAsset + findBestMacAsset extracted to src/backend/updater/version.ts.
 
 function getBundlePathFromExecPath() {
   return path.resolve(process.execPath, '..', '..', '..');
@@ -402,8 +385,6 @@ async function createRollbackBackup(targetBundle: string) {
     rollbackVersion,
   });
 
-  // Stage the new backup in a sibling directory so that, if anything fails, we
-  // can leave the previous (working) rollback bundle intact.
   const stagingDir = `${rollbackDir}.new-${String(Date.now())}`;
   const stagingBundlePath = path.join(stagingDir, rollbackBundleName);
   const previousRollbackDir = `${rollbackDir}.prev-${String(Date.now())}`;
@@ -421,9 +402,6 @@ async function createRollbackBackup(targetBundle: string) {
     await removePathRecursive(stagingDir).catch(() => {
       // ignore staging cleanup failure
     });
-    // IMPORTANT: do NOT clear rollback metadata or wipe the existing rollback
-    // bundle here — a prior install may already have a perfectly good backup
-    // that the user still relies on. Refresh status to keep UI in sync.
     await syncRollbackStatus();
     return;
   }
@@ -465,7 +443,7 @@ async function createRollbackBackup(targetBundle: string) {
       rollbackCreatedAt,
       rollbackBundleName,
     });
-    // PR-6h: rollback bundle created, announce availability
+    // rollback bundle created, announce availability
     dispatchUpdaterEvent({
       type: 'rollback-availability-changed',
       available: true,
@@ -473,8 +451,6 @@ async function createRollbackBackup(targetBundle: string) {
       createdAt: rollbackCreatedAt,
     });
   } catch (error) {
-    // Swap failed but the existing rollback (if any) is untouched. Keep going
-    // with the install but DO NOT clear previously valid rollback metadata.
     await logError(
       'updater',
       'Failed to swap in new rollback backup; existing rollback (if any) preserved',
@@ -549,33 +525,14 @@ async function downloadFile(
 }
 
 async function checkForMacUpdate() {
-  // PR-6b: first call site migrated from `setUpdaterStatus(partial)` to
-  // `dispatchUpdaterEvent`. The reducer's `check-started` event covers
-  // `inProgress: true`, `stage: 'checking'`, and the "Checking…" message.
-  // The two extra fields previously set inline (`lastCheckedAt`,
-  // `updateAvailable: false`, `updateInstallable: false`) are followed up
-  // with a `setUpdaterStatus(partial)` so this PR introduces zero behavior
-  // change. Future PR-6c will extend `check-started` to optionally carry
-  // these fields and collapse the two calls.
   dispatchUpdaterEvent({ type: 'check-started' });
-  // PR-6h: 'check-started' already resets updateAvailable + updateInstallable
-  // in the reducer (from PR-6d). Use it here instead of the raw patch so the
-  // reducer owns all state transitions. lastCheckedAt is set by the
-  // check-completed-* events; the timestamp set here is immediately
-  // overwritten by whichever check-completed event fires, so removing it is
-  // a no-op UX-wise. The 'check-started' event covers the inProgress:true
-  // transition that was missing from this call site anyway.
   dispatchUpdaterEvent({ type: 'check-started' });
 
-  // PR-QW-runtime: read the flag through the runtime config port. In
-  // production this transitively reads process.env.GTV_UPDATER_DEV via
-  // createNodeRuntimeConfig(); in tests, callers install a fake config via
-  // setRuntimeConfig(createRuntimeConfig({ devUpdaterEnabled: ... })).
   const updatesAllowed = app.isPackaged || getRuntimeConfig().devUpdaterEnabled;
 
   if (!updatesAllowed) {
     await logInfo('updater', 'Skipping updater in development mode');
-    // PR-6h: use 'message' event (already in reducer) for simple text updates
+    // use 'message' event (already in reducer) for simple text updates
     dispatchUpdaterEvent({
       type: 'message',
       message: 'Update checks are disabled in development mode. Set GTV_UPDATER_DEV=1 to test.',
@@ -584,7 +541,7 @@ async function checkForMacUpdate() {
   }
 
   if (process.platform !== 'darwin') {
-    // PR-6h: use 'message' event for simple text-only status updates
+    // use 'message' event for simple text-only status updates
     dispatchUpdaterEvent({
       type: 'message',
       message: `Updates are not configured for ${process.platform}.`,
@@ -599,13 +556,6 @@ async function checkForMacUpdate() {
   const latestVersion = normalizeVersion(release.tag_name);
   const currentVersion = normalizeVersion(app.getVersion());
 
-  // PR-6c: 2 call sites migrated from setUpdaterStatus(partial) to
-  // dispatchUpdaterEvent({ type: 'check-completed-no-update', ... }). The
-  // reducer's stage/progress/UX fields exactly match the previous inline
-  // values (validated by the round-trip reducer tests below), so this is
-  // a pure refactor with zero behavior change. `lastCheckedAt` was set in
-  // the prologue; we re-read the current value off updaterStatus to honor
-  // the existing serialization timing.
   if (compareVersions(latestVersion, currentVersion) <= 0) {
     cachedRelease = undefined;
     cachedAsset = undefined;
@@ -635,12 +585,6 @@ async function checkForMacUpdate() {
   if (!selectedAsset) {
     cachedRelease = undefined;
     cachedAsset = undefined;
-    // PR-6h: new 'check-completed-no-asset' variant (added in this PR).
-    // This outcome is distinct from check-completed-update-available
-    // (the update IS available on GitHub, just not installable on this
-    // architecture), and from check-failed (the check succeeded,
-    // we just can't install it). Reducer sets updateAvailable:true,
-    // updateInstallable:false, stage:failed with the caller message.
     dispatchUpdaterEvent({
       type: 'check-completed-no-asset',
       latestVersion,
@@ -651,13 +595,6 @@ async function checkForMacUpdate() {
 
   cachedRelease = release;
   cachedAsset = selectedAsset;
-  // PR-6d: migrate to dispatchUpdaterEvent. The reducer's
-  // check-completed-update-available variant was pre-aligned in PR-6c
-  // (stage: 'completed') so this is a zero-UX-change migration.
-  // `lastCheckedAt` falls back to the value already on updaterStatus from
-  // the preceding check-started dispatch (line ~568) — the reducer's
-  // mergeUpdaterStatus preserves it. We supply the new timestamp here for
-  // freshness.
   dispatchUpdaterEvent({
     type: 'check-completed-update-available',
     latestVersion,
@@ -688,12 +625,6 @@ export async function checkForUpdatesInBackground() {
       await checkForMacUpdate();
     } catch (error) {
       await logError('updater', 'Update check failed', error);
-      // PR-6d: migrate to dispatchUpdaterEvent. The reducer's check-failed
-      // variant already sets stage: 'failed' + inProgress: false; the
-      // remaining fields (progressPercent/etaSeconds/updateAvailable/
-      // updateInstallable) become caller-supplied via the reducer rather
-      // than this inline partial. Reducer revision: now also clears those
-      // 4 fields to match the prior inline shape (zero UX change).
       dispatchUpdaterEvent({
         type: 'check-failed',
         message: (error as Error).message || 'Update check failed. See logs for details.',
@@ -719,7 +650,7 @@ export async function checkForUpdatesManually() {
     await checkForMacUpdate();
   } catch (error) {
     await logError('updater', 'Update check failed', error);
-    // PR-6h: check-failed event (already in reducer since PR-6c/6d)
+    // check-failed event (already in reducer since /6d)
     dispatchUpdaterEvent({
       type: 'check-failed',
       message: (error as Error).message || 'Update check failed. See logs for details.',
@@ -730,16 +661,9 @@ export async function checkForUpdatesManually() {
 }
 
 export async function installAvailableUpdate() {
-  // PR-QW-runtime: hoist the dev-override check into a single local so the
-  // status `message` and the subsequent skip-relaunch branch stay in lockstep
-  // and the runtime config port is read exactly once per install call.
   const installDevModeOverride = getRuntimeConfig().devUpdaterEnabled && !app.isPackaged;
 
   if (!cachedRelease || !cachedAsset || !updaterStatus.latestVersion) {
-    // PR-6h: re-use check-failed with a descriptive message. The update
-    // button called installAvailableUpdate but the cached release/asset
-    // was cleared (e.g. by a concurrent check). This is user-recoverable
-    // ('check for updates' will re-populate the cache).
     dispatchUpdaterEvent({
       type: 'check-failed',
       message: 'No installable update is currently available.',
@@ -771,9 +695,6 @@ export async function installAvailableUpdate() {
   const tmpZipPath = path.join(os.tmpdir(), cachedAsset.name);
 
   try {
-    // PR-6e: migrate to dispatchUpdaterEvent. Reducer was extended in this
-    // same PR to honor a caller-supplied message so the prior "Downloading
-    // update X..." (ASCII "...") format is preserved.
     dispatchUpdaterEvent({
       type: 'download-started',
       latestVersion: version,
@@ -797,8 +718,6 @@ export async function installAvailableUpdate() {
             ? Math.min(100, Math.floor((downloadedBytes / totalBytes) * 100))
             : undefined;
 
-        // PR-6e: migrate to dispatchUpdaterEvent. The reducer derives the
-        // exact same UX message + stage from `latestVersion + progressPercent`.
         dispatchUpdaterEvent({
           type: 'download-progress',
           latestVersion: version,
@@ -808,9 +727,6 @@ export async function installAvailableUpdate() {
       }
     );
 
-    // PR-6f: migrate to dispatchUpdaterEvent. Reducer was extended in this
-    // same PR to honor caller-supplied messages and to mirror the
-    // inline-shape progress/eta values for byte-identical UX.
     dispatchUpdaterEvent({
       type: 'install-started',
       message: 'Installing update...',
@@ -854,15 +770,8 @@ export async function installAvailableUpdate() {
     }
   } catch (error) {
     await logError('updater', 'Automatic update installation failed', error);
-    // Clear cached release/asset so the renderer's "Update available" panel goes away
-    // and the user can re-trigger a fresh check instead of being stuck on a broken install.
     cachedRelease = undefined;
     cachedAsset = undefined;
-    // PR-6f: migrate to dispatchUpdaterEvent. Reducer's install-failed
-    // variant was extended in this PR to clear progressPercent/etaSeconds/
-    // updateAvailable/updateInstallable, mirroring the prior inline shape
-    // for byte-identical UX. cachedRelease/cachedAsset clearing above stays
-    // inline (it's transport state, not status).
     dispatchUpdaterEvent({
       type: 'install-failed',
       message: `Update ${version} failed during download or install. Please try again.`,
@@ -886,8 +795,6 @@ export async function installAvailableUpdate() {
 
 export async function rollbackToPreviousVersion() {
   if (updaterStatus.inProgress) {
-    // PR-6g: use the generic 'message' event (already in reducer) — only
-    // the UX message changes; no state machine transition needed here.
     dispatchUpdaterEvent({
       type: 'message',
       message: 'Cannot roll back while another update operation is in progress.',
@@ -899,9 +806,6 @@ export async function rollbackToPreviousVersion() {
   const rollbackBundlePath = getRollbackBundlePath(state);
 
   if (!state.rollbackVersion || !rollbackBundlePath || !(await rollbackBundleExists(state))) {
-    // PR-6g: use the new 'rollback-unavailable' variant introduced in
-    // this PR. Reducer clears the stale rollback metadata identically to
-    // the prior inline shape.
     dispatchUpdaterEvent({
       type: 'rollback-unavailable',
       message: 'No previous version backup is available.',
@@ -927,10 +831,6 @@ export async function rollbackToPreviousVersion() {
   const targetBundle = getBundlePathFromExecPath();
 
   try {
-    // PR-6g: migrate to dispatchUpdaterEvent. Reducer's rollback-started
-    // variant was extended in this PR to accept progressPercent + caller
-    // message so the prior inline shape (progressPercent:20, ASCII '...')
-    // survives byte-identically.
     dispatchUpdaterEvent({
       type: 'rollback-started',
       targetVersion: state.rollbackVersion,
@@ -944,9 +844,6 @@ export async function rollbackToPreviousVersion() {
       rollbackVersion: state.rollbackVersion,
     });
 
-    // PR-QW-runtime: hoist the dev-override check into a single local so all
-    // three branch points below stay in lockstep and the runtime config port
-    // is read exactly once per rollback call.
     const devModeOverride = getRuntimeConfig().devUpdaterEnabled && !app.isPackaged;
 
     if (devModeOverride) {
@@ -960,10 +857,6 @@ export async function rollbackToPreviousVersion() {
     }
 
     await clearRollbackBackup(state);
-    // PR-6g: migrate to dispatchUpdaterEvent. Reducer was extended in
-    // this PR to set the 5 cleared fields (progress/eta/updateAvailable/
-    // updateInstallable + rollback*) and accept the caller's
-    // dev-mode-vs-prod message branch verbatim.
     dispatchUpdaterEvent({
       type: 'rollback-completed',
       message: devModeOverride
@@ -999,9 +892,6 @@ export async function rollbackToPreviousVersion() {
     }
   } catch (error) {
     await logError('updater', 'Rollback failed', error);
-    // PR-6g: migrate to dispatchUpdaterEvent. Reducer's rollback-failed
-    // variant was extended in this PR to clear progress/eta inline so
-    // the UI hides the progress bar after a failed rollback.
     dispatchUpdaterEvent({
       type: 'rollback-failed',
       message: 'Rollback failed while restoring the previous version.',

@@ -7,7 +7,7 @@ import {
 } from '../framedTlsTransport';
 
 /**
- * PR-3d tests for the IFramedTlsTransport port. Two halves:
+ * tests for the IFramedTlsTransport port. Two halves:
  *   1. Contract tests for the production binding using a minimal fake socket.
  *   2. Behaviour tests for the in-memory test factory itself, since other
  *      tests in the suite will rely on it to exercise NativeRemoteClient.
@@ -18,9 +18,9 @@ interface FakeSocket {
   written: Buffer[];
   writeReturnValue: boolean;
   drainHandlers: (() => void)[];
-  // PR-3e: track data listeners for onData test coverage.
+  // track data listeners for onData test coverage.
   dataHandlers: ((chunk: Buffer | string) => void)[];
-  // PR-3f: track lifecycle listeners.
+  // track lifecycle listeners.
   errorHandlers: ((error: Error) => void)[];
   closeHandlers: (() => void)[];
   timeoutHandlers: (() => void)[];
@@ -80,11 +80,6 @@ function makeFakeSocket(): FakeSocket & {
       return state.writeReturnValue;
     },
     on(event: string, handler: (...args: unknown[]) => void) {
-      // PR-3f: extended to support data + error + close + timeout. Each
-      // event has its own handler list so the production binding can be
-      // verified per-event.
-      // PR-3f: bivariant function types allow `(...args: unknown[]) => void`
-      // to be assigned to each specific handler signature without a cast.
       switch (event) {
         case 'data':
           state.dataHandlers.push(handler);
@@ -108,8 +103,6 @@ function makeFakeSocket(): FakeSocket & {
       return this;
     },
     removeListener(event: string, handler: (...args: unknown[]) => void) {
-      // PR-3f: per-event splice. Bivariant comparison is fine here — we're
-      // only doing reference equality on the handler.
       const map: Record<
         string,
         { indexOf(h: unknown): number; splice(i: number, n: number): void }

@@ -66,7 +66,7 @@ export function getLoggerPath(): string {
 }
 
 /**
- * PR-QW-logger: production binding of the `ILogger` port (declared in
+ * production binding of the `ILogger` port (declared in
  * `src/backend/core/logger.ts`). Composition roots call this once and pass
  * the resulting `ILogger` into backend services so the services never have
  * to import this file directly.
