@@ -13,7 +13,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "concurrently -k \"vite\" \"tsc -p tsconfig.electron.json --watch --preserveWatchOutput\" \"wait-on tcp:5173 file:dist-electron/main/main.js file:dist-electron/main/preload.js && electron .\"",
-    "clean": "rm -rf dist dist-electron coverage",
+    "clean": "rm -rf dist dist-electron coverage release",
     "build": "tsc -p tsconfig.electron.json && vite build",
     "rebuild": "npm run clean && npm run build",
     "pack": "npm run build && electron-builder --dir --publish never",
