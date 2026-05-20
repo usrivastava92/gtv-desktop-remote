@@ -890,7 +890,10 @@ export async function installAvailableUpdate() {
 
 export async function rollbackToPreviousVersion() {
   if (updaterStatus.inProgress) {
-    setUpdaterStatus({
+    // PR-6g: use the generic 'message' event (already in reducer) — only
+    // the UX message changes; no state machine transition needed here.
+    dispatchUpdaterEvent({
+      type: 'message',
       message: 'Cannot roll back while another update operation is in progress.',
     });
     return await getUpdaterStatus();
@@ -900,12 +903,11 @@ export async function rollbackToPreviousVersion() {
   const rollbackBundlePath = getRollbackBundlePath(state);
 
   if (!state.rollbackVersion || !rollbackBundlePath || !(await rollbackBundleExists(state))) {
-    setUpdaterStatus({
-      inProgress: false,
-      stage: 'failed',
-      rollbackAvailable: false,
-      rollbackVersion: undefined,
-      rollbackCreatedAt: undefined,
+    // PR-6g: use the new 'rollback-unavailable' variant introduced in
+    // this PR. Reducer clears the stale rollback metadata identically to
+    // the prior inline shape.
+    dispatchUpdaterEvent({
+      type: 'rollback-unavailable',
       message: 'No previous version backup is available.',
     });
     return await getUpdaterStatus();
@@ -929,12 +931,15 @@ export async function rollbackToPreviousVersion() {
   const targetBundle = getBundlePathFromExecPath();
 
   try {
-    setUpdaterStatus({
-      inProgress: true,
-      stage: 'installing',
-      progressPercent: 20,
-      etaSeconds: undefined,
+    // PR-6g: migrate to dispatchUpdaterEvent. Reducer's rollback-started
+    // variant was extended in this PR to accept progressPercent + caller
+    // message so the prior inline shape (progressPercent:20, ASCII '...')
+    // survives byte-identically.
+    dispatchUpdaterEvent({
+      type: 'rollback-started',
+      targetVersion: state.rollbackVersion,
       message: `Rolling back to ${state.rollbackVersion}...`,
+      progressPercent: 20,
     });
 
     await logInfo('updater', 'Restoring rollback backup', {
@@ -959,16 +964,12 @@ export async function rollbackToPreviousVersion() {
     }
 
     await clearRollbackBackup(state);
-    setUpdaterStatus({
-      inProgress: false,
-      stage: 'completed',
-      progressPercent: 100,
-      etaSeconds: 0,
-      rollbackAvailable: false,
-      rollbackVersion: undefined,
-      rollbackCreatedAt: undefined,
-      updateAvailable: false,
-      updateInstallable: false,
+    // PR-6g: migrate to dispatchUpdaterEvent. Reducer was extended in
+    // this PR to set the 5 cleared fields (progress/eta/updateAvailable/
+    // updateInstallable + rollback*) and accept the caller's
+    // dev-mode-vs-prod message branch verbatim.
+    dispatchUpdaterEvent({
+      type: 'rollback-completed',
       message: devModeOverride
         ? 'Dev mode: rollback restore skipped.'
         : `Rolled back to ${state.rollbackVersion}.`,
@@ -1002,11 +1003,11 @@ export async function rollbackToPreviousVersion() {
     }
   } catch (error) {
     await logError('updater', 'Rollback failed', error);
-    setUpdaterStatus({
-      inProgress: false,
-      stage: 'failed',
-      progressPercent: undefined,
-      etaSeconds: undefined,
+    // PR-6g: migrate to dispatchUpdaterEvent. Reducer's rollback-failed
+    // variant was extended in this PR to clear progress/eta inline so
+    // the UI hides the progress bar after a failed rollback.
+    dispatchUpdaterEvent({
+      type: 'rollback-failed',
       message: 'Rollback failed while restoring the previous version.',
     });
   }

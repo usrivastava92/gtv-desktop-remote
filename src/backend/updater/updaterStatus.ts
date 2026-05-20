@@ -97,9 +97,22 @@ export type UpdaterEvent =
   | { type: 'install-started'; message?: string }
   | { type: 'install-completed'; latestVersion: string; message?: string }
   | { type: 'install-failed'; message: string }
-  | { type: 'rollback-started' }
-  | { type: 'rollback-completed' }
+  | {
+      type: 'rollback-started';
+      targetVersion: string;
+      message?: string;
+      progressPercent?: number;
+    }
+  | { type: 'rollback-completed'; message?: string }
   | { type: 'rollback-failed'; message: string }
+  | {
+      // PR-6g: distinct from rollback-failed; triggered when there's no
+      // rollback bundle to roll back TO (vs an actual restore failure
+      // mid-operation). The renderer can present this differently
+      // (e.g. dim the rollback button instead of showing a red toast).
+      type: 'rollback-unavailable';
+      message: string;
+    }
   | {
       type: 'rollback-availability-changed';
       available: boolean;
@@ -276,28 +289,73 @@ export function applyUpdaterEvent(
         currentVersion
       );
     case 'rollback-started':
+      // PR-6g: rollbackToPreviousVersion sets progressPercent:20 inline
+      // to indicate visible activity while the bundle restore runs. The
+      // caller-supplied message ('Rolling back to X...') wins so the
+      // ASCII '...' UX format survives.
       return mergeUpdaterStatus(
         prev,
-        { inProgress: true, stage: 'installing', message: 'Rolling back to previous version…' },
+        {
+          inProgress: true,
+          stage: 'installing',
+          progressPercent: event.progressPercent ?? 20,
+          etaSeconds: undefined,
+          message: event.message ?? `Rolling back to ${event.targetVersion}…`,
+        },
         currentVersion
       );
     case 'rollback-completed':
+      // PR-6g: rollbackToPreviousVersion also sets progressPercent:100
+      // + etaSeconds:0 + clears updateAvailable/updateInstallable, since
+      // any 'update available' state from before the rollback no longer
+      // applies. Caller message wins so the dev-mode override
+      // ('Dev mode: rollback restore skipped.') survives.
       return mergeUpdaterStatus(
         prev,
         {
           inProgress: false,
           stage: 'completed',
+          progressPercent: 100,
+          etaSeconds: 0,
           rollbackAvailable: false,
           rollbackVersion: undefined,
           rollbackCreatedAt: undefined,
-          message: 'Rollback complete. Relaunching…',
+          updateAvailable: false,
+          updateInstallable: false,
+          message: event.message ?? 'Rollback complete. Relaunching…',
         },
         currentVersion
       );
     case 'rollback-failed':
+      // PR-6g: also clears progressPercent/etaSeconds to match the inline
+      // shape (UI hides the progress bar after a failed rollback). Mirrors
+      // PR-6f's install-failed reducer revision.
       return mergeUpdaterStatus(
         prev,
-        { inProgress: false, stage: 'failed', message: event.message },
+        {
+          inProgress: false,
+          stage: 'failed',
+          progressPercent: undefined,
+          etaSeconds: undefined,
+          message: event.message,
+        },
+        currentVersion
+      );
+    case 'rollback-unavailable':
+      // PR-6g: distinct outcome — no bundle to roll back to. Clear the
+      // stale rollback metadata so the UI's "rollback available" CTA
+      // disappears, set stage:'failed' so the renderer treats it as a
+      // user-visible error, and pass through the caller message.
+      return mergeUpdaterStatus(
+        prev,
+        {
+          inProgress: false,
+          stage: 'failed',
+          rollbackAvailable: false,
+          rollbackVersion: undefined,
+          rollbackCreatedAt: undefined,
+          message: event.message,
+        },
         currentVersion
       );
     case 'rollback-availability-changed':
