@@ -13,6 +13,13 @@ import type {
   UpdaterStatus,
 } from '../shared/types';
 
+// PR-renderer-1 (Wave 12): the 4 helpers below (classes, isEditableTarget,
+// sanitizePairCode, shouldRestartPairingFlow) were inline functions in
+// this file until this PR. Moved to src/renderer/lib/pure.ts to land the
+// first real renderer tests against the jsdom + RTL harness shipped in
+// PR-renderer-infra. Zero semantic change.
+import { classes, isEditableTarget, sanitizePairCode, shouldRestartPairingFlow } from './lib/pure';
+
 const initialDraft: DeviceDraft = {
   name: '',
   host: '',
@@ -95,36 +102,9 @@ function getDesktopApi() {
   return api;
 }
 
-function isEditableTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) {
-    return false;
-  }
-
-  const tagName = target.tagName;
-  return (
-    tagName === 'INPUT' ||
-    tagName === 'TEXTAREA' ||
-    tagName === 'SELECT' ||
-    target.isContentEditable
-  );
-}
-
-function sanitizePairCode(value: string): string {
-  return value
-    .replace(/[^a-z0-9]/gi, '')
-    .toUpperCase()
-    .slice(0, 6);
-}
-
-function classes(...values: (string | false | null | undefined)[]): string {
-  return values.filter(Boolean).join(' ');
-}
-
-function shouldRestartPairingFlow(message: string): boolean {
-  return /invalid pairing code|request a new code|no pairing session is active|pairing failed/i.test(
-    message
-  );
-}
+// PR-renderer-1: isEditableTarget / sanitizePairCode / classes /
+// shouldRestartPairingFlow moved to src/renderer/lib/pure.ts (imported at
+// the top of this file). 4 pure helpers, 0 semantic change.
 
 // PCM helpers (convertFloat32ToPcm16, downsampleTo8kMono, toBase64) moved to
 // src/shared/audio.ts (QW-1) — imported at the top of this file.
