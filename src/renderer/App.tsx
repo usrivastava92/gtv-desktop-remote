@@ -624,16 +624,33 @@ function App() {
     setAssistantStatus('active');
 
     let sessionId: number | null = null;
-    try {
-      sessionId = await getDesktopApi().startAssistantVoice();
-      if (assistantSessionTokenRef.current !== sessionToken) {
-        await getDesktopApi().stopAssistantVoice(sessionId);
-        return;
+    let mediaStream: MediaStream | null = null;
+    let audioContext: AudioContext | null = null;
+    async function cleanupStartedAudio() {
+      const processor = assistantProcessorRef.current;
+      if (processor) {
+        // eslint-disable-next-line @typescript-eslint/no-deprecated
+        processor.onaudioprocess = null;
+        processor.disconnect();
+        assistantProcessorRef.current = null;
       }
 
-      assistantVoiceSessionIdRef.current = sessionId;
-      assistantFirstChunkSentRef.current = false;
-      let mediaStream: MediaStream;
+      const currentStream = assistantMediaStreamRef.current;
+      if (currentStream) {
+        for (const track of currentStream.getTracks()) {
+          track.stop();
+        }
+        assistantMediaStreamRef.current = null;
+      }
+
+      const currentContext = assistantAudioContextRef.current;
+      if (currentContext) {
+        await currentContext.close().catch(() => undefined);
+        assistantAudioContextRef.current = null;
+      }
+    }
+
+    try {
       try {
         mediaStream = await navigator.mediaDevices.getUserMedia({
           audio: {
@@ -650,25 +667,26 @@ function App() {
         throw new Error(
           isPermissionDenied
             ? 'Microphone access denied. Enable it in System Settings → Privacy & Security → Microphone.'
-            : `Microphone unavailable: ${(micError as Error).message}`
+            : `Microphone unavailable: ${(micError as Error).message}`,
+          { cause: micError }
         );
       }
       if (assistantSessionTokenRef.current !== sessionToken) {
         for (const track of mediaStream.getTracks()) {
           track.stop();
         }
-        await getDesktopApi().stopAssistantVoice(sessionId);
         return;
       }
 
       assistantMediaStreamRef.current = mediaStream;
 
-      const audioContext = new AudioContext();
+      audioContext = new AudioContext();
       assistantAudioContextRef.current = audioContext;
       await audioContext.resume();
       if (audioContext.state !== 'running') {
         throw new Error('Microphone audio context could not start.');
       }
+      const inputSampleRate = audioContext.sampleRate;
       const source = audioContext.createMediaStreamSource(mediaStream);
       // eslint-disable-next-line @typescript-eslint/no-deprecated
       const processor = audioContext.createScriptProcessor(4096, 1, 1);
@@ -682,7 +700,7 @@ function App() {
 
         // eslint-disable-next-line @typescript-eslint/no-deprecated
         const input = event.inputBuffer.getChannelData(0);
-        const downsampled = downsampleTo8kMono(input, audioContext.sampleRate);
+        const downsampled = downsampleTo8kMono(input, inputSampleRate);
         if (downsampled.length === 0) {
           return;
         }
@@ -717,6 +735,21 @@ function App() {
 
       source.connect(processor);
       processor.connect(audioContext.destination);
+
+      if (assistantSessionTokenRef.current !== sessionToken) {
+        await cleanupStartedAudio();
+        return;
+      }
+
+      sessionId = await getDesktopApi().startAssistantVoice();
+      if (assistantSessionTokenRef.current !== sessionToken) {
+        await getDesktopApi().stopAssistantVoice(sessionId);
+        await cleanupStartedAudio();
+        return;
+      }
+
+      assistantVoiceSessionIdRef.current = sessionId;
+      assistantFirstChunkSentRef.current = false;
     } catch (error) {
       assistantActiveRef.current = false;
       setAssistantStatus('error');
@@ -728,11 +761,20 @@ function App() {
           message: (error as Error).message,
         },
       }));
+      if (mediaStream && assistantMediaStreamRef.current !== mediaStream) {
+        for (const track of mediaStream.getTracks()) {
+          track.stop();
+        }
+      }
+      if (audioContext && assistantAudioContextRef.current !== audioContext) {
+        await audioContext.close().catch(() => undefined);
+      }
       if (sessionId !== null && assistantVoiceSessionIdRef.current !== sessionId) {
         await getDesktopApi()
           .stopAssistantVoice(sessionId)
           .catch(() => undefined);
       }
+      await cleanupStartedAudio();
       await stopAssistantSession();
     } finally {
       if (assistantSessionTokenRef.current === sessionToken) {
@@ -775,7 +817,7 @@ function App() {
     }
 
     const intervalId = window.setInterval(() => {
-      if (!assistantActiveRef.current) {
+      if (!assistantActiveRef.current || assistantStartingRef.current) {
         return;
       }
 

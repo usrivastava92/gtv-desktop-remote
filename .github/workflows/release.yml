@@ -5,7 +5,7 @@ name: Release
 # Releases used to fire on every push to `main`, which produced a new
 # GitHub Release per commit. They are now manual: batch up commits on `main`
 # and trigger this workflow when you want to cut a release. The recommended
-# way to do so is via the `bin/release` script (or `npm run release`), which
+# way to do so is via the `bin/release` script (or `yarn release`), which
 # previews the next version locally and then dispatches this workflow.
 #
 # Job 1 (build-macos): runs semantic-release --dry-run to find out if the
@@ -90,9 +90,11 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
-          cache: npm
+          cache: yarn
 
-      - run: npm ci
+      - run: corepack enable
+
+      - run: yarn install --immutable
 
       - name: Determine next version (dry-run)
         id: dry-run
@@ -104,7 +106,7 @@ jobs:
           # still be missing on some runners.
           git fetch --tags --quiet
 
-          OUTPUT=$(npx semantic-release --dry-run --no-ci 2>&1)
+          OUTPUT=$(yarn semantic-release --dry-run --no-ci 2>&1)
           echo "$OUTPUT"
           # Match both message variants:
           #   "The next release version is X.Y.Z"
@@ -130,11 +132,11 @@ jobs:
 
       - name: Typecheck
         if: steps.dry-run.outputs.will_release == 'true'
-        run: npm run typecheck
+        run: yarn typecheck
 
       - name: Build
         if: steps.dry-run.outputs.will_release == 'true'
-        run: npm run build
+        run: yarn build
 
       - name: Package macOS DMG + ZIP
         if: steps.dry-run.outputs.will_release == 'true'
@@ -176,9 +178,11 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
-          cache: npm
+          cache: yarn
 
-      - run: npm ci
+      - run: corepack enable
+
+      - run: yarn install --immutable
 
       - uses: actions/download-artifact@v8
         with:
@@ -193,7 +197,7 @@ jobs:
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx semantic-release
+        run: yarn semantic-release
 
       - name: Update Homebrew tap
         env:

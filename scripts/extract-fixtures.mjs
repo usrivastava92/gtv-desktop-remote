@@ -16,7 +16,7 @@
  *   src/backend/__fixtures__/discovery-session.json
  *
  * Each fixture file contains the minimal data needed to write or extend tests
- * without a real Google TV. Run this after GTV_CAPTURE=1 npm run dev.
+ * without a real Google TV. Run this after GTV_CAPTURE=1 yarn dev.
  */
 
 import { Buffer } from 'node:buffer';
@@ -33,7 +33,7 @@ const FIXTURES_ROOT = path.join(ROOT, 'src', 'backend');
 
 function findLatestCapture() {
   if (!fs.existsSync(CAPTURES_DIR)) {
-    console.error('No captures/ directory found. Run GTV_CAPTURE=1 npm run dev first.');
+    console.error('No captures/ directory found. Run GTV_CAPTURE=1 yarn dev first.');
     process.exit(1);
   }
   const files = fs
@@ -42,7 +42,7 @@ function findLatestCapture() {
     .sort()
     .reverse();
   if (!files.length) {
-    console.error('No capture files found in captures/. Run GTV_CAPTURE=1 npm run dev first.');
+    console.error('No capture files found in captures/. Run GTV_CAPTURE=1 yarn dev first.');
     process.exit(1);
   }
   return path.join(CAPTURES_DIR, files[0]);

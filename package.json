@@ -3,7 +3,7 @@
   "productName": "GTV Remote",
   "version": "0.8.0",
   "description": "macOS-first desktop remote for Google TV and Android TV",
-  "packageManager": "npm@11.14.1",
+  "packageManager": "yarn@4.9.2",
   "main": "dist-electron/main/main.js",
   "repository": {
     "type": "git",
@@ -11,14 +11,17 @@
   },
   "author": "",
   "license": "MIT",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org"
+  },
   "scripts": {
     "dev": "concurrently -k \"vite\" \"tsc -p tsconfig.electron.json --watch --preserveWatchOutput\" \"wait-on tcp:5173 file:dist-electron/main/main.js file:dist-electron/main/preload.js && electron .\"",
     "dev:capture": "GTV_CAPTURE=1 concurrently -k \"vite\" \"tsc -p tsconfig.electron.json --watch --preserveWatchOutput\" \"wait-on tcp:5173 file:dist-electron/main/main.js file:dist-electron/main/preload.js && GTV_CAPTURE=1 electron .\"",
     "clean": "rm -rf dist dist-electron coverage release",
     "build": "tsc -p tsconfig.electron.json && vite build",
-    "rebuild": "npm run clean && npm run build",
-    "pack": "npm run build && electron-builder --dir --publish never",
-    "dist:mac": "npm run build && electron-builder --mac dmg zip --publish never",
+    "rebuild": "yarn clean && yarn build",
+    "pack": "yarn build && electron-builder --dir --publish never",
+    "dist:mac": "yarn build && electron-builder --mac dmg zip --publish never",
     "homebrew:cask": "node scripts/render-homebrew-cask.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.electron.json --noEmit && tsc -p tsconfig.backend.json --noEmit",
@@ -80,7 +83,7 @@
     }
   },
   "dependencies": {
-    "androidtv-remote": "^1.0.10",
+    "@librecontrol/google-tv": "^1.0.0",
     "node-forge": "^1.3.1",
     "protobufjs": "^8.0.0",
     "react": "^19.1.0",
@@ -96,6 +99,7 @@
     "@semantic-release/npm": "^13.1.5",
     "@semantic-release/release-notes-generator": "^14.1.0",
     "@tailwindcss/vite": "^4.2.2",
+    "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^24.0.0",

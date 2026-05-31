@@ -4,7 +4,7 @@
 # The repo uses semantic-release with Conventional Commits. Previously the
 # workflow ran on every push to `main`, which produced a new release per commit.
 # Now releases are manual: you batch up commits on `main` and run this script
-# (or the corresponding `npm run release` alias) when you want to cut a release.
+# (or the corresponding `yarn release` alias) when you want to cut a release.
 #
 # What it does:
 #   1. Sanity-checks your local environment (git repo, clean tree, on main,

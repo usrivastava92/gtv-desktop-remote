@@ -7,14 +7,16 @@
  * The TV only accepts keys from the session that established the connection.
  *
  * Usage:
- *   npm run build && node scripts/tv-test.mjs              # first paired device
- *   npm run build && node scripts/tv-test.mjs 192.168.1.9  # explicit host
+ *   yarn build && node scripts/tv-test.mjs              # first paired device
+ *   yarn build && node scripts/tv-test.mjs 192.168.1.9  # explicit host
  */
 
-import { createRequire } from 'node:module';
+import { Buffer } from 'node:buffer';
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
+import { clearTimeout, setTimeout } from 'node:timers';
 import tls from 'node:tls';
 import { fileURLToPath } from 'node:url';
 
@@ -26,7 +28,7 @@ const require = createRequire(import.meta.url);
 
 const DIST = path.join(ROOT, 'dist-electron');
 if (!fs.existsSync(DIST)) {
-  console.error('\n❌ dist-electron/ not found. Run: npm run build');
+  console.error('\n❌ dist-electron/ not found. Run: yarn build');
   process.exit(1);
 }
 
@@ -42,9 +44,7 @@ const {
   parseRemoteMessage,
 } = require(path.join(DIST, 'backend/protocol/androidtv/remote.js'));
 
-const { parseFramedBuffer } = require(
-  path.join(DIST, 'backend/transport/framing/frameParser.js')
-);
+const { parseFramedBuffer } = require(path.join(DIST, 'backend/transport/framing/frameParser.js'));
 
 const REMOTE_FEATURES = 622; // must match src/main/device/androidTvRemote.types.ts
 
@@ -66,19 +66,21 @@ const device = targetHost
   : devices.find((d) => d.isPaired);
 
 if (!device) {
-  console.error(`❌ No paired device found. Available: ${devices.map((d) => `${d.name} (${d.host})`).join(', ')}`);
+  console.error(
+    `❌ No paired device found. Available: ${devices.map((d) => `${d.name} (${d.host})`).join(', ')}`
+  );
   process.exit(1);
 }
 
 const certPath = path.join(CERTS_DIR, `${device.host}.cert.pem`);
-const keyPath  = path.join(CERTS_DIR, `${device.host}.key.pem`);
+const keyPath = path.join(CERTS_DIR, `${device.host}.key.pem`);
 if (!fs.existsSync(certPath) || !fs.existsSync(keyPath)) {
   console.error(`❌ Cert files not found for ${device.host} — try resetting + re-pairing.`);
   process.exit(1);
 }
 
 const cert = fs.readFileSync(certPath, 'utf8');
-const key  = fs.readFileSync(keyPath, 'utf8');
+const key = fs.readFileSync(keyPath, 'utf8');
 
 console.log(`\n📺 ${device.name}  (${device.host})`);
 console.log(`🔐 ${certPath}\n`);
@@ -86,13 +88,13 @@ console.log(`🔐 ${certPath}\n`);
 // ── Test sequence ─────────────────────────────────────────────────────────────
 
 const COMMANDS = [
-  { command: 'home',   label: '🏠 HOME',   delayAfterMs: 1500 },
-  { command: 'back',   label: '⬅️  BACK',   delayAfterMs: 1500 },
-  { command: 'up',     label: '⬆️  UP',     delayAfterMs: 800  },
-  { command: 'down',   label: '⬇️  DOWN',   delayAfterMs: 800  },
-  { command: 'left',   label: '⬅️  LEFT',   delayAfterMs: 800  },
-  { command: 'right',  label: '➡️  RIGHT',  delayAfterMs: 800  },
-  { command: 'select', label: '✅ SELECT',  delayAfterMs: 1500 },
+  { command: 'home', label: '🏠 HOME', delayAfterMs: 1500 },
+  { command: 'back', label: '⬅️  BACK', delayAfterMs: 1500 },
+  { command: 'up', label: '⬆️  UP', delayAfterMs: 800 },
+  { command: 'down', label: '⬇️  DOWN', delayAfterMs: 800 },
+  { command: 'left', label: '⬅️  LEFT', delayAfterMs: 800 },
+  { command: 'right', label: '➡️  RIGHT', delayAfterMs: 800 },
+  { command: 'select', label: '✅ SELECT', delayAfterMs: 1500 },
 ];
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -102,7 +104,6 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 console.log(`🔌 Connecting to ${device.host}:6466 ...\n`);
 
 let buffer = Buffer.alloc(0);
-let protocolReady = false;
 let passed = 0;
 let failed = 0;
 
@@ -140,15 +141,18 @@ socket.on('data', (chunk) => {
 
   for (const f of frames) {
     let msg;
-    try { msg = parseRemoteMessage(f); }
-    catch (e) {
+    try {
+      msg = parseRemoteMessage(f);
+    } catch (e) {
       console.log(`  ⚠️  parse error: ${e.message} hex: ${f.toString('hex').slice(0, 20)}`);
       continue;
     }
 
     if (msg.remoteConfigure) {
       const info = msg.remoteConfigure.deviceInfo ?? {};
-      console.log(`✅ remoteConfigure — ${info.vendor ?? '?'} ${info.model ?? '?'} (${info.appVersion ?? '?'})`);
+      console.log(
+        `✅ remoteConfigure — ${info.vendor ?? '?'} ${info.model ?? '?'} (${info.appVersion ?? '?'})`
+      );
       socket.write(createRemoteConfigure(REMOTE_FEATURES));
       // Protocol is ready — emit event so the main loop can proceed
       socket.emit('protocol-ready');
@@ -186,7 +190,9 @@ socket.on('data', (chunk) => {
     // Everything else (remoteImeKeyInject echo etc) — just note it
     const keys = Object.keys(msg).filter((k) => {
       const v = msg[k];
-      return v !== undefined && v !== null && !(typeof v === 'object' && Object.keys(v).length === 0);
+      return (
+        v !== undefined && v !== null && !(typeof v === 'object' && Object.keys(v).length === 0)
+      );
     });
     if (keys.length > 0) {
       console.log(`  📥 ${keys.join(', ')}`);
@@ -197,9 +203,18 @@ socket.on('data', (chunk) => {
 // ── Wait for protocol-ready, then run commands ────────────────────────────────
 
 await new Promise((resolve, reject) => {
-  const timer = setTimeout(() => reject(new Error('Timeout: TV did not send remoteConfigure within 8s')), 8000);
-  socket.once('protocol-ready', () => { clearTimeout(timer); resolve(); });
-  socket.once('error', (e) => { clearTimeout(timer); reject(e); });
+  const timer = setTimeout(
+    () => reject(new Error('Timeout: TV did not send remoteConfigure within 8s')),
+    8000
+  );
+  socket.once('protocol-ready', () => {
+    clearTimeout(timer);
+    resolve();
+  });
+  socket.once('error', (e) => {
+    clearTimeout(timer);
+    reject(e);
+  });
 });
 
 console.log('\n🚀 Starting command sequence (persistent connection)\n');
@@ -230,7 +245,10 @@ const voiceBeginPromise = new Promise((resolve, reject) => {
     () => reject(new Error('Timeout: TV did not open voice session within 8s')),
     8000
   );
-  socket.once('voice-begin', (sessionId) => { clearTimeout(timer); resolve(sessionId); });
+  socket.once('voice-begin', (sessionId) => {
+    clearTimeout(timer);
+    resolve(sessionId);
+  });
 });
 
 // Navigate to home first so assistant is available

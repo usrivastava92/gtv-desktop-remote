@@ -21,8 +21,9 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
+          cache: yarn
+      - run: corepack enable
+      - run: yarn install --immutable
 
   # ── parallel validation jobs (all depend on setup via cache) ──────────────
   format:
@@ -34,10 +35,11 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
+          cache: yarn
+      - run: corepack enable
+      - run: yarn install --immutable
       - name: Format check
-        run: npm run format:check
+        run: yarn format:check
 
   lint:
     needs: setup
@@ -48,10 +50,11 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
+          cache: yarn
+      - run: corepack enable
+      - run: yarn install --immutable
       - name: Lint
-        run: npm run lint
+        run: yarn lint
 
   typecheck:
     needs: setup
@@ -62,10 +65,11 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
+          cache: yarn
+      - run: corepack enable
+      - run: yarn install --immutable
       - name: Typecheck (renderer + electron + backend)
-        run: npm run typecheck
+        run: yarn typecheck
 
   test:
     needs: setup
@@ -76,10 +80,11 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
+          cache: yarn
+      - run: corepack enable
+      - run: yarn install --immutable
       - name: Backend unit tests
-        run: npm test
+        run: yarn test
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v4
@@ -97,7 +102,8 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
+          cache: yarn
+      - run: corepack enable
+      - run: yarn install --immutable
       - name: Build
-        run: npm run build
+        run: yarn build

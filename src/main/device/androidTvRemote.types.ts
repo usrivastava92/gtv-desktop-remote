@@ -3,29 +3,26 @@
  * Extracted from androidTvRemote.ts to reduce complexity and enable reuse.
  */
 
+import type { CommandDispatchRequest } from '../../shared/types';
+
 import type { PemPair } from './protocol/certificate';
 
-// Forward declaration - NativeRemoteClient is defined in androidTvRemote.ts
-declare class NativeRemoteClient {
+export interface RemoteClientPort {
   disconnect(): void;
   connect(commandId?: string): Promise<void>;
-  sendCommand(request: any): void;
-  sendText(text: string): void;
+  sendCommand(request: CommandDispatchRequest): Promise<void> | void;
+  sendText(text: string): Promise<void> | void;
   startVoiceSession(): Promise<number>;
-  sendVoiceChunk(sessionId: number, samples: Buffer): void;
-  stopVoiceSession(sessionId: number): void;
-  get snapshot(): RemoteState;
-  get isConnected(): boolean;
+  sendVoiceChunk(sessionId: number, samples: Buffer): Promise<void> | void;
+  stopVoiceSession(sessionId: number): Promise<void> | void;
+  readonly snapshot: RemoteState;
+  readonly isConnected: boolean;
 }
 
-/**
- * Pairing manager instance from the androidtv-remote library.
- * Handles the pairing protocol flow (start, secret generation, code validation).
- */
-export interface PairingManagerInstance {
-  on(event: 'secret', listener: () => void): this;
-  start(): Promise<boolean>;
-  sendCode(code: string): boolean;
+export interface PairingClientPort {
+  close(): Promise<void>;
+  start(): Promise<unknown>;
+  submitCode(code: string): Promise<{ type: string; status?: string }>;
 }
 
 /**
@@ -58,37 +55,15 @@ export interface RemoteState {
  */
 export interface DeviceSession {
   certs: PemPair;
-  pairingManager?: PairingManagerInstance;
+  pairingManager?: PairingClientPort;
   pairingReady?: Promise<void>;
-  pairingComplete?: Promise<void>;
-  remoteClient?: NativeRemoteClient;
+  remoteClient?: RemoteClientPort;
 }
 
 /**
  * Android TV pairing port (default).
  */
 export const DEFAULT_PAIRING_PORT = 6467;
-
-/**
- * Remote feature flags sent during device configuration.
- */
-export const REMOTE_FEATURES = 622;
-
-/**
- * Connection stale threshold: if no inbound messages received for this long,
- * force a reconnect (detects half-open sockets after app suspension).
- */
-export const REMOTE_STALE_AFTER_MS = 30_000;
-
-/**
- * TLS connection timeout. Destroy the socket if not ready within this window.
- */
-export const REMOTE_CONNECT_TIMEOUT_MS = 10_000;
-
-/**
- * Voice session initialization timeout. Abort if TV doesn't open session in time.
- */
-export const REMOTE_VOICE_BEGIN_TIMEOUT_MS = 5_000;
 
 /**
  * Service name advertised to the TV during pairing.

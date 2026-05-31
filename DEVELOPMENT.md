@@ -7,14 +7,15 @@ This document is for developers working on GTV Desktop Remote locally. It covers
 ## Prerequisites
 
 - macOS
-- Node.js and npm
+- Node.js with Corepack-enabled Yarn
 - A Google TV or Android TV device on the same local network for end-to-end testing
 - Android TV Remote Service available on the target device
 
 ## Install Dependencies
 
 ```bash
-npm install
+corepack enable
+yarn install
 ```
 
 ## Local Development
@@ -22,7 +23,7 @@ npm install
 Run the renderer, Electron main process, and Electron preload build in watch mode:
 
 ```bash
-npm run dev
+yarn dev
 ```
 
 This starts:
@@ -34,7 +35,7 @@ This starts:
 ## Type Checking
 
 ```bash
-npm run typecheck
+yarn typecheck
 ```
 
 ## Local Build
@@ -42,7 +43,7 @@ npm run typecheck
 Build the renderer and Electron bundles without packaging:
 
 ```bash
-npm run build
+yarn build
 ```
 
 ## Packaging
@@ -50,13 +51,13 @@ npm run build
 Create a local unpacked app bundle for smoke testing:
 
 ```bash
-npm run pack
+yarn pack
 ```
 
 Create local macOS distributables without publishing:
 
 ```bash
-npm run dist:mac
+yarn dist:mac
 ```
 
 ## Resetting Local App State
@@ -64,13 +65,13 @@ npm run dist:mac
 Remove saved devices and pairing certificates:
 
 ```bash
-npm run reset:app
+yarn reset:app
 ```
 
 Preview what would be removed without deleting anything:
 
 ```bash
-npm run reset:app:dry-run
+yarn reset:app:dry-run
 ```
 
 ## Debug Telemetry
@@ -149,10 +150,10 @@ Use the helper script:
 ```bash
 # Preview the next version from commits on origin/main, then prompt before
 # triggering the Release workflow on GitHub:
-npm run release
+yarn release
 
 # Just preview locally, do not trigger CI:
-npm run release:dry-run
+yarn release:dry-run
 
 # Skip the confirmation prompt (e.g. for use in other automation):
 bin/release --yes
@@ -217,7 +218,7 @@ In the repo on GitHub:
 
 After this setup, the flow for a release is:
 
-1. Someone (you) runs `npm run release` or "Run workflow" in the Actions UI.
+1. Someone (you) runs `yarn release` or "Run workflow" in the Actions UI.
 2. `authorize` job runs in seconds and either fails (unauthorized) or
    succeeds.
 3. The run pauses with a "Review required" banner — GitHub emails the
@@ -243,7 +244,7 @@ The workflow computes the DMG checksum and renders
 `Casks/gtv-desktop-remote.rb` using:
 
 ```bash
-npm run homebrew:cask -- --version 0.8.0 --sha256 <sha256> --artifact-name "GTV Remote-0.8.0-mac-arm64.dmg"
+yarn homebrew:cask --version 0.8.0 --sha256 <sha256> --artifact-name "GTV Remote-0.8.0-mac-arm64.dmg"
 ```
 
 Users can install the published cask with:
@@ -254,9 +255,9 @@ brew install --cask usrivastava92/tap/gtv-desktop-remote
 
 ## Recommended Developer Flow
 
-1. `npm install`
-2. `npm run dev`
+1. `yarn install`
+2. `yarn dev`
 3. Pair with a real device and verify input behavior
-4. Run `npm run typecheck`
-5. Run `npm run build`
-6. Use `npm run pack` or `npm run dist:mac` when packaging needs to be tested
+4. Run `yarn typecheck`
+5. Run `yarn build`
+6. Use `yarn pack` or `yarn dist:mac` when packaging needs to be tested
