@@ -25,7 +25,7 @@
 export interface FrameParseResult {
   /** Frames fully assembled from `buffer`. Each is the WHOLE frame including
    * its varint header (this matches what the previous inline parser
-   * returned and what `parseRemoteMessage` consumes). */
+   * returned to callers). */
   readonly frames: readonly Buffer[];
   /** The trailing bytes that did not form a complete frame yet. Must be
    * prepended to the next chunk received from the socket. */

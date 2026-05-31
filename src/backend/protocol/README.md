@@ -1,8 +1,8 @@
-# `protocol/` — pure codecs per device kind
+# `protocol/` — backend-owned protocol helpers
 
-No I/O. No globals. Every export is a deterministic function over `Buffer`
-inputs/outputs (or pure value types), so tests are byte-exact and fast.
+The app no longer owns the Android TV pairing/remote wire codecs here.
+`@librecontrol/google-tv` is the source of truth for that behavior.
 
-PR-2 populates `protocol/androidtv/{pairing,remote,certificate}/` by moving
-the existing `src/main/device/protocol/*` files here and adding golden
-fixtures captured from a real Google TV.
+What remains in this folder is the certificate helper that we still own
+locally because persisted client cert generation/storage is application state,
+not library protocol logic.

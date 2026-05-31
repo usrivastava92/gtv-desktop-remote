@@ -72,8 +72,6 @@ interface (`I*`) and a production implementation. Tests use in-memory fakes.
 | `core/clock`                             | `IClock` port + `createSystemClock()` | —               |
 | `core/pathProvider`                      | `IPathProvider` port                  | —               |
 | `core/runtimeConfig`                     | `IRuntimeConfig` port                 | —               |
-| `protocol/androidtv/pairing`             | Protobuf pairing codec (pure)         | ≥95%            |
-| `protocol/androidtv/remote`              | Protobuf remote/IME codec (pure)      | ≥95%            |
 | `protocol/androidtv/certificate`         | node-forge cert/key generator         | ≥90%            |
 | `transport/framing/frameParser`          | Varint length-prefix frame parser     | ≥95%            |
 | `transport/tls/framedTlsTransport`       | `IFramedTlsTransport` port            | —               |
@@ -110,13 +108,11 @@ Two channel families:
 
 ## Google TV non-regression gates
 
-Seven test gates that lock the wire format for Android TV communication.
+Five test gates that lock the app-owned parts of Google TV communication.
 Any change that breaks one of these breaks CI:
 
 | Gate                 | File                                             | What it locks                        |
 | -------------------- | ------------------------------------------------ | ------------------------------------ |
-| Protocol codecs      | `protocol/androidtv/pairing.test.ts`             | Protobuf pairing encode/decode       |
-| Protocol codecs      | `protocol/androidtv/remote.test.ts`              | Protobuf remote command encode       |
 | Cert migration       | `devices/credentials/androidTvCertStore.test.ts` | IP-change cert migration             |
 | Identity matching    | `devices/deviceRegistry.test.ts`                 | MAC-first priority matrix (46 tests) |
 | IPC channel parity   | `shared/ipcContract.test.ts`                     | Channel name uniqueness + format     |

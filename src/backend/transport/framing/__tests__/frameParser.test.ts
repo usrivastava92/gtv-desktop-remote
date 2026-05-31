@@ -3,9 +3,10 @@ import { describe, expect, it } from 'vitest';
 import { __TEST__, parseFramedBuffer } from '../frameParser';
 
 /**
- * Build a varint-length-prefixed frame whose body is `body`. Mirrors what
- * `protocol/androidtv/remote.ts` produces on the wire — the parser must
- * round-trip these byte-for-byte to lock down Google TV protocol parity.
+ * Build a varint-length-prefixed frame whose body is `body`. This matches the
+ * framing used by the Google TV remote service on the wire; the parser must
+ * round-trip these byte-for-byte regardless of which upstream library
+ * produces the protobuf payload.
  */
 function frame(body: Buffer): Buffer {
   const header = encodeVarint(body.length);

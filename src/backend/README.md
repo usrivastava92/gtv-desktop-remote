@@ -19,7 +19,7 @@ per-module responsibility table, and the coverage targets.
 | Folder       | What lives here                                                                                                |
 | ------------ | -------------------------------------------------------------------------------------------------------------- |
 | `core/`      | Ports for the outside world: `ILogger`, `IClock`, `IFileSystem`, `IPathProvider`, `IIdGenerator`, `IEventBus`. |
-| `protocol/`  | Pure codecs per device kind. `protocol/androidtv/{pairing,remote,certificate}/`. No I/O, no globals.           |
+| `protocol/`  | Backend-owned protocol helpers. Currently `protocol/androidtv/certificate.ts` for client cert generation only. |
 | `transport/` | Framed socket transports. `framed-tls/` for Android TV TLS.                                                    |
 | `discovery/` | mDNS-style discovery providers + the `DiscoveryService` aggregator.                                            |
 | `devices/`   | `DeviceRepository`, `DeviceRegistry`, per-kind credential stores.                                              |

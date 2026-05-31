@@ -9,8 +9,6 @@
  *
  * Output:
  *   src/backend/transport/framing/__fixtures__/inbound-frames.bin   (raw frames)
- *   src/backend/protocol/androidtv/__fixtures__/remote-commands.json
- *   src/backend/protocol/androidtv/__fixtures__/parsed-messages.json
  *   src/backend/voice/__fixtures__/voice-session.json
  *   src/backend/__fixtures__/ipc-session.json
  *   src/backend/__fixtures__/discovery-session.json
@@ -143,52 +141,6 @@ if (inboundFrames.length) {
   });
 }
 
-// Remote protocol — decoded messages (rx) and outbound command frames (tx)
-const parsedMessages = records.filter((r) => r.layer === 'remote' && r.direction === 'rx');
-if (parsedMessages.length) {
-  writeJson(
-    path.join(FIXTURES_ROOT, 'protocol', 'androidtv', '__fixtures__', 'parsed-messages.json'),
-    {
-      captureFile: inputFile,
-      count: parsedMessages.length,
-      messages: parsedMessages.map((r) => ({ seq: r.seq, ts: r.ts, data: r.data, meta: r.meta })),
-    }
-  );
-}
-
-const remoteTx = records.filter((r) => r.layer === 'remote' && r.direction === 'tx');
-if (remoteTx.length) {
-  writeJson(
-    path.join(FIXTURES_ROOT, 'protocol', 'androidtv', '__fixtures__', 'remote-commands.json'),
-    {
-      captureFile: inputFile,
-      count: remoteTx.length,
-      commands: remoteTx.map((r) => ({
-        seq: r.seq,
-        ts: r.ts,
-        command: r.meta?.command,
-        id: r.meta?.id,
-        hex: r.hex,
-      })),
-    }
-  );
-}
-
-// Pairing — full pairing sequence
-const pairingRecords = records.filter((r) => r.layer === 'pairing');
-if (pairingRecords.length) {
-  writeJson(path.join(FIXTURES_ROOT, 'pairing', '__fixtures__', 'pairing-session.json'), {
-    captureFile: inputFile,
-    events: pairingRecords.map((r) => ({
-      seq: r.seq,
-      ts: r.ts,
-      event: r.event,
-      meta: r.meta,
-      error: r.error,
-    })),
-  });
-}
-
 // Voice — full voice session
 const voiceRecords = records.filter((r) => r.layer === 'voice');
 if (voiceRecords.length) {
@@ -233,7 +185,7 @@ Fixture files are ready to use in tests. Next steps:
   1. Review the generated JSON/bin files in src/backend/**/__fixtures__/
   2. Add tests that load fixtures with:
        const frames = fs.readdirSync(__fixtures__('frames')).map(...)
-       parseFramedBuffer(frame) // → match golden decoded messages
+       parseFramedBuffer(frame) // → match framing invariants
   3. Commit the fixture files alongside new test files.
-  4. Run: npm test
+  4. Run: yarn test
 `);
