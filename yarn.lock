@@ -267,16 +267,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@boundaries/elements@npm:1.2.0":
-  version: 1.2.0
-  resolution: "@boundaries/elements@npm:1.2.0"
+"@boundaries/elements@npm:2.0.1":
+  version: 2.0.1
+  resolution: "@boundaries/elements@npm:2.0.1"
   dependencies:
     eslint-import-resolver-node: "npm:0.3.9"
     eslint-module-utils: "npm:2.12.1"
-    handlebars: "npm:4.7.8"
+    handlebars: "npm:4.7.9"
     is-core-module: "npm:2.16.1"
     micromatch: "npm:4.0.8"
-  checksum: 10c0/624348ab8ad3024b2a066f6f63fcfcce6fa43fd735e517c865da9b2aad3651ee1e9667d442413946ad2087d7f780af770af3541d3e84bf54ea203fa000ed3153
+  checksum: 10c0/0c38a3a9d08c8d7aa79cd29b3d98ac61608120dad69ee568dbbbc0522c944cb7b60a1d985fd2ebfcd4c4ad0fe4caf44b81e519a49a99d3af85c769fe0cdad537
   languageName: node
   linkType: hard
 
@@ -4809,18 +4809,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-boundaries@npm:^5.4.0":
-  version: 5.4.0
-  resolution: "eslint-plugin-boundaries@npm:5.4.0"
+"eslint-plugin-boundaries@npm:^6.0.0":
+  version: 6.0.2
+  resolution: "eslint-plugin-boundaries@npm:6.0.2"
   dependencies:
-    "@boundaries/elements": "npm:1.2.0"
+    "@boundaries/elements": "npm:2.0.1"
     chalk: "npm:4.1.2"
     eslint-import-resolver-node: "npm:0.3.9"
     eslint-module-utils: "npm:2.12.1"
+    handlebars: "npm:4.7.9"
     micromatch: "npm:4.0.8"
   peerDependencies:
     eslint: ">=6.0.0"
-  checksum: 10c0/0df2624f5ac1a47582331a0d6461939b9519619f9d55bcfc64903598254d8d9c27d1aab84b3f921a4ed6d80b1d8c85773bc5a404f7238235faac67a381270ff5
+  checksum: 10c0/70dfc01d1a0837be8e227335f57359c85955c094437985a592cd4dd555a1b662bde7b9458d5b1e14d933dd67e66a5931686bf98e85ee607cc6d114459d29b370
   languageName: node
   linkType: hard
 
@@ -5647,7 +5648,7 @@ __metadata:
     electron-builder: "npm:^26.0.12"
     eslint: "npm:^10.0.0"
     eslint-config-prettier: "npm:^10.1.8"
-    eslint-plugin-boundaries: "npm:^5.4.0"
+    eslint-plugin-boundaries: "npm:^6.0.0"
     eslint-plugin-import-x: "npm:^4.16.2"
     eslint-plugin-react-hooks: "npm:^7.1.1"
     husky: "npm:^9.1.7"
@@ -5668,25 +5669,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"handlebars@npm:4.7.8":
-  version: 4.7.8
-  resolution: "handlebars@npm:4.7.8"
-  dependencies:
-    minimist: "npm:^1.2.5"
-    neo-async: "npm:^2.6.2"
-    source-map: "npm:^0.6.1"
-    uglify-js: "npm:^3.1.4"
-    wordwrap: "npm:^1.0.0"
-  dependenciesMeta:
-    uglify-js:
-      optional: true
-  bin:
-    handlebars: bin/handlebars
-  checksum: 10c0/7aff423ea38a14bb379316f3857fe0df3c5d66119270944247f155ba1f08e07a92b340c58edaa00cfe985c21508870ee5183e0634dcb53dd405f35c93ef7f10d
-  languageName: node
-  linkType: hard
-
-"handlebars@npm:^4.7.7":
+"handlebars@npm:4.7.9, handlebars@npm:^4.7.7":
   version: 4.7.9
   resolution: "handlebars@npm:4.7.9"
   dependencies:
