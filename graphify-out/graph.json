@@ -98,7 +98,7 @@
       "source_file": "dist-electron/backend/metrics/IMetricsRecorder.js",
       "source_location": "L1",
       "id": "dist_electron_backend_metrics_imetricsrecorder_js",
-      "community": 1,
+      "community": 21,
       "norm_label": "imetricsrecorder.js"
     },
     {
@@ -107,7 +107,7 @@
       "source_file": "src/backend/metrics/IMetricsRecorder.ts",
       "source_location": "L30",
       "id": "metrics_imetricsrecorder_createemptymetricscounters",
-      "community": 1,
+      "community": 21,
       "norm_label": "createemptymetricscounters()"
     },
     {
@@ -116,7 +116,7 @@
       "source_file": "src/backend/metrics/IMetricsRecorder.ts",
       "source_location": "L45",
       "id": "metrics_imetricsrecorder_createemptymetricssnapshot",
-      "community": 1,
+      "community": 21,
       "norm_label": "createemptymetricssnapshot()"
     },
     {
@@ -125,7 +125,7 @@
       "source_file": "src/backend/metrics/IMetricsRecorder.ts",
       "source_location": "L114",
       "id": "metrics_imetricsrecorder_createsilentmetricsrecorder",
-      "community": 1,
+      "community": 21,
       "norm_label": "createsilentmetricsrecorder()"
     },
     {
@@ -134,7 +134,7 @@
       "source_file": "dist-electron/backend/transport/tls/framedTlsTransport.js",
       "source_location": "L1",
       "id": "dist_electron_backend_transport_tls_framedtlstransport_js",
-      "community": 25,
+      "community": 26,
       "norm_label": "framedtlstransport.js"
     },
     {
@@ -143,7 +143,7 @@
       "source_file": "src/backend/transport/tls/framedTlsTransport.ts",
       "source_location": "L114",
       "id": "tls_framedtlstransport_createframedtlstransportoversocket",
-      "community": 25,
+      "community": 26,
       "norm_label": "createframedtlstransportoversocket()"
     },
     {
@@ -152,7 +152,7 @@
       "source_file": "src/backend/transport/tls/framedTlsTransport.ts",
       "source_location": "L169",
       "id": "tls_framedtlstransport_createfakeframedtlstransport",
-      "community": 25,
+      "community": 26,
       "norm_label": "createfakeframedtlstransport()"
     },
     {
@@ -179,7 +179,7 @@
       "source_file": "dist-electron/backend/transport/framing/frameParser.js",
       "source_location": "L1",
       "id": "dist_electron_backend_transport_framing_frameparser_js",
-      "community": 26,
+      "community": 25,
       "norm_label": "frameparser.js"
     },
     {
@@ -188,7 +188,7 @@
       "source_file": "src/backend/transport/framing/frameParser.ts",
       "source_location": "L57",
       "id": "framing_frameparser_parseframedbuffer",
-      "community": 26,
+      "community": 25,
       "norm_label": "parseframedbuffer()"
     },
     {
@@ -197,7 +197,7 @@
       "source_file": "src/backend/transport/framing/frameParser.ts",
       "source_location": "L100",
       "id": "framing_frameparser_decodevarintheader",
-      "community": 26,
+      "community": 25,
       "norm_label": "decodevarintheader()"
     },
     {
@@ -224,7 +224,7 @@
       "source_file": "dist-electron/backend/core/clock.js",
       "source_location": "L1",
       "id": "dist_electron_backend_core_clock_js",
-      "community": 1,
+      "community": 5,
       "norm_label": "clock.js"
     },
     {
@@ -233,7 +233,7 @@
       "source_file": "src/backend/core/clock.ts",
       "source_location": "L33",
       "id": "core_clock_createsystemclock",
-      "community": 1,
+      "community": 5,
       "norm_label": "createsystemclock()"
     },
     {
@@ -242,7 +242,7 @@
       "source_file": "src/backend/core/clock.ts",
       "source_location": "L52",
       "id": "core_clock_createfakeclock",
-      "community": 1,
+      "community": 5,
       "norm_label": "createfakeclock()"
     },
     {
@@ -305,7 +305,7 @@
       "source_file": "dist-electron/backend/core/runtimeConfig.js",
       "source_location": "L1",
       "id": "dist_electron_backend_core_runtimeconfig_js",
-      "community": 18,
+      "community": 15,
       "norm_label": "runtimeconfig.js"
     },
     {
@@ -314,7 +314,7 @@
       "source_file": "src/backend/core/runtimeConfig.ts",
       "source_location": "L28",
       "id": "core_runtimeconfig_createnoderuntimeconfig",
-      "community": 18,
+      "community": 15,
       "norm_label": "createnoderuntimeconfig()"
     },
     {
@@ -323,7 +323,7 @@
       "source_file": "src/backend/core/runtimeConfig.ts",
       "source_location": "L38",
       "id": "core_runtimeconfig_createruntimeconfig",
-      "community": 18,
+      "community": 15,
       "norm_label": "createruntimeconfig()"
     },
     {
@@ -332,7 +332,7 @@
       "source_file": "src/backend/core/runtimeConfig.ts",
       "source_location": "L48",
       "id": "core_runtimeconfig_getruntimeconfig",
-      "community": 2,
+      "community": 15,
       "norm_label": "getruntimeconfig()"
     },
     {
@@ -341,7 +341,7 @@
       "source_file": "src/backend/core/runtimeConfig.ts",
       "source_location": "L55",
       "id": "core_runtimeconfig_setruntimeconfig",
-      "community": 18,
+      "community": 15,
       "norm_label": "setruntimeconfig()"
     },
     {
@@ -350,7 +350,7 @@
       "source_file": "src/backend/core/runtimeConfig.ts",
       "source_location": "L61",
       "id": "core_runtimeconfig_resetruntimeconfig",
-      "community": 18,
+      "community": 15,
       "norm_label": "resetruntimeconfig()"
     },
     {
@@ -800,7 +800,7 @@
       "source_file": "dist-electron/backend/devices/deviceRegistry.js",
       "source_location": "L1",
       "id": "dist_electron_backend_devices_deviceregistry_js",
-      "community": 15,
+      "community": 1,
       "norm_label": "deviceregistry.js"
     },
     {
@@ -809,7 +809,7 @@
       "source_file": "src/backend/devices/deviceRegistry.ts",
       "source_location": "L31",
       "id": "devices_deviceregistry_matchsavedtodiscovered",
-      "community": 15,
+      "community": 1,
       "norm_label": "matchsavedtodiscovered()"
     },
     {
@@ -818,7 +818,7 @@
       "source_file": "src/backend/devices/deviceRegistry.ts",
       "source_location": "L67",
       "id": "devices_deviceregistry_mergeidentity",
-      "community": 15,
+      "community": 1,
       "norm_label": "mergeidentity()"
     },
     {
@@ -827,7 +827,7 @@
       "source_file": "src/backend/devices/deviceRegistry.ts",
       "source_location": "L92",
       "id": "devices_deviceregistry_identitychanged",
-      "community": 15,
+      "community": 1,
       "norm_label": "identitychanged()"
     },
     {
@@ -836,7 +836,7 @@
       "source_file": "src/backend/devices/deviceRegistry.ts",
       "source_location": "L111",
       "id": "devices_deviceregistry_findexistingfordraft",
-      "community": 15,
+      "community": 1,
       "norm_label": "findexistingfordraft()"
     },
     {
@@ -845,7 +845,7 @@
       "source_file": "src/backend/devices/deviceRegistry.ts",
       "source_location": "L149",
       "id": "devices_deviceregistry_normalizedraft",
-      "community": 15,
+      "community": 1,
       "norm_label": "normalizedraft()"
     },
     {
@@ -1322,7 +1322,7 @@
       "source_file": "dist-electron/main/logger.js",
       "source_location": "L1",
       "id": "dist_electron_main_logger_js",
-      "community": 3,
+      "community": 1,
       "norm_label": "logger.js"
     },
     {
@@ -1331,7 +1331,7 @@
       "source_file": "src/main/logger.ts",
       "source_location": "L10",
       "id": "main_logger_getlogpath",
-      "community": 3,
+      "community": 1,
       "norm_label": "getlogpath()"
     },
     {
@@ -1349,7 +1349,7 @@
       "source_file": "src/main/logger.ts",
       "source_location": "L18",
       "id": "main_logger_serializeerrordetails",
-      "community": 3,
+      "community": 1,
       "norm_label": "serializeerrordetails()"
     },
     {
@@ -1358,7 +1358,7 @@
       "source_file": "src/main/logger.ts",
       "source_location": "L30",
       "id": "main_logger_write",
-      "community": 3,
+      "community": 1,
       "norm_label": "write()"
     },
     {
@@ -1367,7 +1367,7 @@
       "source_file": "src/main/logger.ts",
       "source_location": "L52",
       "id": "main_logger_loginfo",
-      "community": 3,
+      "community": 1,
       "norm_label": "loginfo()"
     },
     {
@@ -1376,7 +1376,7 @@
       "source_file": "src/main/logger.ts",
       "source_location": "L56",
       "id": "main_logger_logwarn",
-      "community": 3,
+      "community": 1,
       "norm_label": "logwarn()"
     },
     {
@@ -1385,7 +1385,7 @@
       "source_file": "src/main/logger.ts",
       "source_location": "L60",
       "id": "main_logger_logerror",
-      "community": 3,
+      "community": 2,
       "norm_label": "logerror()"
     },
     {
@@ -1394,7 +1394,7 @@
       "source_file": "src/main/logger.ts",
       "source_location": "L64",
       "id": "main_logger_getloggerpath",
-      "community": 3,
+      "community": 1,
       "norm_label": "getloggerpath()"
     },
     {
@@ -1403,7 +1403,7 @@
       "source_file": "src/main/logger.ts",
       "source_location": "L87",
       "id": "main_logger_createnodelogger",
-      "community": 3,
+      "community": 1,
       "norm_label": "createnodelogger()"
     },
     {
@@ -1412,7 +1412,7 @@
       "source_file": "dist-electron/main/metrics.js",
       "source_location": "L1",
       "id": "dist_electron_main_metrics_js",
-      "community": 1,
+      "community": 4,
       "norm_label": "metrics.js"
     },
     {
@@ -1421,7 +1421,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L30",
       "id": "main_metrics_createtransportsnapshot",
-      "community": 1,
+      "community": 4,
       "norm_label": "createtransportsnapshot()"
     },
     {
@@ -1430,7 +1430,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L38",
       "id": "main_metrics_createemptysnapshot",
-      "community": 1,
+      "community": 4,
       "norm_label": "createemptysnapshot()"
     },
     {
@@ -1439,7 +1439,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L42",
       "id": "main_metrics_commandmetricsstore",
-      "community": 5,
+      "community": 4,
       "norm_label": "commandmetricsstore"
     },
     {
@@ -1448,7 +1448,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L53",
       "id": "main_metrics_commandmetricsstore_constructor",
-      "community": 1,
+      "community": 5,
       "norm_label": ".constructor()"
     },
     {
@@ -1457,7 +1457,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L59",
       "id": "main_metrics_commandmetricsstore_recordrendererdrop",
-      "community": 5,
+      "community": 4,
       "norm_label": ".recordrendererdrop()"
     },
     {
@@ -1466,7 +1466,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L81",
       "id": "main_metrics_commandmetricsstore_recordipcreceived",
-      "community": 5,
+      "community": 4,
       "norm_label": ".recordipcreceived()"
     },
     {
@@ -1475,7 +1475,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L97",
       "id": "main_metrics_commandmetricsstore_recordadapterdispatchstart",
-      "community": 5,
+      "community": 4,
       "norm_label": ".recordadapterdispatchstart()"
     },
     {
@@ -1484,7 +1484,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L117",
       "id": "main_metrics_commandmetricsstore_recordadapterdispatchcompleted",
-      "community": 5,
+      "community": 4,
       "norm_label": ".recordadapterdispatchcompleted()"
     },
     {
@@ -1493,7 +1493,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L135",
       "id": "main_metrics_commandmetricsstore_recordbridgesendstart",
-      "community": 5,
+      "community": 4,
       "norm_label": ".recordbridgesendstart()"
     },
     {
@@ -1502,7 +1502,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L152",
       "id": "main_metrics_commandmetricsstore_recordconnectstarted",
-      "community": 5,
+      "community": 4,
       "norm_label": ".recordconnectstarted()"
     },
     {
@@ -1511,7 +1511,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L170",
       "id": "main_metrics_commandmetricsstore_recordconnectcompleted",
-      "community": 5,
+      "community": 4,
       "norm_label": ".recordconnectcompleted()"
     },
     {
@@ -1520,7 +1520,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L187",
       "id": "main_metrics_commandmetricsstore_recordconnectfailed",
-      "community": 5,
+      "community": 4,
       "norm_label": ".recordconnectfailed()"
     },
     {
@@ -1529,7 +1529,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L203",
       "id": "main_metrics_commandmetricsstore_recordsocketwrite",
-      "community": 5,
+      "community": 4,
       "norm_label": ".recordsocketwrite()"
     },
     {
@@ -1538,7 +1538,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L235",
       "id": "main_metrics_commandmetricsstore_recordsocketdrain",
-      "community": 5,
+      "community": 4,
       "norm_label": ".recordsocketdrain()"
     },
     {
@@ -1547,7 +1547,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L248",
       "id": "main_metrics_commandmetricsstore_recordcommandsucceeded",
-      "community": 5,
+      "community": 4,
       "norm_label": ".recordcommandsucceeded()"
     },
     {
@@ -1556,7 +1556,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L273",
       "id": "main_metrics_commandmetricsstore_recordcommandfailed",
-      "community": 5,
+      "community": 4,
       "norm_label": ".recordcommandfailed()"
     },
     {
@@ -1565,7 +1565,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L309",
       "id": "main_metrics_commandmetricsstore_recordinboundmessage",
-      "community": 5,
+      "community": 4,
       "norm_label": ".recordinboundmessage()"
     },
     {
@@ -1574,7 +1574,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L318",
       "id": "main_metrics_commandmetricsstore_recordsocketclosed",
-      "community": 5,
+      "community": 4,
       "norm_label": ".recordsocketclosed()"
     },
     {
@@ -1583,7 +1583,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L329",
       "id": "main_metrics_commandmetricsstore_getsnapshot",
-      "community": 5,
+      "community": 4,
       "norm_label": ".getsnapshot()"
     },
     {
@@ -1592,7 +1592,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L343",
       "id": "main_metrics_commandmetricsstore_ensurecommand",
-      "community": 5,
+      "community": 4,
       "norm_label": ".ensurecommand()"
     },
     {
@@ -1601,7 +1601,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L361",
       "id": "main_metrics_commandmetricsstore_trimcommands",
-      "community": 5,
+      "community": 4,
       "norm_label": ".trimcommands()"
     },
     {
@@ -1610,7 +1610,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L379",
       "id": "main_metrics_commandmetricsstore_detectstalls",
-      "community": 5,
+      "community": 4,
       "norm_label": ".detectstalls()"
     },
     {
@@ -1619,7 +1619,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L426",
       "id": "main_metrics_commandmetricsstore_pushwarning",
-      "community": 5,
+      "community": 4,
       "norm_label": ".pushwarning()"
     },
     {
@@ -1628,7 +1628,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L439",
       "id": "main_metrics_commandmetricsstore_logmetric",
-      "community": 5,
+      "community": 4,
       "norm_label": ".logmetric()"
     },
     {
@@ -1637,7 +1637,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L447",
       "id": "main_metrics_noopcommandmetricsstore",
-      "community": 1,
+      "community": 5,
       "norm_label": "noopcommandmetricsstore"
     },
     {
@@ -1646,7 +1646,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L450",
       "id": "main_metrics_noopcommandmetricsstore_constructor",
-      "community": 1,
+      "community": 5,
       "norm_label": ".constructor()"
     },
     {
@@ -1655,7 +1655,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L454",
       "id": "main_metrics_noopcommandmetricsstore_recordrendererdrop",
-      "community": 1,
+      "community": 5,
       "norm_label": ".recordrendererdrop()"
     },
     {
@@ -1664,7 +1664,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L456",
       "id": "main_metrics_noopcommandmetricsstore_recordipcreceived",
-      "community": 1,
+      "community": 5,
       "norm_label": ".recordipcreceived()"
     },
     {
@@ -1673,7 +1673,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L458",
       "id": "main_metrics_noopcommandmetricsstore_recordadapterdispatchstart",
-      "community": 1,
+      "community": 5,
       "norm_label": ".recordadapterdispatchstart()"
     },
     {
@@ -1682,7 +1682,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L463",
       "id": "main_metrics_noopcommandmetricsstore_recordadapterdispatchcompleted",
-      "community": 1,
+      "community": 5,
       "norm_label": ".recordadapterdispatchcompleted()"
     },
     {
@@ -1691,7 +1691,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L465",
       "id": "main_metrics_noopcommandmetricsstore_recordbridgesendstart",
-      "community": 1,
+      "community": 5,
       "norm_label": ".recordbridgesendstart()"
     },
     {
@@ -1700,7 +1700,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L467",
       "id": "main_metrics_noopcommandmetricsstore_recordconnectstarted",
-      "community": 1,
+      "community": 5,
       "norm_label": ".recordconnectstarted()"
     },
     {
@@ -1709,7 +1709,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L469",
       "id": "main_metrics_noopcommandmetricsstore_recordconnectcompleted",
-      "community": 1,
+      "community": 5,
       "norm_label": ".recordconnectcompleted()"
     },
     {
@@ -1718,7 +1718,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L471",
       "id": "main_metrics_noopcommandmetricsstore_recordconnectfailed",
-      "community": 1,
+      "community": 5,
       "norm_label": ".recordconnectfailed()"
     },
     {
@@ -1727,7 +1727,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L473",
       "id": "main_metrics_noopcommandmetricsstore_recordsocketwrite",
-      "community": 1,
+      "community": 5,
       "norm_label": ".recordsocketwrite()"
     },
     {
@@ -1736,7 +1736,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L478",
       "id": "main_metrics_noopcommandmetricsstore_recordsocketdrain",
-      "community": 1,
+      "community": 5,
       "norm_label": ".recordsocketdrain()"
     },
     {
@@ -1745,7 +1745,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L480",
       "id": "main_metrics_noopcommandmetricsstore_recordcommandsucceeded",
-      "community": 1,
+      "community": 5,
       "norm_label": ".recordcommandsucceeded()"
     },
     {
@@ -1754,7 +1754,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L482",
       "id": "main_metrics_noopcommandmetricsstore_recordcommandfailed",
-      "community": 1,
+      "community": 5,
       "norm_label": ".recordcommandfailed()"
     },
     {
@@ -1763,7 +1763,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L492",
       "id": "main_metrics_noopcommandmetricsstore_recordinboundmessage",
-      "community": 1,
+      "community": 5,
       "norm_label": ".recordinboundmessage()"
     },
     {
@@ -1772,7 +1772,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L494",
       "id": "main_metrics_noopcommandmetricsstore_recordsocketclosed",
-      "community": 1,
+      "community": 5,
       "norm_label": ".recordsocketclosed()"
     },
     {
@@ -1781,7 +1781,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L496",
       "id": "main_metrics_noopcommandmetricsstore_getsnapshot",
-      "community": 1,
+      "community": 4,
       "norm_label": ".getsnapshot()"
     },
     {
@@ -1790,7 +1790,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L508",
       "id": "main_metrics_createcommandmetricsstore",
-      "community": 1,
+      "community": 4,
       "norm_label": "createcommandmetricsstore()"
     },
     {
@@ -2051,7 +2051,7 @@
       "source_file": "dist-electron/main/debug.js",
       "source_location": "L1",
       "id": "dist_electron_main_debug_js",
-      "community": 1,
+      "community": 4,
       "norm_label": "debug.js"
     },
     {
@@ -2060,7 +2060,7 @@
       "source_file": "src/main/debug.ts",
       "source_location": "L6",
       "id": "main_debug_readdebugenvflag",
-      "community": 1,
+      "community": 4,
       "norm_label": "readdebugenvflag()"
     },
     {
@@ -2069,7 +2069,7 @@
       "source_file": "src/main/debug.ts",
       "source_location": "L15",
       "id": "main_debug_hasdebugflag",
-      "community": 1,
+      "community": 4,
       "norm_label": "hasdebugflag()"
     },
     {
@@ -2078,7 +2078,7 @@
       "source_file": "src/main/debug.ts",
       "source_location": "L19",
       "id": "main_debug_isdebugtelemetryenabled",
-      "community": 1,
+      "community": 4,
       "norm_label": "isdebugtelemetryenabled()"
     },
     {
@@ -2087,7 +2087,7 @@
       "source_file": "dist-electron/main/device/googleTvAdapter.js",
       "source_location": "L1",
       "id": "dist_electron_main_device_googletvadapter_js",
-      "community": 3,
+      "community": 1,
       "norm_label": "googletvadapter.js"
     },
     {
@@ -2096,7 +2096,7 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L38",
       "id": "device_googletvadapter_getlegacyuserdatapaths",
-      "community": 3,
+      "community": 1,
       "norm_label": "getlegacyuserdatapaths()"
     },
     {
@@ -2105,7 +2105,7 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L43",
       "id": "device_googletvadapter_googletvadapter",
-      "community": 3,
+      "community": 1,
       "norm_label": "googletvadapter"
     },
     {
@@ -2114,7 +2114,7 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L52",
       "id": "device_googletvadapter_googletvadapter_constructor",
-      "community": 1,
+      "community": 5,
       "norm_label": ".constructor()"
     },
     {
@@ -2123,7 +2123,7 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L70",
       "id": "device_googletvadapter_googletvadapter_listdevices",
-      "community": 3,
+      "community": 1,
       "norm_label": ".listdevices()"
     },
     {
@@ -2132,7 +2132,7 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L74",
       "id": "device_googletvadapter_googletvadapter_scanfordevices",
-      "community": 3,
+      "community": 1,
       "norm_label": ".scanfordevices()"
     },
     {
@@ -2141,7 +2141,7 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L87",
       "id": "device_googletvadapter_googletvadapter_rundevicescan",
-      "community": 3,
+      "community": 1,
       "norm_label": ".rundevicescan()"
     },
     {
@@ -2150,7 +2150,7 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L133",
       "id": "device_googletvadapter_googletvadapter_savedevice",
-      "community": 3,
+      "community": 1,
       "norm_label": ".savedevice()"
     },
     {
@@ -2159,7 +2159,7 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L152",
       "id": "device_googletvadapter_googletvadapter_removedevice",
-      "community": 3,
+      "community": 1,
       "norm_label": ".removedevice()"
     },
     {
@@ -2168,7 +2168,7 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L166",
       "id": "device_googletvadapter_googletvadapter_resetstate",
-      "community": 3,
+      "community": 1,
       "norm_label": ".resetstate()"
     },
     {
@@ -2177,7 +2177,7 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L186",
       "id": "device_googletvadapter_googletvadapter_pair",
-      "community": 3,
+      "community": 1,
       "norm_label": ".pair()"
     },
     {
@@ -2186,7 +2186,7 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L224",
       "id": "device_googletvadapter_googletvadapter_startpairing",
-      "community": 3,
+      "community": 1,
       "norm_label": ".startpairing()"
     },
     {
@@ -2195,7 +2195,7 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L271",
       "id": "device_googletvadapter_googletvadapter_connect",
-      "community": 3,
+      "community": 1,
       "norm_label": ".connect()"
     },
     {
@@ -2204,7 +2204,7 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L317",
       "id": "device_googletvadapter_googletvadapter_disconnect",
-      "community": 3,
+      "community": 1,
       "norm_label": ".disconnect()"
     },
     {
@@ -2213,7 +2213,7 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L338",
       "id": "device_googletvadapter_googletvadapter_sendcommand",
-      "community": 3,
+      "community": 1,
       "norm_label": ".sendcommand()"
     },
     {
@@ -2222,7 +2222,7 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L361",
       "id": "device_googletvadapter_googletvadapter_sendtext",
-      "community": 3,
+      "community": 1,
       "norm_label": ".sendtext()"
     },
     {
@@ -2231,7 +2231,7 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L373",
       "id": "device_googletvadapter_googletvadapter_startassistantvoice",
-      "community": 3,
+      "community": 1,
       "norm_label": ".startassistantvoice()"
     },
     {
@@ -2240,7 +2240,7 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L384",
       "id": "device_googletvadapter_googletvadapter_sendassistantvoicechunk",
-      "community": 3,
+      "community": 1,
       "norm_label": ".sendassistantvoicechunk()"
     },
     {
@@ -2249,7 +2249,7 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L399",
       "id": "device_googletvadapter_googletvadapter_stopassistantvoice",
-      "community": 3,
+      "community": 1,
       "norm_label": ".stopassistantvoice()"
     },
     {
@@ -2258,7 +2258,7 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L413",
       "id": "device_googletvadapter_googletvadapter_haspendingassistantvoicesession",
-      "community": 3,
+      "community": 1,
       "norm_label": ".haspendingassistantvoicesession()"
     },
     {
@@ -2267,7 +2267,7 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L424",
       "id": "device_googletvadapter_googletvadapter_getcapabilities",
-      "community": 3,
+      "community": 1,
       "norm_label": ".getcapabilities()"
     },
     {
@@ -2276,7 +2276,7 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L431",
       "id": "device_googletvadapter_googletvadapter_getbootstrapstate",
-      "community": 3,
+      "community": 1,
       "norm_label": ".getbootstrapstate()"
     },
     {
@@ -2645,7 +2645,7 @@
       "source_file": "dist-electron/main/device/store.js",
       "source_location": "L1",
       "id": "dist_electron_main_device_store_js",
-      "community": 3,
+      "community": 1,
       "norm_label": "store.js"
     },
     {
@@ -2654,7 +2654,7 @@
       "source_file": "src/main/device/store.ts",
       "source_location": "L14",
       "id": "device_store_getdevicestorepath",
-      "community": 3,
+      "community": 1,
       "norm_label": "getdevicestorepath()"
     },
     {
@@ -2663,7 +2663,7 @@
       "source_file": "src/main/device/store.ts",
       "source_location": "L18",
       "id": "device_store_readdevices",
-      "community": 3,
+      "community": 1,
       "norm_label": "readdevices()"
     },
     {
@@ -2672,7 +2672,7 @@
       "source_file": "src/main/device/store.ts",
       "source_location": "L22",
       "id": "device_store_writedevices",
-      "community": 3,
+      "community": 1,
       "norm_label": "writedevices()"
     },
     {
@@ -2681,7 +2681,7 @@
       "source_file": "src/main/device/store.ts",
       "source_location": "L26",
       "id": "device_store_cleardevicestore",
-      "community": 3,
+      "community": 1,
       "norm_label": "cleardevicestore()"
     },
     {
@@ -2807,7 +2807,7 @@
       "source_file": "scripts/render-homebrew-cask.mjs",
       "source_location": "L1",
       "id": "scripts_render_homebrew_cask_mjs",
-      "community": 21,
+      "community": 22,
       "norm_label": "render-homebrew-cask.mjs"
     },
     {
@@ -2816,7 +2816,7 @@
       "source_file": "scripts/render-homebrew-cask.mjs",
       "source_location": "L7",
       "id": "scripts_render_homebrew_cask_parseargs",
-      "community": 21,
+      "community": 22,
       "norm_label": "parseargs()"
     },
     {
@@ -2825,7 +2825,7 @@
       "source_file": "scripts/render-homebrew-cask.mjs",
       "source_location": "L31",
       "id": "scripts_render_homebrew_cask_requirearg",
-      "community": 21,
+      "community": 22,
       "norm_label": "requirearg()"
     },
     {
@@ -2834,7 +2834,7 @@
       "source_file": "scripts/render-homebrew-cask.mjs",
       "source_location": "L39",
       "id": "scripts_render_homebrew_cask_releaseasseturl",
-      "community": 21,
+      "community": 22,
       "norm_label": "releaseasseturl()"
     },
     {
@@ -2843,7 +2843,7 @@
       "source_file": "scripts/render-homebrew-cask.mjs",
       "source_location": "L44",
       "id": "scripts_render_homebrew_cask_rendercask",
-      "community": 21,
+      "community": 22,
       "norm_label": "rendercask()"
     },
     {
@@ -2915,7 +2915,7 @@
       "source_file": "scripts/reset-app-state.mjs",
       "source_location": "L1",
       "id": "scripts_reset_app_state_mjs",
-      "community": 22,
+      "community": 23,
       "norm_label": "reset-app-state.mjs"
     },
     {
@@ -2924,7 +2924,7 @@
       "source_file": "scripts/reset-app-state.mjs",
       "source_location": "L7",
       "id": "scripts_reset_app_state_getappdataroot",
-      "community": 22,
+      "community": 23,
       "norm_label": "getappdataroot()"
     },
     {
@@ -2933,7 +2933,7 @@
       "source_file": "scripts/reset-app-state.mjs",
       "source_location": "L18",
       "id": "scripts_reset_app_state_getresettargets",
-      "community": 22,
+      "community": 23,
       "norm_label": "getresettargets()"
     },
     {
@@ -2942,7 +2942,7 @@
       "source_file": "scripts/reset-app-state.mjs",
       "source_location": "L28",
       "id": "scripts_reset_app_state_removetarget",
-      "community": 22,
+      "community": 23,
       "norm_label": "removetarget()"
     },
     {
@@ -2951,7 +2951,7 @@
       "source_file": "scripts/reset-app-state.mjs",
       "source_location": "L51",
       "id": "scripts_reset_app_state_main",
-      "community": 22,
+      "community": 23,
       "norm_label": "main()"
     },
     {
@@ -2960,7 +2960,7 @@
       "source_file": "scripts/extract-fixtures.mjs",
       "source_location": "L1",
       "id": "scripts_extract_fixtures_mjs",
-      "community": 23,
+      "community": 24,
       "norm_label": "extract-fixtures.mjs"
     },
     {
@@ -2969,7 +2969,7 @@
       "source_file": "scripts/extract-fixtures.mjs",
       "source_location": "L32",
       "id": "scripts_extract_fixtures_findlatestcapture",
-      "community": 23,
+      "community": 24,
       "norm_label": "findlatestcapture()"
     },
     {
@@ -2978,7 +2978,7 @@
       "source_file": "scripts/extract-fixtures.mjs",
       "source_location": "L72",
       "id": "scripts_extract_fixtures_ensuredir",
-      "community": 23,
+      "community": 24,
       "norm_label": "ensuredir()"
     },
     {
@@ -2987,7 +2987,7 @@
       "source_file": "scripts/extract-fixtures.mjs",
       "source_location": "L76",
       "id": "scripts_extract_fixtures_writejson",
-      "community": 23,
+      "community": 24,
       "norm_label": "writejson()"
     },
     {
@@ -2996,7 +2996,7 @@
       "source_file": "scripts/extract-fixtures.mjs",
       "source_location": "L84",
       "id": "scripts_extract_fixtures_writebin",
-      "community": 23,
+      "community": 24,
       "norm_label": "writebin()"
     },
     {
@@ -3005,7 +3005,7 @@
       "source_file": "src/renderer/App.tsx",
       "source_location": "L1",
       "id": "src_renderer_app_tsx",
-      "community": 4,
+      "community": 3,
       "norm_label": "app.tsx"
     },
     {
@@ -3014,7 +3014,7 @@
       "source_file": "src/renderer/App.tsx",
       "source_location": "L64",
       "id": "renderer_app_getdesktopapi",
-      "community": 4,
+      "community": 3,
       "norm_label": "getdesktopapi()"
     },
     {
@@ -3023,7 +3023,7 @@
       "source_file": "src/renderer/App.tsx",
       "source_location": "L76",
       "id": "renderer_app_icon",
-      "community": 4,
+      "community": 3,
       "norm_label": "icon()"
     },
     {
@@ -3032,7 +3032,7 @@
       "source_file": "src/renderer/App.tsx",
       "source_location": "L352",
       "id": "renderer_app_finddiscoveredforsaved",
-      "community": 4,
+      "community": 3,
       "norm_label": "finddiscoveredforsaved()"
     },
     {
@@ -3041,7 +3041,7 @@
       "source_file": "src/renderer/App.tsx",
       "source_location": "L395",
       "id": "renderer_app_refreshstate",
-      "community": 4,
+      "community": 3,
       "norm_label": "refreshstate()"
     },
     {
@@ -3050,196 +3050,196 @@
       "source_file": "src/renderer/App.tsx",
       "source_location": "L402",
       "id": "renderer_app_apphandlescandevices",
-      "community": 4,
+      "community": 3,
       "norm_label": "apphandlescandevices()"
     },
     {
       "label": "initialize()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L454",
+      "source_location": "L459",
       "id": "renderer_app_initialize",
-      "community": 4,
+      "community": 3,
       "norm_label": "initialize()"
     },
     {
       "label": "syncUpdaterOnForeground()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L504",
+      "source_location": "L506",
       "id": "renderer_app_syncupdateronforeground",
-      "community": 4,
+      "community": 3,
       "norm_label": "syncupdateronforeground()"
     },
     {
       "label": "clearAssistantLongPressTimer()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L527",
+      "source_location": "L529",
       "id": "renderer_app_clearassistantlongpresstimer",
-      "community": 4,
+      "community": 3,
       "norm_label": "clearassistantlongpresstimer()"
     },
     {
       "label": "stopAssistantSession()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L534",
+      "source_location": "L536",
       "id": "renderer_app_stopassistantsession",
-      "community": 4,
+      "community": 3,
       "norm_label": "stopassistantsession()"
     },
     {
       "label": "startAssistantSession()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L610",
+      "source_location": "L612",
       "id": "renderer_app_startassistantsession",
-      "community": 4,
+      "community": 3,
       "norm_label": "startassistantsession()"
     },
     {
       "label": "onKeyDown()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L843",
+      "source_location": "L845",
       "id": "renderer_app_onkeydown",
-      "community": 4,
+      "community": 3,
       "norm_label": "onkeydown()"
     },
     {
       "label": "onKeyUp()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L906",
+      "source_location": "L908",
       "id": "renderer_app_onkeyup",
-      "community": 4,
+      "community": 3,
       "norm_label": "onkeyup()"
     },
     {
       "label": "saveDiscoveredDevice()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L930",
+      "source_location": "L932",
       "id": "renderer_app_savediscovereddevice",
-      "community": 4,
+      "community": 3,
       "norm_label": "savediscovereddevice()"
     },
     {
       "label": "startPairingFlow()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L957",
+      "source_location": "L963",
       "id": "renderer_app_startpairingflow",
-      "community": 4,
+      "community": 3,
       "norm_label": "startpairingflow()"
     },
     {
       "label": "handleSelectSavedDevice()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L965",
+      "source_location": "L971",
       "id": "renderer_app_handleselectsaveddevice",
-      "community": 4,
+      "community": 3,
       "norm_label": "handleselectsaveddevice()"
     },
     {
       "label": "handleSelectDiscoveredDevice()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L980",
+      "source_location": "L986",
       "id": "renderer_app_handleselectdiscovereddevice",
-      "community": 4,
+      "community": 3,
       "norm_label": "handleselectdiscovereddevice()"
     },
     {
       "label": "handlePair()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L1003",
+      "source_location": "L1009",
       "id": "renderer_app_handlepair",
-      "community": 4,
+      "community": 3,
       "norm_label": "handlepair()"
     },
     {
       "label": "handleConnect()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L1048",
+      "source_location": "L1054",
       "id": "renderer_app_handleconnect",
-      "community": 4,
+      "community": 3,
       "norm_label": "handleconnect()"
     },
     {
       "label": "handleDisconnect()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L1067",
+      "source_location": "L1073",
       "id": "renderer_app_handledisconnect",
-      "community": 4,
+      "community": 3,
       "norm_label": "handledisconnect()"
     },
     {
       "label": "handleSendText()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L1087",
+      "source_location": "L1093",
       "id": "renderer_app_handlesendtext",
-      "community": 4,
+      "community": 3,
       "norm_label": "handlesendtext()"
     },
     {
       "label": "handleRemove()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L1118",
+      "source_location": "L1124",
       "id": "renderer_app_handleremove",
-      "community": 4,
+      "community": 3,
       "norm_label": "handleremove()"
     },
     {
       "label": "handleResetState()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L1140",
+      "source_location": "L1146",
       "id": "renderer_app_handleresetstate",
-      "community": 4,
+      "community": 3,
       "norm_label": "handleresetstate()"
     },
     {
       "label": "handleInstallUpdate()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L1176",
+      "source_location": "L1182",
       "id": "renderer_app_handleinstallupdate",
-      "community": 4,
+      "community": 3,
       "norm_label": "handleinstallupdate()"
     },
     {
       "label": "handleRollbackUpdate()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L1190",
+      "source_location": "L1196",
       "id": "renderer_app_handlerollbackupdate",
-      "community": 4,
+      "community": 3,
       "norm_label": "handlerollbackupdate()"
     },
     {
       "label": "openDevicePicker()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L1204",
+      "source_location": "L1210",
       "id": "renderer_app_opendevicepicker",
-      "community": 4,
+      "community": 3,
       "norm_label": "opendevicepicker()"
     },
     {
       "label": "renderStatusLabel()",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L1211",
+      "source_location": "L1217",
       "id": "renderer_app_renderstatuslabel",
-      "community": 4,
+      "community": 3,
       "norm_label": "renderstatuslabel()"
     },
     {
@@ -3392,43 +3392,52 @@
       "source_file": "src/renderer/lib/deviceSelection.ts",
       "source_location": "L1",
       "id": "src_renderer_lib_deviceselection_ts",
-      "community": 24,
+      "community": 18,
       "norm_label": "deviceselection.ts"
+    },
+    {
+      "label": "findUniqueFingerprintMatch()",
+      "file_type": "code",
+      "source_file": "src/renderer/lib/deviceSelection.ts",
+      "source_location": "L10",
+      "id": "lib_deviceselection_finduniquefingerprintmatch",
+      "community": 18,
+      "norm_label": "finduniquefingerprintmatch()"
     },
     {
       "label": "findDiscoveredForSaved()",
       "file_type": "code",
       "source_file": "src/renderer/lib/deviceSelection.ts",
-      "source_location": "L30",
+      "source_location": "L44",
       "id": "lib_deviceselection_finddiscoveredforsaved",
-      "community": 24,
+      "community": 18,
       "norm_label": "finddiscoveredforsaved()"
     },
     {
       "label": "derivePairedNetworkDevices()",
       "file_type": "code",
       "source_file": "src/renderer/lib/deviceSelection.ts",
-      "source_location": "L47",
+      "source_location": "L81",
       "id": "lib_deviceselection_derivepairednetworkdevices",
-      "community": 24,
+      "community": 18,
       "norm_label": "derivepairednetworkdevices()"
     },
     {
       "label": "deriveUnpairedNetworkDevices()",
       "file_type": "code",
       "source_file": "src/renderer/lib/deviceSelection.ts",
-      "source_location": "L67",
+      "source_location": "L101",
       "id": "lib_deviceselection_deriveunpairednetworkdevices",
-      "community": 24,
+      "community": 18,
       "norm_label": "deriveunpairednetworkdevices()"
     },
     {
       "label": "resolveSelectedDevice()",
       "file_type": "code",
       "source_file": "src/renderer/lib/deviceSelection.ts",
-      "source_location": "L95",
+      "source_location": "L126",
       "id": "lib_deviceselection_resolveselecteddevice",
-      "community": 24,
+      "community": 18,
       "norm_label": "resolveselecteddevice()"
     },
     {
@@ -3437,7 +3446,7 @@
       "source_file": "src/renderer/lib/pure.ts",
       "source_location": "L1",
       "id": "src_renderer_lib_pure_ts",
-      "community": 4,
+      "community": 3,
       "norm_label": "pure.ts"
     },
     {
@@ -3446,7 +3455,7 @@
       "source_file": "src/renderer/lib/pure.ts",
       "source_location": "L24",
       "id": "lib_pure_iseditabletarget",
-      "community": 4,
+      "community": 3,
       "norm_label": "iseditabletarget()"
     },
     {
@@ -3455,7 +3464,7 @@
       "source_file": "src/renderer/lib/pure.ts",
       "source_location": "L38",
       "id": "lib_pure_sanitizepaircode",
-      "community": 4,
+      "community": 3,
       "norm_label": "sanitizepaircode()"
     },
     {
@@ -3464,7 +3473,7 @@
       "source_file": "src/renderer/lib/pure.ts",
       "source_location": "L49",
       "id": "lib_pure_classes",
-      "community": 4,
+      "community": 3,
       "norm_label": "classes()"
     },
     {
@@ -3473,7 +3482,7 @@
       "source_file": "src/renderer/lib/pure.ts",
       "source_location": "L60",
       "id": "lib_pure_shouldrestartpairingflow",
-      "community": 4,
+      "community": 3,
       "norm_label": "shouldrestartpairingflow()"
     },
     {
@@ -3518,7 +3527,7 @@
       "source_file": "src/backend/metrics/IMetricsRecorder.ts",
       "source_location": "L1",
       "id": "src_backend_metrics_imetricsrecorder_ts",
-      "community": 1,
+      "community": 21,
       "norm_label": "imetricsrecorder.ts"
     },
     {
@@ -3545,7 +3554,7 @@
       "source_file": "src/backend/transport/tls/framedTlsTransport.ts",
       "source_location": "L1",
       "id": "src_backend_transport_tls_framedtlstransport_ts",
-      "community": 25,
+      "community": 26,
       "norm_label": "framedtlstransport.ts"
     },
     {
@@ -3581,7 +3590,7 @@
       "source_file": "src/backend/transport/framing/frameParser.ts",
       "source_location": "L1",
       "id": "src_backend_transport_framing_frameparser_ts",
-      "community": 26,
+      "community": 25,
       "norm_label": "frameparser.ts"
     },
     {
@@ -3626,7 +3635,7 @@
       "source_file": "src/backend/core/runtimeConfig.ts",
       "source_location": "L1",
       "id": "src_backend_core_runtimeconfig_ts",
-      "community": 18,
+      "community": 15,
       "norm_label": "runtimeconfig.ts"
     },
     {
@@ -3662,7 +3671,7 @@
       "source_file": "src/backend/core/clock.ts",
       "source_location": "L1",
       "id": "src_backend_core_clock_ts",
-      "community": 1,
+      "community": 5,
       "norm_label": "clock.ts"
     },
     {
@@ -3923,7 +3932,7 @@
       "source_file": "src/backend/devices/deviceRegistry.ts",
       "source_location": "L1",
       "id": "src_backend_devices_deviceregistry_ts",
-      "community": 15,
+      "community": 1,
       "norm_label": "deviceregistry.ts"
     },
     {
@@ -4076,7 +4085,7 @@
       "source_file": "src/main/debug.ts",
       "source_location": "L1",
       "id": "src_main_debug_ts",
-      "community": 1,
+      "community": 4,
       "norm_label": "debug.ts"
     },
     {
@@ -4103,7 +4112,7 @@
       "source_file": "src/main/logger.ts",
       "source_location": "L1",
       "id": "src_main_logger_ts",
-      "community": 3,
+      "community": 1,
       "norm_label": "logger.ts"
     },
     {
@@ -4121,7 +4130,7 @@
       "source_file": "src/main/metrics.ts",
       "source_location": "L1",
       "id": "src_main_metrics_ts",
-      "community": 1,
+      "community": 4,
       "norm_label": "metrics.ts"
     },
     {
@@ -4139,7 +4148,7 @@
       "source_file": "src/main/device/googleTvAdapter.ts",
       "source_location": "L1",
       "id": "src_main_device_googletvadapter_ts",
-      "community": 3,
+      "community": 1,
       "norm_label": "googletvadapter.ts"
     },
     {
@@ -4166,7 +4175,7 @@
       "source_file": "src/main/device/store.ts",
       "source_location": "L1",
       "id": "src_main_device_store_ts",
-      "community": 3,
+      "community": 1,
       "norm_label": "store.ts"
     },
     {
@@ -12714,7 +12723,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L454",
+      "source_location": "L459",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_initialize",
@@ -12726,7 +12735,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L504",
+      "source_location": "L506",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_syncupdateronforeground",
@@ -12738,7 +12747,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L527",
+      "source_location": "L529",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_clearassistantlongpresstimer",
@@ -12750,7 +12759,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L534",
+      "source_location": "L536",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_stopassistantsession",
@@ -12762,7 +12771,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L610",
+      "source_location": "L612",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_startassistantsession",
@@ -12774,7 +12783,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L843",
+      "source_location": "L845",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_onkeydown",
@@ -12786,7 +12795,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L906",
+      "source_location": "L908",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_onkeyup",
@@ -12798,7 +12807,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L930",
+      "source_location": "L932",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_savediscovereddevice",
@@ -12810,7 +12819,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L957",
+      "source_location": "L963",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_startpairingflow",
@@ -12822,7 +12831,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L965",
+      "source_location": "L971",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_handleselectsaveddevice",
@@ -12834,7 +12843,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L980",
+      "source_location": "L986",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_handleselectdiscovereddevice",
@@ -12846,7 +12855,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L1003",
+      "source_location": "L1009",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_handlepair",
@@ -12858,7 +12867,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L1048",
+      "source_location": "L1054",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_handleconnect",
@@ -12870,7 +12879,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L1067",
+      "source_location": "L1073",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_handledisconnect",
@@ -12882,7 +12891,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L1087",
+      "source_location": "L1093",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_handlesendtext",
@@ -12894,7 +12903,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L1118",
+      "source_location": "L1124",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_handleremove",
@@ -12906,7 +12915,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L1140",
+      "source_location": "L1146",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_handleresetstate",
@@ -12918,7 +12927,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L1176",
+      "source_location": "L1182",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_handleinstallupdate",
@@ -12930,7 +12939,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L1190",
+      "source_location": "L1196",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_handlerollbackupdate",
@@ -12942,7 +12951,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L1204",
+      "source_location": "L1210",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_opendevicepicker",
@@ -12954,7 +12963,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L1211",
+      "source_location": "L1217",
       "weight": 1.0,
       "_src": "src_renderer_app_tsx",
       "_tgt": "renderer_app_renderstatuslabel",
@@ -12978,7 +12987,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L458",
+      "source_location": "L463",
       "weight": 1.0,
       "_src": "renderer_app_initialize",
       "_tgt": "renderer_app_getdesktopapi",
@@ -12990,7 +12999,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L589",
+      "source_location": "L591",
       "weight": 1.0,
       "_src": "renderer_app_stopassistantsession",
       "_tgt": "renderer_app_getdesktopapi",
@@ -13002,7 +13011,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L744",
+      "source_location": "L746",
       "weight": 1.0,
       "_src": "renderer_app_startassistantsession",
       "_tgt": "renderer_app_getdesktopapi",
@@ -13014,7 +13023,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L931",
+      "source_location": "L933",
       "weight": 1.0,
       "_src": "renderer_app_savediscovereddevice",
       "_tgt": "renderer_app_getdesktopapi",
@@ -13026,7 +13035,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L958",
+      "source_location": "L964",
       "weight": 1.0,
       "_src": "renderer_app_startpairingflow",
       "_tgt": "renderer_app_getdesktopapi",
@@ -13038,7 +13047,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L1015",
+      "source_location": "L1021",
       "weight": 1.0,
       "_src": "renderer_app_handlepair",
       "_tgt": "renderer_app_getdesktopapi",
@@ -13050,7 +13059,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L1051",
+      "source_location": "L1057",
       "weight": 1.0,
       "_src": "renderer_app_handleconnect",
       "_tgt": "renderer_app_getdesktopapi",
@@ -13062,7 +13071,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L1070",
+      "source_location": "L1076",
       "weight": 1.0,
       "_src": "renderer_app_handledisconnect",
       "_tgt": "renderer_app_getdesktopapi",
@@ -13074,7 +13083,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L1094",
+      "source_location": "L1100",
       "weight": 1.0,
       "_src": "renderer_app_handlesendtext",
       "_tgt": "renderer_app_getdesktopapi",
@@ -13086,7 +13095,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L1121",
+      "source_location": "L1127",
       "weight": 1.0,
       "_src": "renderer_app_handleremove",
       "_tgt": "renderer_app_getdesktopapi",
@@ -13098,7 +13107,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L1150",
+      "source_location": "L1156",
       "weight": 1.0,
       "_src": "renderer_app_handleresetstate",
       "_tgt": "renderer_app_getdesktopapi",
@@ -13110,7 +13119,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L1178",
+      "source_location": "L1184",
       "weight": 1.0,
       "_src": "renderer_app_handleinstallupdate",
       "_tgt": "renderer_app_getdesktopapi",
@@ -13122,7 +13131,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L1192",
+      "source_location": "L1198",
       "weight": 1.0,
       "_src": "renderer_app_handlerollbackupdate",
       "_tgt": "renderer_app_getdesktopapi",
@@ -13134,7 +13143,19 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L457",
+      "source_location": "L408",
+      "weight": 1.0,
+      "_src": "renderer_app_apphandlescandevices",
+      "_tgt": "renderer_app_refreshstate",
+      "source": "renderer_app_refreshstate",
+      "target": "renderer_app_apphandlescandevices",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/renderer/App.tsx",
+      "source_location": "L462",
       "weight": 1.0,
       "_src": "renderer_app_initialize",
       "_tgt": "renderer_app_refreshstate",
@@ -13146,7 +13167,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L465",
+      "source_location": "L470",
       "weight": 1.0,
       "_src": "renderer_app_initialize",
       "_tgt": "renderer_app_apphandlescandevices",
@@ -13158,7 +13179,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L535",
+      "source_location": "L537",
       "weight": 1.0,
       "_src": "renderer_app_stopassistantsession",
       "_tgt": "renderer_app_clearassistantlongpresstimer",
@@ -13170,7 +13191,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L778",
+      "source_location": "L780",
       "weight": 1.0,
       "_src": "renderer_app_startassistantsession",
       "_tgt": "renderer_app_stopassistantsession",
@@ -13182,7 +13203,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L858",
+      "source_location": "L860",
       "weight": 1.0,
       "_src": "renderer_app_onkeydown",
       "_tgt": "renderer_app_stopassistantsession",
@@ -13194,7 +13215,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L916",
+      "source_location": "L918",
       "weight": 1.0,
       "_src": "renderer_app_onkeyup",
       "_tgt": "renderer_app_stopassistantsession",
@@ -13206,7 +13227,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L879",
+      "source_location": "L881",
       "weight": 1.0,
       "_src": "renderer_app_onkeydown",
       "_tgt": "renderer_app_startassistantsession",
@@ -13242,7 +13263,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L986",
+      "source_location": "L992",
       "weight": 1.0,
       "_src": "renderer_app_handleselectdiscovereddevice",
       "_tgt": "renderer_app_savediscovereddevice",
@@ -13254,7 +13275,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L987",
+      "source_location": "L993",
       "weight": 1.0,
       "_src": "renderer_app_handleselectdiscovereddevice",
       "_tgt": "renderer_app_startpairingflow",
@@ -13266,7 +13287,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/App.tsx",
-      "source_location": "L977",
+      "source_location": "L983",
       "weight": 1.0,
       "_src": "renderer_app_handleselectsaveddevice",
       "_tgt": "renderer_app_handleconnect",
@@ -13362,7 +13383,19 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/lib/deviceSelection.ts",
-      "source_location": "L30",
+      "source_location": "L10",
+      "weight": 1.0,
+      "_src": "src_renderer_lib_deviceselection_ts",
+      "_tgt": "lib_deviceselection_finduniquefingerprintmatch",
+      "source": "src_renderer_lib_deviceselection_ts",
+      "target": "lib_deviceselection_finduniquefingerprintmatch",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/renderer/lib/deviceSelection.ts",
+      "source_location": "L44",
       "weight": 1.0,
       "_src": "src_renderer_lib_deviceselection_ts",
       "_tgt": "lib_deviceselection_finddiscoveredforsaved",
@@ -13374,7 +13407,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/lib/deviceSelection.ts",
-      "source_location": "L47",
+      "source_location": "L81",
       "weight": 1.0,
       "_src": "src_renderer_lib_deviceselection_ts",
       "_tgt": "lib_deviceselection_derivepairednetworkdevices",
@@ -13386,7 +13419,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/lib/deviceSelection.ts",
-      "source_location": "L67",
+      "source_location": "L101",
       "weight": 1.0,
       "_src": "src_renderer_lib_deviceselection_ts",
       "_tgt": "lib_deviceselection_deriveunpairednetworkdevices",
@@ -13398,12 +13431,24 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/renderer/lib/deviceSelection.ts",
-      "source_location": "L95",
+      "source_location": "L126",
       "weight": 1.0,
       "_src": "src_renderer_lib_deviceselection_ts",
       "_tgt": "lib_deviceselection_resolveselecteddevice",
       "source": "src_renderer_lib_deviceselection_ts",
       "target": "lib_deviceselection_resolveselecteddevice",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/renderer/lib/deviceSelection.ts",
+      "source_location": "L70",
+      "weight": 1.0,
+      "_src": "lib_deviceselection_finddiscoveredforsaved",
+      "_tgt": "lib_deviceselection_finduniquefingerprintmatch",
+      "source": "lib_deviceselection_finduniquefingerprintmatch",
+      "target": "lib_deviceselection_finddiscoveredforsaved",
       "confidence_score": 1.0
     },
     {

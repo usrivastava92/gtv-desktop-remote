@@ -60,6 +60,42 @@ describe('findDiscoveredForSaved', () => {
     expect(findDiscoveredForSaved(s, pool)).toBeUndefined();
   });
 
+  it('matches by cast device id before falling back to host', () => {
+    const s = saved({ host: '192.168.1.99', castDeviceId: 'cast-123' });
+    const pool: DiscoveredDevice[] = [
+      discovered({ id: 'disc-X', host: '192.168.1.42', castDeviceId: 'cast-123' }),
+      discovered({ id: 'disc-Y', host: '192.168.1.99', castDeviceId: 'cast-456' }),
+    ];
+    expect(findDiscoveredForSaved(s, pool)?.id).toBe('disc-X');
+  });
+
+  it('matches by network host name before falling back to host', () => {
+    const s = saved({ host: '192.168.1.99', networkHostName: 'bedroom-tv.local' });
+    const pool: DiscoveredDevice[] = [
+      discovered({ id: 'disc-X', host: '192.168.1.42', networkHostName: 'bedroom-tv.local' }),
+      discovered({ id: 'disc-Y', host: '192.168.1.99', networkHostName: 'other-tv.local' }),
+    ];
+    expect(findDiscoveredForSaved(s, pool)?.id).toBe('disc-X');
+  });
+
+  it('matches by unique device fingerprint before falling back to host', () => {
+    const s = saved({ host: '192.168.1.99', deviceFingerprint: 'fp-123' });
+    const pool: DiscoveredDevice[] = [
+      discovered({ id: 'disc-X', host: '192.168.1.42', deviceFingerprint: 'fp-123' }),
+      discovered({ id: 'disc-Y', host: '192.168.1.99', deviceFingerprint: 'fp-456' }),
+    ];
+    expect(findDiscoveredForSaved(s, pool)?.id).toBe('disc-X');
+  });
+
+  it('does not match by ambiguous device fingerprint', () => {
+    const s = saved({ host: '192.168.1.99', deviceFingerprint: 'fp-123' });
+    const pool: DiscoveredDevice[] = [
+      discovered({ id: 'disc-X', host: '192.168.1.42', deviceFingerprint: 'fp-123' }),
+      discovered({ id: 'disc-Y', host: '192.168.1.43', deviceFingerprint: 'fp-123' }),
+    ];
+    expect(findDiscoveredForSaved(s, pool)).toBeUndefined();
+  });
+
   it('returns undefined for empty discovery pool', () => {
     expect(findDiscoveredForSaved(saved(), [])).toBeUndefined();
   });
@@ -127,6 +163,37 @@ describe('deriveUnpairedNetworkDevices', () => {
         // Same MAC, different IP — should still be filtered out:
         discovered({ id: 'd1', host: '192.168.1.42', macAddress: 'aa:bb:cc:dd:ee:ff' }),
       ]
+    );
+    expect(list).toEqual([]);
+  });
+
+  it('omits discovered devices that match a paired-saved device by cast device id', () => {
+    const list = deriveUnpairedNetworkDevices(
+      [saved({ id: 's1', host: '192.168.1.99', castDeviceId: 'cast-123', isPaired: true })],
+      [discovered({ id: 'd1', host: '192.168.1.42', castDeviceId: 'cast-123' })]
+    );
+    expect(list).toEqual([]);
+  });
+
+  it('omits discovered devices that match a paired-saved device by network host name', () => {
+    const list = deriveUnpairedNetworkDevices(
+      [
+        saved({
+          id: 's1',
+          host: '192.168.1.99',
+          networkHostName: 'bedroom-tv.local',
+          isPaired: true,
+        }),
+      ],
+      [discovered({ id: 'd1', host: '192.168.1.42', networkHostName: 'bedroom-tv.local' })]
+    );
+    expect(list).toEqual([]);
+  });
+
+  it('omits discovered devices that match a paired-saved device by unique fingerprint', () => {
+    const list = deriveUnpairedNetworkDevices(
+      [saved({ id: 's1', host: '192.168.1.99', deviceFingerprint: 'fp-123', isPaired: true })],
+      [discovered({ id: 'd1', host: '192.168.1.42', deviceFingerprint: 'fp-123' })]
     );
     expect(list).toEqual([]);
   });

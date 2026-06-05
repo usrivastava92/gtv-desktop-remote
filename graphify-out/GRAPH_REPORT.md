@@ -1,11 +1,11 @@
 # Graph Report - gtv-desktop-remote  (2026-06-05)
 
 ## Corpus Check
-- 116 files · ~85,120 words
+- 116 files · ~85,538 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 481 nodes · 782 edges · 42 communities detected
+- 482 nodes · 785 edges · 43 communities detected
 - Extraction: 88% EXTRACTED · 12% INFERRED · 0% AMBIGUOUS · INFERRED: 94 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
@@ -33,6 +33,7 @@
 - [[_COMMUNITY_Community 21|Community 21]]
 - [[_COMMUNITY_Community 22|Community 22]]
 - [[_COMMUNITY_Community 23|Community 23]]
+- [[_COMMUNITY_Community 24|Community 24]]
 - [[_COMMUNITY_Community 25|Community 25]]
 - [[_COMMUNITY_Community 26|Community 26]]
 - [[_COMMUNITY_Community 27|Community 27]]
@@ -70,12 +71,12 @@
   README.md → scripts/reset-app-state.mjs
 - `Favicon SVG - Google TV Remote Outlined Icon` --semantically_similar_to--> `GTV Remote Icon SVG - Google TV Remote Streamline Outlined Material Icon`  [EXTRACTED] [semantically similar]
   public/favicon.svg → assets/icons/gtv-remote-icon.svg
-- `applyUpdaterEvent()` --calls--> `dispatchUpdaterEvent()`  [INFERRED]
-  src/backend/updater/updaterStatus.ts → src/main/updater.ts
-- `subscribeUpdaterStatus()` --calls--> `createWindow()`  [INFERRED]
-  src/main/updater.ts → src/main/main.ts
-- `publishUpdaterStatus()` --calls--> `logError()`  [INFERRED]
-  src/main/updater.ts → src/main/logger.ts
+- `createEmptyMetricsSnapshot()` --calls--> `createEmptySnapshot()`  [INFERRED]
+  src/backend/metrics/IMetricsRecorder.ts → src/main/metrics.ts
+- `getRuntimeConfig()` --calls--> `installMacUpdateFromZip()`  [INFERRED]
+  src/backend/core/runtimeConfig.ts → src/main/updater.ts
+- `getRuntimeConfig()` --calls--> `checkForMacUpdate()`  [INFERRED]
+  src/backend/core/runtimeConfig.ts → src/main/updater.ts
 
 ## Hyperedges (group relationships)
 - **Command Dispatch Pipeline** — app_handlecommand, app_enqueuecommand, app_flushqueuedcommands, app_gtvremote_bridge [INFERRED 0.90]
@@ -89,24 +90,24 @@ Cohesion: 0.09
 Nodes (14): AndroidTvRemoteBridge, createAndroidTvRemoteBridge(), LibretvGoogleRemoteClient, loadLibretvGoogle(), isCertificateRejectedError(), normalizeRemoteError(), toError(), captureIpc() (+6 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.07
-Nodes (12): createFakeClock(), createSystemClock(), hasDebugFlag(), isDebugTelemetryEnabled(), readDebugEnvFlag(), createCommandMetricsStore(), createEmptySnapshot(), createTransportSnapshot() (+4 more)
+Cohesion: 0.09
+Nodes (18): getLegacyUserDataPaths(), GoogleTvAdapter, clearDeviceStore(), getDeviceStorePath(), readDevices(), writeDevices(), findExistingForDraft(), identityChanged() (+10 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.18
-Nodes (34): getRuntimeConfig(), getAppDataPath(), checkForMacUpdate(), checkForUpdatesInBackground(), checkForUpdatesManually(), clearRollbackBackup(), createRollbackBackup(), dispatchUpdaterEvent() (+26 more)
+Nodes (34): getAppDataPath(), logError(), checkForMacUpdate(), checkForUpdatesInBackground(), checkForUpdatesManually(), clearRollbackBackup(), createRollbackBackup(), dispatchUpdaterEvent() (+26 more)
 
 ### Community 3 - "Community 3"
 Cohesion: 0.12
-Nodes (14): getLegacyUserDataPaths(), GoogleTvAdapter, clearDeviceStore(), getDeviceStorePath(), readDevices(), writeDevices(), createNodeLogger(), getLoggerPath() (+6 more)
-
-### Community 4 - "Community 4"
-Cohesion: 0.11
 Nodes (23): isEditableTarget(), shouldRestartPairingFlow(), appHandleScanDevices(), clearAssistantLongPressTimer(), getDesktopApi(), handleConnect(), handleDisconnect(), handleInstallUpdate() (+15 more)
 
+### Community 4 - "Community 4"
+Cohesion: 0.12
+Nodes (7): hasDebugFlag(), isDebugTelemetryEnabled(), readDebugEnvFlag(), CommandMetricsStore, createCommandMetricsStore(), createEmptySnapshot(), createTransportSnapshot()
+
 ### Community 5 - "Community 5"
-Cohesion: 0.21
-Nodes (1): CommandMetricsStore
+Cohesion: 0.1
+Nodes (3): createFakeClock(), createSystemClock(), NoopCommandMetricsStore
 
 ### Community 6 - "Community 6"
 Cohesion: 0.27
@@ -145,16 +146,16 @@ Cohesion: 0.29
 Nodes (8): Favicon 16x16 - GTV Remote, Favicon 32x32 - GTV Remote, Favicon SVG - Google TV Remote Outlined Icon, GTV Remote Icon 512px - Small Remote Control Icon (black outline), GTV Remote Icon SVG - Google TV Remote Streamline Outlined Material Icon, Menubar Icon White - White Remote Control Icon for macOS Menu Bar, Taskbar Icon Black - Monochrome Remote Control Icon, Taskbar Icon - Google TV Remote App Icon (Color, macOS style)
 
 ### Community 15 - "Community 15"
-Cohesion: 0.48
-Nodes (5): findExistingForDraft(), identityChanged(), matchSavedToDiscovered(), mergeIdentity(), normalizeDraft()
+Cohesion: 0.52
+Nodes (5): createNodeRuntimeConfig(), createRuntimeConfig(), getRuntimeConfig(), resetRuntimeConfig(), setRuntimeConfig()
 
 ### Community 17 - "Community 17"
 Cohesion: 0.33
 Nodes (1): createInMemoryLogger()
 
 ### Community 18 - "Community 18"
-Cohesion: 0.53
-Nodes (4): createNodeRuntimeConfig(), createRuntimeConfig(), resetRuntimeConfig(), setRuntimeConfig()
+Cohesion: 0.4
+Nodes (2): findDiscoveredForSaved(), findUniqueFingerprintMatch()
 
 ### Community 19 - "Community 19"
 Cohesion: 0.7
@@ -165,24 +166,28 @@ Cohesion: 0.7
 Nodes (3): convertFloat32ToPcm16(), downsampleTo8kMono(), toBase64()
 
 ### Community 21 - "Community 21"
+Cohesion: 0.7
+Nodes (3): createEmptyMetricsCounters(), createEmptyMetricsSnapshot(), createSilentMetricsRecorder()
+
+### Community 22 - "Community 22"
 Cohesion: 0.5
 Nodes (2): releaseAssetUrl(), renderCask()
 
-### Community 22 - "Community 22"
+### Community 23 - "Community 23"
 Cohesion: 0.7
 Nodes (4): getAppDataRoot(), getResetTargets(), main(), removeTarget()
 
-### Community 23 - "Community 23"
+### Community 24 - "Community 24"
 Cohesion: 0.6
 Nodes (3): ensureDir(), writeBin(), writeJson()
 
 ### Community 25 - "Community 25"
-Cohesion: 0.67
-Nodes (2): createFakeFramedTlsTransport(), createFramedTlsTransportOverSocket()
-
-### Community 26 - "Community 26"
 Cohesion: 0.83
 Nodes (2): decodeVarintHeader(), parseFramedBuffer()
+
+### Community 26 - "Community 26"
+Cohesion: 0.67
+Nodes (2): createFakeFramedTlsTransport(), createFramedTlsTransportOverSocket()
 
 ### Community 27 - "Community 27"
 Cohesion: 0.67
@@ -255,8 +260,6 @@ Nodes (1): graphify knowledge graph config
 ## Knowledge Gaps
 - **17 isolated node(s):** `GTV Desktop Remote`, `Network Scan`, `Encrypted Pairing Protocol`, `Keyboard Control`, `Global Shortcut CmdOrCtrl+Shift+G` (+12 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **Thin community `Community 5`** (21 nodes): `CommandMetricsStore`, `.detectStalls()`, `.ensureCommand()`, `.getSnapshot()`, `.logMetric()`, `.pushWarning()`, `.recordAdapterDispatchCompleted()`, `.recordAdapterDispatchStart()`, `.recordBridgeSendStart()`, `.recordCommandFailed()`, `.recordCommandSucceeded()`, `.recordConnectCompleted()`, `.recordConnectFailed()`, `.recordConnectStarted()`, `.recordInboundMessage()`, `.recordIpcReceived()`, `.recordRendererDrop()`, `.recordSocketClosed()`, `.recordSocketDrain()`, `.recordSocketWrite()`, `.trimCommands()`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 10`** (9 nodes): `VoiceSessionService.js`, `VoiceSessionService.ts`, `VoiceSessionService`, `.constructor()`, `.hasPending()`, `.sendChunk()`, `.start()`, `.stop()`, `._trackedSessions()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 11`** (9 nodes): `AppFacade`, `.constructor()`, `.getVoiceSessionService()`, `.listDevices()`, `.writeDevices()`, `InMemoryPathProvider`, `.constructor()`, `.getAppDataPath()`, `AppFacade.ts`
@@ -267,11 +270,13 @@ Nodes (1): graphify knowledge graph config
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 17`** (6 nodes): `createInMemoryLogger()`, `error()`, `info()`, `warn()`, `logger.js`, `logger.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 21`** (5 nodes): `render-homebrew-cask.mjs`, `parseArgs()`, `releaseAssetUrl()`, `renderCask()`, `requireArg()`
+- **Thin community `Community 18`** (6 nodes): `derivePairedNetworkDevices()`, `deriveUnpairedNetworkDevices()`, `findDiscoveredForSaved()`, `findUniqueFingerprintMatch()`, `resolveSelectedDevice()`, `deviceSelection.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 25`** (4 nodes): `framedTlsTransport.js`, `framedTlsTransport.ts`, `createFakeFramedTlsTransport()`, `createFramedTlsTransportOverSocket()`
+- **Thin community `Community 22`** (5 nodes): `render-homebrew-cask.mjs`, `parseArgs()`, `releaseAssetUrl()`, `renderCask()`, `requireArg()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 26`** (4 nodes): `frameParser.js`, `decodeVarintHeader()`, `parseFramedBuffer()`, `frameParser.ts`
+- **Thin community `Community 25`** (4 nodes): `frameParser.js`, `decodeVarintHeader()`, `parseFramedBuffer()`, `frameParser.ts`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 26`** (4 nodes): `framedTlsTransport.js`, `framedTlsTransport.ts`, `createFakeFramedTlsTransport()`, `createFramedTlsTransportOverSocket()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 27`** (4 nodes): `frameParser.test.ts`, `encodeVarint()`, `expectBuffer()`, `frame()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
@@ -311,11 +316,11 @@ Nodes (1): graphify knowledge graph config
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `logInfo()` connect `Community 3` to `Community 2`, `Community 5`, `Community 6`?**
-  _High betweenness centrality (0.117) - this node is a cross-community bridge._
-- **Why does `CommandMetricsStore` connect `Community 5` to `Community 1`?**
-  _High betweenness centrality (0.057) - this node is a cross-community bridge._
-- **Why does `discoverGoogleTvDevices()` connect `Community 9` to `Community 0`, `Community 3`?**
+- **Why does `logInfo()` connect `Community 1` to `Community 2`, `Community 4`, `Community 6`?**
+  _High betweenness centrality (0.116) - this node is a cross-community bridge._
+- **Why does `CommandMetricsStore` connect `Community 4` to `Community 5`?**
+  _High betweenness centrality (0.056) - this node is a cross-community bridge._
+- **Why does `discoverGoogleTvDevices()` connect `Community 9` to `Community 0`, `Community 1`?**
   _High betweenness centrality (0.052) - this node is a cross-community bridge._
 - **Are the 16 inferred relationships involving `logInfo()` (e.g. with `bootstrapApp()` and `recoverOrphanedRollbackState()`) actually correct?**
   _`logInfo()` has 16 INFERRED edges - model-reasoned connections that need verification._
@@ -324,4 +329,4 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.09 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.07 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.09 - nodes in this community are weakly interconnected._

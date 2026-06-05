@@ -401,13 +401,14 @@ function App() {
   // Wrapped handleScanDevices from the hook to add App-level state updates
   const appHandleScanDevices = async (
     silent = false,
-    devicesSource: SavedDevice[] = bootstrap.devices,
     activeDeviceId = bootstrap.deviceState.activeDeviceId
   ) => {
     try {
       const devices = await handleScanDevices();
+      const nextBootstrap = await refreshState();
+      const nextSavedDevices = nextBootstrap.devices;
       setSelectedDeviceKey((current) => {
-        const validSavedKeys = devicesSource.map((savedDevice) => `saved:${savedDevice.id}`);
+        const validSavedKeys = nextSavedDevices.map((savedDevice) => `saved:${savedDevice.id}`);
         const validDiscoveredKeys = devices.map(
           (device: DiscoveredDevice) => `discovered:${device.id}`
         );
@@ -417,7 +418,8 @@ function App() {
         }
 
         if (activeDeviceId) {
-          const activeKey = `saved:${activeDeviceId}`;
+          const resolvedActiveDeviceId = nextBootstrap.deviceState.activeDeviceId ?? activeDeviceId;
+          const activeKey = `saved:${resolvedActiveDeviceId}`;
           if (validSavedKeys.includes(activeKey)) {
             return activeKey;
           }
@@ -427,11 +429,14 @@ function App() {
       });
 
       if (!silent) {
-        setBootstrap((current) => ({
-          ...current,
+        setBootstrap(() => ({
+          ...nextBootstrap,
           deviceState: {
-            ...current.deviceState,
-            status: current.deviceState.status === 'error' ? 'error' : current.deviceState.status,
+            ...nextBootstrap.deviceState,
+            status:
+              nextBootstrap.deviceState.status === 'error'
+                ? 'error'
+                : nextBootstrap.deviceState.status,
             message:
               devices.length > 0
                 ? `Found ${String(devices.length)} device${devices.length > 1 ? 's' : ''}.`
@@ -462,11 +467,7 @@ function App() {
         setUpdaterStatus(nextUpdaterStatus);
         setBridgeReady(true);
         setDevicePickerOpen(!nextBootstrap.deviceState.activeDeviceId);
-        await appHandleScanDevices(
-          true,
-          nextBootstrap.devices,
-          nextBootstrap.deviceState.activeDeviceId
-        );
+        await appHandleScanDevices(true, nextBootstrap.deviceState.activeDeviceId);
       } catch (error) {
         setBridgeReady(false);
         setBootstrap((current) => ({
@@ -480,6 +481,7 @@ function App() {
     }
 
     void initialize();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -494,7 +496,7 @@ function App() {
     }
 
     void refreshUpdaterStatusInBackground();
-  }, [bridgeReady, currentView]);
+  }, [bridgeReady, currentView, refreshUpdaterStatusInBackground]);
 
   useEffect(() => {
     if (!bridgeReady) {
@@ -516,13 +518,13 @@ function App() {
       window.removeEventListener('focus', syncUpdaterOnForeground);
       document.removeEventListener('visibilitychange', syncUpdaterOnForeground);
     };
-  }, [bridgeReady, currentView]);
+  }, [bridgeReady, currentView, refreshUpdaterStatusInBackground]);
 
   useEffect(() => {
     if (pairingReady) {
       pairCodeInputRef.current?.focus();
     }
-  }, [pairingReady]);
+  }, [pairingReady, pairCodeInputRef]);
 
   function clearAssistantLongPressTimer() {
     if (assistantLongPressTimerRef.current !== null) {
@@ -933,6 +935,10 @@ function App() {
       host: device.host,
       adbPort: device.adbPort ?? initialDraft.adbPort,
       pairingPort: device.pairingPort,
+      macAddress: device.macAddress,
+      castDeviceId: device.castDeviceId,
+      networkHostName: device.networkHostName,
+      deviceFingerprint: device.deviceFingerprint,
     });
     const savedDevice = devices.find((item: SavedDevice) => item.host === device.host);
 

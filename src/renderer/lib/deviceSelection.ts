@@ -7,6 +7,20 @@ export interface PairedNetworkDevice {
   discoveredDevice?: DiscoveredDevice;
 }
 
+function findUniqueFingerprintMatch(
+  savedDevice: { deviceFingerprint?: string | undefined },
+  discoveredDevices: readonly DiscoveredDevice[]
+): DiscoveredDevice | undefined {
+  if (!savedDevice.deviceFingerprint) {
+    return undefined;
+  }
+
+  const matches = discoveredDevices.filter(
+    (device) => device.deviceFingerprint === savedDevice.deviceFingerprint
+  );
+  return matches.length === 1 ? matches[0] : undefined;
+}
+
 /**
  * The picker's currently-selected entry. Discriminated union so callers
  * can switch on `kind` to know whether they're looking at a saved
@@ -28,13 +42,33 @@ export type DevicePickerSelection =
  * should never appear as both "paired" and "unpaired" in the picker).
  */
 export function findDiscoveredForSaved(
-  savedDevice: { host: string; macAddress?: string | undefined },
+  savedDevice: {
+    host: string;
+    macAddress?: string | undefined;
+    castDeviceId?: string | undefined;
+    networkHostName?: string | undefined;
+    deviceFingerprint?: string | undefined;
+  },
   discoveredDevices: readonly DiscoveredDevice[]
 ): DiscoveredDevice | undefined {
   if (savedDevice.macAddress) {
     const byMac = discoveredDevices.find((d) => d.macAddress === savedDevice.macAddress);
     if (byMac) return byMac;
   }
+  if (savedDevice.castDeviceId) {
+    const byCastDeviceId = discoveredDevices.find(
+      (d) => d.castDeviceId === savedDevice.castDeviceId
+    );
+    if (byCastDeviceId) return byCastDeviceId;
+  }
+  if (savedDevice.networkHostName) {
+    const byNetworkHostName = discoveredDevices.find(
+      (d) => d.networkHostName === savedDevice.networkHostName
+    );
+    if (byNetworkHostName) return byNetworkHostName;
+  }
+  const byFingerprint = findUniqueFingerprintMatch(savedDevice, discoveredDevices);
+  if (byFingerprint) return byFingerprint;
   return discoveredDevices.find((d) => d.host === savedDevice.host);
 }
 
@@ -72,10 +106,7 @@ export function deriveUnpairedNetworkDevices(
     (discoveredDevice) =>
       !savedDevices.some(
         (savedDevice) =>
-          savedDevice.isPaired &&
-          (savedDevice.host === discoveredDevice.host ||
-            (savedDevice.macAddress != null &&
-              savedDevice.macAddress === discoveredDevice.macAddress))
+          savedDevice.isPaired && findDiscoveredForSaved(savedDevice, [discoveredDevice])
       )
   );
 }
