@@ -62,7 +62,7 @@ GTV Desktop Remote lets you control any Google TV or Android TV device from your
 
 Download the latest `.dmg` from the [Releases](https://github.com/usrivastava92/gtv-desktop-remote/releases/latest) page, open it, and drag the app to your Applications folder.
 
-On first launch, macOS may block the app because it was downloaded from the internet. If that happens:
+If you install from the `.dmg`, macOS may block the app on first launch because it was downloaded from the internet. If that happens:
 
 1. Open **System Settings** → **Privacy & Security**.
 2. Scroll to the **Security** section.
@@ -74,6 +74,8 @@ Or install with Homebrew:
 ```bash
 brew install --cask usrivastava92/tap/gtv-desktop-remote
 ```
+
+The Homebrew cask removes the quarantine flag automatically during install and prints fallback steps if macOS still blocks launch.
 
 > **Requirement:** macOS. Your TV must have Android TV Remote Service enabled and be on the same local network as your Mac.
 

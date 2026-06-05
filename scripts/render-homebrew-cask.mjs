@@ -53,6 +53,26 @@ function renderCask({ version, sha256, artifactName, repository }) {
 
   app "${APP_NAME}"
 
+  postflight do
+    system_command "/usr/bin/xattr",
+                   args: ["-dr", "com.apple.quarantine", "#{appdir}/${APP_NAME}"]
+  end
+
+  caveats do
+    <<~EOS
+      GTV Remote is open source and intentionally not notarized - we don't pay
+      Apple's $99/year gatekeeping tax to ship free software.
+
+      This cask automatically removes the quarantine flag during install, so the
+      app should launch normally. If macOS still blocks launch, run:
+
+        sudo xattr -dr com.apple.quarantine "/Applications/${APP_NAME}"
+
+      If launch is still blocked after that, use:
+        System Settings -> Privacy & Security -> Open Anyway
+    EOS
+  end
+
   zap trash: [
     "~/Library/Application Support/GTV Remote",
     "~/Library/Preferences/com.utkarsh.gtvdesktopremote.plist",

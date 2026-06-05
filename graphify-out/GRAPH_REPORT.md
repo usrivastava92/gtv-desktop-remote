@@ -1,7 +1,7 @@
-# Graph Report - gtv-desktop-remote  (2026-05-31)
+# Graph Report - gtv-desktop-remote  (2026-06-05)
 
 ## Corpus Check
-- 115 files · ~84,682 words
+- 115 files · ~84,785 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -70,10 +70,10 @@
   README.md → scripts/reset-app-state.mjs
 - `Favicon SVG - Google TV Remote Outlined Icon` --semantically_similar_to--> `GTV Remote Icon SVG - Google TV Remote Streamline Outlined Material Icon`  [EXTRACTED] [semantically similar]
   public/favicon.svg → assets/icons/gtv-remote-icon.svg
-- `dispatchUpdaterEvent()` --calls--> `applyUpdaterEvent()`  [INFERRED]
-  src/main/updater.ts → src/backend/updater/updaterStatus.ts
-- `createWindow()` --calls--> `subscribeUpdaterStatus()`  [INFERRED]
-  src/main/main.ts → src/main/updater.ts
+- `applyUpdaterEvent()` --calls--> `dispatchUpdaterEvent()`  [INFERRED]
+  src/backend/updater/updaterStatus.ts → src/main/updater.ts
+- `subscribeUpdaterStatus()` --calls--> `createWindow()`  [INFERRED]
+  src/main/updater.ts → src/main/main.ts
 - `publishUpdaterStatus()` --calls--> `logError()`  [INFERRED]
   src/main/updater.ts → src/main/logger.ts
 
