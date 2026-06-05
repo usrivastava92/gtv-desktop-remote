@@ -101,18 +101,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Fetch all tags so semantic-release can find the last release tag.
-          # actions/checkout with fetch-depth:0 fetches commits but tags may
-          # still be missing on some runners.
           git fetch --tags --quiet
 
-          OUTPUT=$(yarn semantic-release --dry-run --no-ci 2>&1)
-          echo "$OUTPUT"
-          # Match both message variants:
-          #   "The next release version is X.Y.Z"
-          #   "There is no previous release, the next release version is X.Y.Z"
-          VERSION=$(printf '%s\n' "$OUTPUT" | sed -nE 's/.*next release version is ([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' | head -n 1)
-          if [ -n "$VERSION" ]; then
+          RELEASE_INFO=$(node scripts/resolve-release-version.mjs)
+          echo "$RELEASE_INFO"
+
+          VERSION=$(printf '%s\n' "$RELEASE_INFO" | node -e "const fs = require('fs'); const data = JSON.parse(fs.readFileSync(0, 'utf8')); process.stdout.write(data.version);")
+          WILL_RELEASE=$(printf '%s\n' "$RELEASE_INFO" | node -e "const fs = require('fs'); const data = JSON.parse(fs.readFileSync(0, 'utf8')); process.stdout.write(String(data.willRelease));")
+
+          if [ "$WILL_RELEASE" = 'true' ]; then
             echo "version=$VERSION"   >> "$GITHUB_OUTPUT"
             echo "will_release=true"  >> "$GITHUB_OUTPUT"
           else
@@ -193,6 +190,31 @@ jobs:
         with:
           name: macos-zip
           path: zip-artifacts
+
+      - name: Verify semantic-release version policy
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EXPECTED_VERSION: ${{ needs.build-macos.outputs.next-version }}
+        run: |
+          git fetch --tags --quiet
+
+          RELEASE_INFO=$(node scripts/resolve-release-version.mjs)
+          echo "$RELEASE_INFO"
+
+          COMPUTED_VERSION=$(printf '%s\n' "$RELEASE_INFO" | node -e "const fs = require('fs'); const data = JSON.parse(fs.readFileSync(0, 'utf8')); process.stdout.write(data.version);")
+          if [ "$COMPUTED_VERSION" != "$EXPECTED_VERSION" ]; then
+            echo "Computed version $COMPUTED_VERSION does not match build output $EXPECTED_VERSION" >&2
+            exit 1
+          fi
+
+          OUTPUT=$(yarn semantic-release --dry-run --no-ci 2>&1)
+          echo "$OUTPUT"
+          SEMANTIC_VERSION=$(printf '%s\n' "$OUTPUT" | sed -nE 's/.*next release version is ([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' | head -n 1)
+
+          if [ "$SEMANTIC_VERSION" != "$EXPECTED_VERSION" ]; then
+            echo "semantic-release wanted $SEMANTIC_VERSION but expected $EXPECTED_VERSION" >&2
+            exit 1
+          fi
 
       - name: Release
         env:
