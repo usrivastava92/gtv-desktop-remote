@@ -237,13 +237,13 @@ jobs:
 
       - name: Update Homebrew tap
         env:
-          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           TAP_REPOSITORY: ${{ vars.HOMEBREW_TAP_REPOSITORY || 'usrivastava92/homebrew-tap' }}
           RELEASE_VERSION: ${{ needs.build-macos.outputs.next-version }}
           SOURCE_REPOSITORY: ${{ github.repository }}
         run: |
-          if [ -z "$HOMEBREW_TAP_TOKEN" ]; then
-            echo "HOMEBREW_TAP_TOKEN is not configured; skipping Homebrew tap update."
+          if [ -z "$RELEASE_TOKEN" ]; then
+            echo "RELEASE_TOKEN is not configured; skipping Homebrew tap update."
             exit 0
           fi
 
@@ -256,7 +256,7 @@ jobs:
           DMG_NAME=$(basename "$DMG_PATH")
           DMG_SHA256=$(shasum -a 256 "$DMG_PATH" | awk '{print $1}')
 
-          git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/${TAP_REPOSITORY}.git" homebrew-tap
+          git clone "https://x-access-token:${RELEASE_TOKEN}@github.com/${TAP_REPOSITORY}.git" homebrew-tap
           mkdir -p homebrew-tap/Casks
 
           node scripts/render-homebrew-cask.mjs \
