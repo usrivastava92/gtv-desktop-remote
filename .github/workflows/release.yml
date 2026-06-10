@@ -139,6 +139,10 @@ jobs:
         if: steps.dry-run.outputs.will_release == 'true'
         run: npx electron-builder --mac dmg zip --publish never
 
+      - name: Normalize release artifact names
+        if: steps.dry-run.outputs.will_release == 'true'
+        run: node scripts/normalize-release-artifact-names.mjs release
+
       - name: Upload DMG artifact
         if: steps.dry-run.outputs.will_release == 'true'
         uses: actions/upload-artifact@v7
@@ -168,9 +172,19 @@ jobs:
     # only have to approve once per release.
     environment: production
     steps:
+      - name: Verify release token
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          if [ -z "$RELEASE_TOKEN" ]; then
+            echo "RELEASE_TOKEN secret is required so semantic-release can push the version bump commit to main." >&2
+            exit 1
+          fi
+
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN }}
 
       - uses: actions/setup-node@v6
         with:
@@ -193,7 +207,7 @@ jobs:
 
       - name: Verify semantic-release version policy
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           EXPECTED_VERSION: ${{ needs.build-macos.outputs.next-version }}
         run: |
           git fetch --tags --quiet
@@ -218,7 +232,7 @@ jobs:
 
       - name: Release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: yarn semantic-release
 
       - name: Update Homebrew tap

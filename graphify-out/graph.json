@@ -3000,6 +3000,15 @@
       "norm_label": "writebin()"
     },
     {
+      "label": "normalize-release-artifact-names.mjs",
+      "file_type": "code",
+      "source_file": "scripts/normalize-release-artifact-names.mjs",
+      "source_location": "L1",
+      "id": "scripts_normalize_release_artifact_names_mjs",
+      "community": 60,
+      "norm_label": "normalize-release-artifact-names.mjs"
+    },
+    {
       "label": "App.tsx",
       "file_type": "code",
       "source_file": "src/renderer/App.tsx",
@@ -3248,7 +3257,7 @@
       "source_file": "src/renderer/main.tsx",
       "source_location": "L1",
       "id": "src_renderer_main_tsx",
-      "community": 60,
+      "community": 61,
       "norm_label": "main.tsx"
     },
     {
@@ -3275,7 +3284,7 @@
       "source_file": "src/renderer/vite-env.d.ts",
       "source_location": "L1",
       "id": "src_renderer_vite_env_d_ts",
-      "community": 61,
+      "community": 62,
       "norm_label": "vite-env.d.ts"
     },
     {
@@ -3302,7 +3311,7 @@
       "source_file": "src/renderer/__tests__/setup.ts",
       "source_location": "L1",
       "id": "src_renderer_tests_setup_ts",
-      "community": 62,
+      "community": 63,
       "norm_label": "setup.ts"
     },
     {
@@ -3383,7 +3392,7 @@
       "source_file": "src/renderer/lib/remoteCommands.ts",
       "source_location": "L1",
       "id": "src_renderer_lib_remotecommands_ts",
-      "community": 63,
+      "community": 64,
       "norm_label": "remotecommands.ts"
     },
     {
@@ -3518,7 +3527,7 @@
       "source_file": "src/renderer/lib/__tests__/pure.test.ts",
       "source_location": "L1",
       "id": "src_renderer_lib_tests_pure_test_ts",
-      "community": 64,
+      "community": 65,
       "norm_label": "pure.test.ts"
     },
     {
@@ -3536,7 +3545,7 @@
       "source_file": "src/backend/metrics/__tests__/IMetricsRecorder.test.ts",
       "source_location": "L1",
       "id": "src_backend_metrics_tests_imetricsrecorder_test_ts",
-      "community": 65,
+      "community": 66,
       "norm_label": "imetricsrecorder.test.ts"
     },
     {
@@ -3581,7 +3590,7 @@
       "source_file": "src/backend/transport/tls/__tests__/tlsConnector.test.ts",
       "source_location": "L1",
       "id": "src_backend_transport_tls_tests_tlsconnector_test_ts",
-      "community": 66,
+      "community": 67,
       "norm_label": "tlsconnector.test.ts"
     },
     {
@@ -3653,7 +3662,7 @@
       "source_file": "src/backend/core/pathProvider.ts",
       "source_location": "L1",
       "id": "src_backend_core_pathprovider_ts",
-      "community": 67,
+      "community": 68,
       "norm_label": "pathprovider.ts"
     },
     {
@@ -3680,7 +3689,7 @@
       "source_file": "src/backend/core/__tests__/runtimeConfig.test.ts",
       "source_location": "L1",
       "id": "src_backend_core_tests_runtimeconfig_test_ts",
-      "community": 68,
+      "community": 69,
       "norm_label": "runtimeconfig.test.ts"
     },
     {
@@ -3689,7 +3698,7 @@
       "source_file": "src/backend/core/__tests__/clock.test.ts",
       "source_location": "L1",
       "id": "src_backend_core_tests_clock_test_ts",
-      "community": 69,
+      "community": 70,
       "norm_label": "clock.test.ts"
     },
     {
@@ -3698,7 +3707,7 @@
       "source_file": "src/backend/core/__tests__/logger.test.ts",
       "source_location": "L1",
       "id": "src_backend_core_tests_logger_test_ts",
-      "community": 70,
+      "community": 71,
       "norm_label": "logger.test.ts"
     },
     {
@@ -3842,7 +3851,7 @@
       "source_file": "src/backend/updater/__tests__/updaterStatus.test.ts",
       "source_location": "L1",
       "id": "src_backend_updater_tests_updaterstatus_test_ts",
-      "community": 71,
+      "community": 72,
       "norm_label": "updaterstatus.test.ts"
     },
     {
@@ -3851,7 +3860,7 @@
       "source_file": "src/backend/updater/__tests__/version.test.ts",
       "source_location": "L1",
       "id": "src_backend_updater_tests_version_test_ts",
-      "community": 72,
+      "community": 73,
       "norm_label": "version.test.ts"
     },
     {
@@ -3860,7 +3869,7 @@
       "source_file": "src/backend/updater/__tests__/checkStartedMessage.test.ts",
       "source_location": "L1",
       "id": "src_backend_updater_tests_checkstartedmessage_test_ts",
-      "community": 73,
+      "community": 74,
       "norm_label": "checkstartedmessage.test.ts"
     },
     {
@@ -3878,7 +3887,7 @@
       "source_file": "src/backend/protocol/androidtv/__tests__/certificate.test.ts",
       "source_location": "L1",
       "id": "src_backend_protocol_androidtv_tests_certificate_test_ts",
-      "community": 74,
+      "community": 75,
       "norm_label": "certificate.test.ts"
     },
     {
@@ -3887,7 +3896,7 @@
       "source_file": "src/backend/__tests__/harness.test.ts",
       "source_location": "L1",
       "id": "src_backend_tests_harness_test_ts",
-      "community": 75,
+      "community": 76,
       "norm_label": "harness.test.ts"
     },
     {
@@ -4031,7 +4040,7 @@
       "source_file": "src/shared/desktopApi.ts",
       "source_location": "L1",
       "id": "src_shared_desktopapi_ts",
-      "community": 76,
+      "community": 77,
       "norm_label": "desktopapi.ts"
     },
     {
@@ -4040,7 +4049,7 @@
       "source_file": "src/shared/types.ts",
       "source_location": "L1",
       "id": "src_shared_types_ts",
-      "community": 77,
+      "community": 78,
       "norm_label": "types.ts"
     },
     {
@@ -4049,7 +4058,7 @@
       "source_file": "src/shared/ipcContract.ts",
       "source_location": "L1",
       "id": "src_shared_ipccontract_ts",
-      "community": 78,
+      "community": 79,
       "norm_label": "ipccontract.ts"
     },
     {
@@ -4058,7 +4067,7 @@
       "source_file": "src/shared/__tests__/ipcContract.test.ts",
       "source_location": "L1",
       "id": "src_shared_tests_ipccontract_test_ts",
-      "community": 79,
+      "community": 80,
       "norm_label": "ipccontract.test.ts"
     },
     {
@@ -4067,7 +4076,7 @@
       "source_file": "src/shared/__tests__/audio.test.ts",
       "source_location": "L1",
       "id": "src_shared_tests_audio_test_ts",
-      "community": 80,
+      "community": 81,
       "norm_label": "audio.test.ts"
     },
     {
@@ -4121,7 +4130,7 @@
       "source_file": "src/main/preload.ts",
       "source_location": "L1",
       "id": "src_main_preload_ts",
-      "community": 81,
+      "community": 82,
       "norm_label": "preload.ts"
     },
     {
@@ -4184,7 +4193,7 @@
       "source_file": "src/main/device/protocol/certificate.ts",
       "source_location": "L1",
       "id": "src_main_device_protocol_certificate_ts",
-      "community": 82,
+      "community": 83,
       "norm_label": "certificate.ts"
     },
     {
@@ -4196,7 +4205,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 83,
+      "community": 84,
       "norm_label": "gtv desktop remote",
       "id": "readme_gtv_desktop_remote"
     },
@@ -4209,7 +4218,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 84,
+      "community": 85,
       "norm_label": "network scan",
       "id": "readme_network_scan"
     },
@@ -4235,7 +4244,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 85,
+      "community": 86,
       "norm_label": "keyboard control",
       "id": "readme_keyboard_control"
     },
@@ -4248,7 +4257,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 86,
+      "community": 87,
       "norm_label": "global shortcut cmdorctrl+shift+g",
       "id": "readme_global_shortcut"
     },
@@ -4261,7 +4270,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 87,
+      "community": 88,
       "norm_label": "mac address device tracking",
       "id": "readme_mac_address_tracking"
     },
@@ -4274,7 +4283,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 88,
+      "community": 89,
       "norm_label": "menubar app",
       "id": "readme_menubar_app"
     },
@@ -4287,7 +4296,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 89,
+      "community": 90,
       "norm_label": "debug telemetry",
       "id": "development_debug_telemetry"
     },
@@ -4300,7 +4309,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 90,
+      "community": 91,
       "norm_label": "bounded command queue",
       "id": "development_command_queue"
     },
@@ -4313,7 +4322,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 91,
+      "community": 92,
       "norm_label": "electron-builder packaging",
       "id": "development_electron_builder"
     },
@@ -4326,7 +4335,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 92,
+      "community": 93,
       "norm_label": "reset app state script",
       "id": "development_reset_app"
     },
@@ -4339,7 +4348,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 93,
+      "community": 94,
       "norm_label": "devices.json (saved devices file)",
       "id": "reset_script_devices_json"
     },
@@ -4365,7 +4374,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 94,
+      "community": 95,
       "norm_label": "graphify knowledge graph config",
       "id": "agents_graphify"
     },

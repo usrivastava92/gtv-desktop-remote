@@ -240,8 +240,9 @@ Required setup:
 - Optionally set a repository variable named `HOMEBREW_TAP_REPOSITORY` if the
   tap repository is not `usrivastava92/homebrew-tap`
 
-The workflow computes the DMG checksum and renders
-`Casks/gtv-desktop-remote.rb` using:
+The workflow normalizes packaged filenames to the expected `GTV Remote-...`
+pattern, computes the DMG checksum, and renders `Casks/gtv-desktop-remote.rb`
+using:
 
 ```bash
 yarn homebrew:cask --version 0.8.0 --sha256 <sha256> --artifact-name "GTV Remote-0.8.0-mac-arm64.dmg"

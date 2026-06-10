@@ -1,11 +1,11 @@
-# Graph Report - gtv-desktop-remote  (2026-06-05)
+# Graph Report - gtv-desktop-remote  (2026-06-10)
 
 ## Corpus Check
-- 116 files · ~85,538 words
+- 117 files · ~84,703 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 482 nodes · 785 edges · 43 communities detected
+- 483 nodes · 785 edges · 43 communities detected
 - Extraction: 88% EXTRACTED · 12% INFERRED · 0% AMBIGUOUS · INFERRED: 94 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
@@ -41,7 +41,6 @@
 - [[_COMMUNITY_Community 31|Community 31]]
 - [[_COMMUNITY_Community 32|Community 32]]
 - [[_COMMUNITY_Community 44|Community 44]]
-- [[_COMMUNITY_Community 83|Community 83]]
 - [[_COMMUNITY_Community 84|Community 84]]
 - [[_COMMUNITY_Community 85|Community 85]]
 - [[_COMMUNITY_Community 86|Community 86]]
@@ -53,6 +52,7 @@
 - [[_COMMUNITY_Community 92|Community 92]]
 - [[_COMMUNITY_Community 93|Community 93]]
 - [[_COMMUNITY_Community 94|Community 94]]
+- [[_COMMUNITY_Community 95|Community 95]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `CommandMetricsStore` - 23 edges
@@ -209,51 +209,51 @@ Nodes (1): generateCertificate()
 Cohesion: 1.0
 Nodes (2): Encrypted Pairing Protocol, androidtvremote (pairing certs dir)
 
-### Community 83 - "Community 83"
+### Community 84 - "Community 84"
 Cohesion: 1.0
 Nodes (1): GTV Desktop Remote
 
-### Community 84 - "Community 84"
+### Community 85 - "Community 85"
 Cohesion: 1.0
 Nodes (1): Network Scan
 
-### Community 85 - "Community 85"
+### Community 86 - "Community 86"
 Cohesion: 1.0
 Nodes (1): Keyboard Control
 
-### Community 86 - "Community 86"
+### Community 87 - "Community 87"
 Cohesion: 1.0
 Nodes (1): Global Shortcut CmdOrCtrl+Shift+G
 
-### Community 87 - "Community 87"
+### Community 88 - "Community 88"
 Cohesion: 1.0
 Nodes (1): MAC Address Device Tracking
 
-### Community 88 - "Community 88"
+### Community 89 - "Community 89"
 Cohesion: 1.0
 Nodes (1): Menubar App
 
-### Community 89 - "Community 89"
+### Community 90 - "Community 90"
 Cohesion: 1.0
 Nodes (1): Debug Telemetry
 
-### Community 90 - "Community 90"
+### Community 91 - "Community 91"
 Cohesion: 1.0
 Nodes (1): Bounded Command Queue
 
-### Community 91 - "Community 91"
+### Community 92 - "Community 92"
 Cohesion: 1.0
 Nodes (1): electron-builder Packaging
 
-### Community 92 - "Community 92"
+### Community 93 - "Community 93"
 Cohesion: 1.0
 Nodes (1): Reset App State Script
 
-### Community 93 - "Community 93"
+### Community 94 - "Community 94"
 Cohesion: 1.0
 Nodes (1): devices.json (saved devices file)
 
-### Community 94 - "Community 94"
+### Community 95 - "Community 95"
 Cohesion: 1.0
 Nodes (1): graphify knowledge graph config
 
@@ -288,29 +288,29 @@ Nodes (1): graphify knowledge graph config
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 44`** (2 nodes): `Encrypted Pairing Protocol`, `androidtvremote (pairing certs dir)`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 83`** (1 nodes): `GTV Desktop Remote`
+- **Thin community `Community 84`** (1 nodes): `GTV Desktop Remote`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 84`** (1 nodes): `Network Scan`
+- **Thin community `Community 85`** (1 nodes): `Network Scan`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 85`** (1 nodes): `Keyboard Control`
+- **Thin community `Community 86`** (1 nodes): `Keyboard Control`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 86`** (1 nodes): `Global Shortcut CmdOrCtrl+Shift+G`
+- **Thin community `Community 87`** (1 nodes): `Global Shortcut CmdOrCtrl+Shift+G`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 87`** (1 nodes): `MAC Address Device Tracking`
+- **Thin community `Community 88`** (1 nodes): `MAC Address Device Tracking`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 88`** (1 nodes): `Menubar App`
+- **Thin community `Community 89`** (1 nodes): `Menubar App`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 89`** (1 nodes): `Debug Telemetry`
+- **Thin community `Community 90`** (1 nodes): `Debug Telemetry`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 90`** (1 nodes): `Bounded Command Queue`
+- **Thin community `Community 91`** (1 nodes): `Bounded Command Queue`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 91`** (1 nodes): `electron-builder Packaging`
+- **Thin community `Community 92`** (1 nodes): `electron-builder Packaging`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 92`** (1 nodes): `Reset App State Script`
+- **Thin community `Community 93`** (1 nodes): `Reset App State Script`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 93`** (1 nodes): `devices.json (saved devices file)`
+- **Thin community `Community 94`** (1 nodes): `devices.json (saved devices file)`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 94`** (1 nodes): `graphify knowledge graph config`
+- **Thin community `Community 95`** (1 nodes): `graphify knowledge graph config`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 
 ## Suggested Questions
@@ -321,7 +321,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **Why does `CommandMetricsStore` connect `Community 4` to `Community 5`?**
   _High betweenness centrality (0.056) - this node is a cross-community bridge._
 - **Why does `discoverGoogleTvDevices()` connect `Community 9` to `Community 0`, `Community 1`?**
-  _High betweenness centrality (0.052) - this node is a cross-community bridge._
+  _High betweenness centrality (0.051) - this node is a cross-community bridge._
 - **Are the 16 inferred relationships involving `logInfo()` (e.g. with `bootstrapApp()` and `recoverOrphanedRollbackState()`) actually correct?**
   _`logInfo()` has 16 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `GTV Desktop Remote`, `Network Scan`, `Encrypted Pairing Protocol` to the rest of the system?**
