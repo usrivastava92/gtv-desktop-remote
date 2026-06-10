@@ -255,6 +255,16 @@ jobs:
 
           DMG_NAME=$(basename "$DMG_PATH")
           DMG_SHA256=$(shasum -a 256 "$DMG_PATH" | awk '{print $1}')
+          RELEASE_JSON=$(curl -fsSL \
+            -H "Authorization: Bearer ${RELEASE_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${SOURCE_REPOSITORY}/releases/tags/v${RELEASE_VERSION}")
+          RELEASE_DMG_NAME=$(printf '%s\n' "$RELEASE_JSON" | node -e "const fs = require('fs'); const release = JSON.parse(fs.readFileSync(0, 'utf8')); const digest = 'sha256:' + process.argv[1]; const asset = release.assets.find((candidate) => candidate.name.endsWith('.dmg') && candidate.digest === digest) ?? release.assets.find((candidate) => candidate.name.endsWith('.dmg') && candidate.name.includes('-mac-')); if (!asset) { process.exit(1); } process.stdout.write(asset.name);" "$DMG_SHA256")
+
+          if [ -z "$RELEASE_DMG_NAME" ]; then
+            echo "Could not determine uploaded DMG asset name from GitHub release." >&2
+            exit 1
+          fi
 
           git clone "https://x-access-token:${RELEASE_TOKEN}@github.com/${TAP_REPOSITORY}.git" homebrew-tap
           mkdir -p homebrew-tap/Casks
@@ -262,7 +272,7 @@ jobs:
           node scripts/render-homebrew-cask.mjs \
             --version "$RELEASE_VERSION" \
             --sha256 "$DMG_SHA256" \
-            --artifact-name "$DMG_NAME" \
+            --artifact-name "$RELEASE_DMG_NAME" \
             --repository "$SOURCE_REPOSITORY" \
             > homebrew-tap/Casks/gtv-desktop-remote.rb
 
