@@ -18,6 +18,13 @@
     </a>
     <img src="https://img.shields.io/badge/platform-macOS-lightgrey?logo=apple" alt="macOS" />
     <img src="https://img.shields.io/badge/built%20with-Electron-47848F?logo=electron" alt="Electron" />
+    <a href="LICENSE">
+      <img src="https://img.shields.io/github/license/usrivastava92/gtv-desktop-remote" alt="License" />
+    </a>
+    <img src="https://img.shields.io/github/last-commit/usrivastava92/gtv-desktop-remote" alt="Last Commit" />
+    <a href="https://scorecard.dev/status/github.com/usrivastava92/gtv-desktop-remote">
+      <img src="https://api.scorecard.dev/projects/github.com/usrivastava92/gtv-desktop-remote/badge" alt="OpenSSF Scorecard" />
+    </a>
   </p>
 </div>
 
