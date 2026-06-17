@@ -5,6 +5,7 @@ on:
   schedule:
     - cron: '0 8 * * 1'
 permissions:
+  contents: read
   id-token: write
   security-events: write
 jobs:
