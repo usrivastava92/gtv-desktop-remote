@@ -20,7 +20,8 @@
     <img src="https://img.shields.io/badge/built%20with-Electron-47848F?logo=electron" alt="Electron" />
     <a href="LICENSE">
       <img src="https://img.shields.io/github/license/usrivastava92/gtv-desktop-remote" alt="License" />
-    </a>    <a href="https://scorecard.dev/status/github.com/usrivastava92/gtv-desktop-remote">
+    </a>
+    <a href="https://scorecard.dev/status/github.com/usrivastava92/gtv-desktop-remote">
       <img src="https://api.scorecard.dev/projects/github.com/usrivastava92/gtv-desktop-remote/badge" alt="OpenSSF Scorecard" />
     </a>
   </p>
