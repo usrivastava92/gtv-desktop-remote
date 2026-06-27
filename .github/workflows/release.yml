@@ -83,7 +83,7 @@ jobs:
         if: ${{ inputs.reason != '' }}
         run: echo "Manual release reason — ${{ inputs.reason }}" >> "$GITHUB_STEP_SUMMARY"
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -181,7 +181,7 @@ jobs:
             exit 1
           fi
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           token: ${{ secrets.RELEASE_TOKEN }}
