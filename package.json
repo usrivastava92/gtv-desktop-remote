@@ -121,7 +121,7 @@
     "prettier": "^3.8.3",
     "semantic-release": "^25.0.3",
     "tailwindcss": "^4.2.2",
-    "typescript": "^6.0.0",
+    "typescript": "^7.0.0",
     "typescript-eslint": "^8.59.1",
     "vite": "^8.0.0",
     "vitest": "^3.2.4",
