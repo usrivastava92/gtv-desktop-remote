@@ -260,16 +260,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@boundaries/elements@npm:2.0.1":
-  version: 2.0.1
-  resolution: "@boundaries/elements@npm:2.0.1"
+"@boundaries/elements@npm:3.0.1":
+  version: 3.0.1
+  resolution: "@boundaries/elements@npm:3.0.1"
   dependencies:
     eslint-import-resolver-node: "npm:0.3.9"
     eslint-module-utils: "npm:2.12.1"
     handlebars: "npm:4.7.9"
     is-core-module: "npm:2.16.1"
     micromatch: "npm:4.0.8"
-  checksum: 10c0/0c38a3a9d08c8d7aa79cd29b3d98ac61608120dad69ee568dbbbc0522c944cb7b60a1d985fd2ebfcd4c4ad0fe4caf44b81e519a49a99d3af85c769fe0cdad537
+  checksum: 10c0/1156f4ee3a8ef27a95822a24edf864af794917a75cd57b7a952b5e21d02a52121063efc6a5456069058e3305199462efbdb2135cd1d5b79aff5ac3861a21b682
   languageName: node
   linkType: hard
 
@@ -4703,11 +4703,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-boundaries@npm:^6.0.0":
-  version: 6.0.2
-  resolution: "eslint-plugin-boundaries@npm:6.0.2"
+"eslint-plugin-boundaries@npm:^7.0.0":
+  version: 7.0.2
+  resolution: "eslint-plugin-boundaries@npm:7.0.2"
   dependencies:
-    "@boundaries/elements": "npm:2.0.1"
+    "@boundaries/elements": "npm:3.0.1"
     chalk: "npm:4.1.2"
     eslint-import-resolver-node: "npm:0.3.9"
     eslint-module-utils: "npm:2.12.1"
@@ -4715,7 +4715,7 @@ __metadata:
     micromatch: "npm:4.0.8"
   peerDependencies:
     eslint: ">=6.0.0"
-  checksum: 10c0/70dfc01d1a0837be8e227335f57359c85955c094437985a592cd4dd555a1b662bde7b9458d5b1e14d933dd67e66a5931686bf98e85ee607cc6d114459d29b370
+  checksum: 10c0/c7e0d72742184b2d162f3102293b6b6d1a0f8847b52308926287967e04f7886dc5226aac38b0dac8a352ba06e1988caac34f68522446539009853c2f94e92a71
   languageName: node
   linkType: hard
 
@@ -5508,7 +5508,7 @@ __metadata:
     electron-builder: "npm:^26.0.12"
     eslint: "npm:^10.0.0"
     eslint-config-prettier: "npm:^10.1.8"
-    eslint-plugin-boundaries: "npm:^6.0.0"
+    eslint-plugin-boundaries: "npm:^7.0.0"
     eslint-plugin-import-x: "npm:^4.16.2"
     eslint-plugin-react-hooks: "npm:^7.1.1"
     husky: "npm:^9.1.7"
