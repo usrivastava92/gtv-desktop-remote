@@ -207,11 +207,10 @@ In the repo on GitHub:
    whoever should be able to approve releases).
 3. Under **Deployment branches and tags**, choose "Selected branches and
    tags" and add `main` (so releases can only be approved from `main`).
-4. Move release-sensitive secrets onto this environment instead of the
+4. Move release-sensitive App credentials onto this environment instead of the
    repository-wide secrets:
-   - `HOMEBREW_TAP_TOKEN` → **Environment secrets** of `production`.
-   - (Optional) `HOMEBREW_TAP_REPOSITORY` → **Environment variables** of
-     `production`.
+   - `APP_CLIENT_ID` → **Environment variables** of `production`.
+   - `APP_PRIVATE_KEY` → **Environment secrets** of `production`.
 
    This guarantees the secret is only injected after you click "Approve and
    run", so an unauthorized or accidental dispatch cannot exfiltrate it.
@@ -234,11 +233,10 @@ release and uploads the macOS DMG.
 
 Required setup:
 
-- Create the tap repository: `usrivastava92/homebrew-tap`
-- Add a repository secret named `HOMEBREW_TAP_TOKEN` with permission to push to
-  that tap repository
-- Optionally set a repository variable named `HOMEBREW_TAP_REPOSITORY` if the
-  tap repository is not `usrivastava92/homebrew-tap`
+- Create the tap repository: `usrivastava92/homebrew-tap`.
+- Use repository-scoped GitHub App tokens for the source repo and the tap repo.
+- Store the App client ID in `APP_CLIENT_ID` and the private key in
+  `APP_PRIVATE_KEY`.
 
 The workflow normalizes packaged filenames to the expected `GTV Remote-...`
 pattern, computes the DMG checksum, and renders `Casks/gtv-desktop-remote.rb`
@@ -253,6 +251,9 @@ Users can install the published cask with:
 ```bash
 brew install --cask usrivastava92/tap/gtv-desktop-remote
 ```
+
+The next legitimate release should verify the GitHub Release, the Homebrew tap
+update, and the App token setup before publishing again.
 
 ## Recommended Developer Flow
 
