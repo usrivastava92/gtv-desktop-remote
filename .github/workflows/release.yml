@@ -16,7 +16,7 @@ name: Release
 # Job 2 (release): runs the real semantic-release, downloads the DMG + ZIP
 #   artifacts, and attaches them to the GitHub Release.
 #
-# GITHUB_TOKEN is provided automatically by GitHub Actions — no secret needed.
+# Built-in GitHub token is used for checkout and read-only repository access.
 
 on:
   workflow_dispatch:
@@ -31,7 +31,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
+  contents: read
 
 # Comma-separated GitHub usernames that are allowed to trigger this workflow.
 # This is a fast-fail "first line" check — the real, GitHub-enforced gate is
@@ -72,8 +72,9 @@ jobs:
     needs: authorize
     # GitHub-enforced gate: this job will not start until a reviewer configured
     # on the `production` environment (Settings → Environments → production)
-    # clicks "Approve and run". Environment secrets (e.g. HOMEBREW_TAP_TOKEN)
-    # should live on this environment so they cannot leak to unapproved runs.
+    # clicks "Approve and run". Environment secrets (e.g. APP_PRIVATE_KEY and
+    # other App credentials) should live on this environment so they cannot
+    # leak to unapproved runs.
     environment: production
     outputs:
       next-version: ${{ steps.dry-run.outputs.version }}
@@ -86,6 +87,8 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          persist-credentials: false
+          token: ${{ github.token }}
 
       - uses: actions/setup-node@v6
         with:
@@ -99,7 +102,7 @@ jobs:
       - name: Determine next version (dry-run)
         id: dry-run
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           git fetch --tags --quiet
 
@@ -172,19 +175,11 @@ jobs:
     # only have to approve once per release.
     environment: production
     steps:
-      - name: Verify release token
-        env:
-          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-        run: |
-          if [ -z "$RELEASE_TOKEN" ]; then
-            echo "RELEASE_TOKEN secret is required so semantic-release can push the version bump commit to main." >&2
-            exit 1
-          fi
-
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-          token: ${{ secrets.RELEASE_TOKEN }}
+          persist-credentials: false
+          token: ${{ github.token }}
 
       - uses: actions/setup-node@v6
         with:
@@ -205,9 +200,19 @@ jobs:
           name: macos-zip
           path: zip-artifacts
 
+      - name: Mint source App token
+        id: source-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          client-id: ${{ vars.APP_CLIENT_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: usrivastava92
+          repositories: gtv-desktop-remote
+          permission-contents: write
+
       - name: Verify semantic-release version policy
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.source-token.outputs.token }}
           EXPECTED_VERSION: ${{ needs.build-macos.outputs.next-version }}
         run: |
           git fetch --tags --quiet
@@ -232,31 +237,43 @@ jobs:
 
       - name: Release
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.source-token.outputs.token }}
         run: yarn semantic-release
+
+      - name: Mint Homebrew tap App token
+        id: tap-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          client-id: ${{ vars.APP_CLIENT_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: usrivastava92
+          repositories: homebrew-tap
+          permission-contents: write
+
+      - name: Checkout Homebrew tap
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          repository: usrivastava92/homebrew-tap
+          ref: main
+          path: homebrew-tap
+          token: ${{ steps.tap-token.outputs.token }}
+          persist-credentials: true
 
       - name: Update Homebrew tap
         env:
-          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-          TAP_REPOSITORY: ${{ vars.HOMEBREW_TAP_REPOSITORY || 'usrivastava92/homebrew-tap' }}
+          GITHUB_TOKEN: ${{ steps.source-token.outputs.token }}
           RELEASE_VERSION: ${{ needs.build-macos.outputs.next-version }}
           SOURCE_REPOSITORY: ${{ github.repository }}
         run: |
-          if [ -z "$RELEASE_TOKEN" ]; then
-            echo "RELEASE_TOKEN is not configured; skipping Homebrew tap update."
-            exit 0
-          fi
-
           DMG_PATH=$(find dmg-artifacts -type f -name '*.dmg' | head -n 1)
           if [ -z "$DMG_PATH" ]; then
             echo "No DMG artifact found."
             exit 1
           fi
 
-          DMG_NAME=$(basename "$DMG_PATH")
           DMG_SHA256=$(shasum -a 256 "$DMG_PATH" | awk '{print $1}')
           RELEASE_JSON=$(curl -fsSL \
-            -H "Authorization: Bearer ${RELEASE_TOKEN}" \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${SOURCE_REPOSITORY}/releases/tags/v${RELEASE_VERSION}")
           RELEASE_DMG_NAME=$(printf '%s\n' "$RELEASE_JSON" | node -e "const fs = require('fs'); const release = JSON.parse(fs.readFileSync(0, 'utf8')); const digest = 'sha256:' + process.argv[1]; const asset = release.assets.find((candidate) => candidate.name.endsWith('.dmg') && candidate.digest === digest) ?? release.assets.find((candidate) => candidate.name.endsWith('.dmg') && candidate.name.includes('-mac-')); if (!asset) { process.exit(1); } process.stdout.write(asset.name);" "$DMG_SHA256")
@@ -265,9 +282,6 @@ jobs:
             echo "Could not determine uploaded DMG asset name from GitHub release." >&2
             exit 1
           fi
-
-          git clone "https://x-access-token:${RELEASE_TOKEN}@github.com/${TAP_REPOSITORY}.git" homebrew-tap
-          mkdir -p homebrew-tap/Casks
 
           node scripts/render-homebrew-cask.mjs \
             --version "$RELEASE_VERSION" \
@@ -287,4 +301,4 @@ jobs:
           fi
 
           git commit -m "Update gtv-desktop-remote to ${RELEASE_VERSION}"
-          git push origin HEAD
+          git push origin HEAD:main
