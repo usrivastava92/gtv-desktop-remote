@@ -3,7 +3,7 @@
   "productName": "GTV Remote",
   "version": "1.6.4",
   "description": "macOS-first desktop remote for Google TV and Android TV",
-  "packageManager": "yarn@4.17.1",
+  "packageManager": "yarn@4.18.0",
   "main": "dist-electron/main/main.js",
   "repository": {
     "type": "git",
