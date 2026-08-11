@@ -113,11 +113,11 @@ describe('AndroidTvCertStore — Google TV non-regression gate', () => {
       const dump = fs.dump();
       expect(dump[`${STATE_DIR}/mac1.cert.pem`]).toBe(FAKE_PEM.cert);
       expect(dump[`${STATE_DIR}/mac1.key.pem`]).toBe(FAKE_PEM.key);
-      expect(logger.info).toHaveBeenCalledWith(
+      expect(logger.info.mock.calls).toContainEqual([
         'androidTvCertStore',
         'Generated new client certificate',
-        { certKey: 'mac1' }
-      );
+        { certKey: 'mac1' },
+      ]);
     });
 
     it('loads an existing cert pair without regenerating', async () => {
@@ -129,7 +129,7 @@ describe('AndroidTvCertStore — Google TV non-regression gate', () => {
       const result = await store.loadOrCreate('mac1');
       expect(result).toEqual({ cert: 'PERSISTED_CERT', key: 'PERSISTED_KEY' });
       expect(generator).not.toHaveBeenCalled();
-      expect(logger.info).not.toHaveBeenCalled();
+      expect(logger.info.mock.calls).toHaveLength(0);
     });
 
     it('regenerates if cert exists but key is missing (partial state)', async () => {
@@ -145,7 +145,7 @@ describe('AndroidTvCertStore — Google TV non-regression gate', () => {
     it('is a no-op when oldKey === newKey', async () => {
       await store.migrate('192.168.1.5', '192.168.1.5');
       expect(fs.dump()).toEqual({});
-      expect(logger.info).not.toHaveBeenCalled();
+      expect(logger.info.mock.calls).toHaveLength(0);
     });
 
     it('renames old files into the new key when new is absent', async () => {
@@ -160,11 +160,11 @@ describe('AndroidTvCertStore — Google TV non-regression gate', () => {
       expect(dump[`${STATE_DIR}/AA_BB_CC_DD_EE_FF.key.pem`]).toBe('K');
       expect(dump[`${STATE_DIR}/192.168.1.5.cert.pem`]).toBeUndefined();
       expect(dump[`${STATE_DIR}/192.168.1.5.key.pem`]).toBeUndefined();
-      expect(logger.info).toHaveBeenCalledWith(
+      expect(logger.info.mock.calls).toContainEqual([
         'androidTvCertStore',
         'Migrated persisted client certificate',
-        { oldCertKey: '192.168.1.5', newCertKey: 'AA:BB:CC:DD:EE:FF' }
-      );
+        { oldCertKey: '192.168.1.5', newCertKey: 'AA:BB:CC:DD:EE:FF' },
+      ]);
     });
 
     it('deletes old files when new key already has a pair (new wins)', async () => {
@@ -182,13 +182,13 @@ describe('AndroidTvCertStore — Google TV non-regression gate', () => {
       expect(dump[`${STATE_DIR}/192.168.1.5.cert.pem`]).toBeUndefined();
       expect(dump[`${STATE_DIR}/192.168.1.5.key.pem`]).toBeUndefined();
       // No "Migrated" log line — the new pair already existed.
-      expect(logger.info).not.toHaveBeenCalled();
+      expect(logger.info.mock.calls).toHaveLength(0);
     });
 
     it('is silently a no-op when neither old nor new exists', async () => {
       await store.migrate('192.168.1.5', 'AA:BB:CC:DD:EE:FF');
       expect(fs.dump()).toEqual({});
-      expect(logger.info).not.toHaveBeenCalled();
+      expect(logger.info.mock.calls).toHaveLength(0);
     });
 
     it('treats colon-sanitised duplicate keys as the same path', async () => {
