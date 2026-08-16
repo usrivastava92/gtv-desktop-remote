@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 
+import { decodeDnsSdValue, parseDnsSdTxtLine } from '../../backend/devices/dnsSdText';
 import type { DiscoveredDevice } from '../../shared/types';
 import { record } from '../capture';
 
@@ -10,10 +11,6 @@ interface ResolvedService {
   host?: string;
   port?: number;
   txt: Record<string, string>;
-}
-
-function decodeDnsSdValue(value: string): string {
-  return value.replace(/\\032/g, ' ').replace(/\\ /g, ' ').replace(/\\\\/g, '\\');
 }
 
 function buildDiscoveredId(host: string, name: string): string {
@@ -105,25 +102,6 @@ async function browseServiceInstances(serviceType: string, timeoutMs = 2500): Pr
   return [...instances];
 }
 
-function parseTxtRecord(line: string): Record<string, string> {
-  const txt: Record<string, string> = {};
-  const matches = line.match(/(?:^|\s)([A-Za-z0-9_-]+)=((?:\\.|[^\s])*)/g) ?? [];
-
-  for (const entry of matches) {
-    const trimmed = entry.trim();
-    const separator = trimmed.indexOf('=');
-    if (separator === -1) {
-      continue;
-    }
-
-    const key = trimmed.slice(0, separator);
-    const value = trimmed.slice(separator + 1);
-    txt[key] = decodeDnsSdValue(value);
-  }
-
-  return txt;
-}
-
 async function resolveService(
   instanceName: string,
   serviceType: string
@@ -143,7 +121,7 @@ async function resolveService(
     }
 
     if (line.includes('=')) {
-      txt = { ...txt, ...parseTxtRecord(line) };
+      txt = { ...txt, ...parseDnsSdTxtLine(line) };
     }
   }
 
@@ -254,7 +232,7 @@ export async function discoverGoogleTvDevices(): Promise<DiscoveredDevice[]> {
     const remoteService = remoteByHost.get(service.host);
     const connectService = connectByHost.get(service.host);
     const pairService = pairingByHost.get(service.host);
-    const name = service.txt.fn || service.instanceName;
+    const name = service.txt.fn || decodeDnsSdValue(service.instanceName);
 
     devices.set(service.host, {
       id: existing?.id ?? buildDiscoveredId(service.host, name),
