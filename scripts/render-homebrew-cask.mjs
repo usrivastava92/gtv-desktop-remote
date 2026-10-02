@@ -53,9 +53,9 @@ function renderCask({ version, sha256, artifactName, repository }) {
 
   app "${APP_NAME}"
 
-  postflight do
-    system_command "/usr/bin/xattr",
-                   args: ["-dr", "com.apple.quarantine", "#{appdir}/${APP_NAME}"]
+  postflight_steps do
+    run "/usr/bin/xattr",
+        args: ["-dr", "com.apple.quarantine", "{{appdir}}/${APP_NAME}"]
   end
 
   caveats do
