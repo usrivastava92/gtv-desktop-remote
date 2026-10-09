@@ -67,7 +67,6 @@ type _InvokeMapParity = _MissingFriendly extends never
     : ['EXTRA_FRIENDLY_NAME', _ExtraFriendly]
   : ['MISSING_FRIENDLY_NAME_FOR', _MissingFriendly];
 const _invokeMapParity: _InvokeMapParity = true;
-void _invokeMapParity;
 
 /** Renderer-side typed surface for the INVOKE half. */
 export type DesktopInvokeApi = {

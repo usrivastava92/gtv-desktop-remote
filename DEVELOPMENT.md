@@ -38,6 +38,13 @@ This starts:
 yarn typecheck
 ```
 
+For dependency upgrades, run both `yarn typecheck` and `yarn lint` in addition to the
+behavioral test suite. Compile-time IPC parity checks use underscore-prefixed constants
+without dummy `void` expressions; the lint configuration already permits those names.
+Type test doubles with `Mock<ProductionFunction>` and `vi.fn<ProductionFunction>()`
+rather than `ReturnType<typeof vi.fn>` so callable signatures remain precise across
+Vitest versions.
+
 ## Local Build
 
 Build the renderer and Electron bundles without packaging:

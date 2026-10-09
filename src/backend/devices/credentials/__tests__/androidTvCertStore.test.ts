@@ -1,8 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 import type { IFileSystem } from '../../../core/fileSystem';
 import type { ILogger } from '../../../core/logger';
 import type { IPathProvider } from '../../../core/pathProvider';
+import type { generateCertificate } from '../../../protocol/androidtv/certificate';
 import { AndroidTvCertStore } from '../androidTvCertStore';
 
 /**
@@ -67,17 +68,21 @@ const FAKE_PEM: { cert: string; key: string } = {
 describe('AndroidTvCertStore — Google TV non-regression gate', () => {
   let fs: ReturnType<typeof makeFakeFs>;
   let logger: {
-    info: ReturnType<typeof vi.fn>;
-    warn: ReturnType<typeof vi.fn>;
-    error: ReturnType<typeof vi.fn>;
-  } & ILogger;
-  let generator: ReturnType<typeof vi.fn>;
+    info: Mock<ILogger['info']>;
+    warn: Mock<ILogger['warn']>;
+    error: Mock<ILogger['error']>;
+  };
+  let generator: Mock<typeof generateCertificate>;
   let store: AndroidTvCertStore;
 
   beforeEach(() => {
     fs = makeFakeFs();
-    logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
-    generator = vi.fn().mockReturnValue(FAKE_PEM);
+    logger = {
+      info: vi.fn<ILogger['info']>(),
+      warn: vi.fn<ILogger['warn']>(),
+      error: vi.fn<ILogger['error']>(),
+    };
+    generator = vi.fn<typeof generateCertificate>().mockReturnValue(FAKE_PEM);
     store = new AndroidTvCertStore(fs, paths, logger, generator);
   });
 
