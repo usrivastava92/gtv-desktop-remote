@@ -1,5 +1,6 @@
 import { createNodeFileSystem, type IFileSystem } from '../../backend/core/fileSystem';
 import { AndroidTvCertStore } from '../../backend/devices/credentials/androidTvCertStore';
+import { createPairingClient } from '../../backend/pairing/createPairingClient';
 import type { CommandDispatchRequest } from '../../shared/types';
 import { isCaptureEnabled, record, recordBuffer } from '../capture';
 import { createNodeLogger, getAppDataPath, logError } from '../logger';
@@ -55,18 +56,6 @@ type LibretvRemoteMessage =
     };
 
 interface LibretvGoogleModule {
-  PairingClient: new (options: {
-    cert: string;
-    clientName: string;
-    host: string;
-    key: string;
-    port: number;
-    rejectUnauthorized?: boolean;
-  }) => {
-    close(): Promise<void>;
-    start(): Promise<unknown>;
-    submitCode(code: string): Promise<{ type: string; status?: string }>;
-  };
   RemoteClient: new (options: {
     cert: string;
     host: string;
@@ -317,6 +306,7 @@ export class AndroidTvRemoteBridge {
     const session = this.sessions.get(normalizedHost);
 
     session?.remoteClient?.disconnect();
+    await session?.pairingManager?.close();
     this.sessions.delete(normalizedHost);
 
     if (removeCerts) {
@@ -356,21 +346,26 @@ export class AndroidTvRemoteBridge {
       return {};
     }
 
-    const { PairingClient } = await loadLibretvGoogle();
-    const pairingManager = new PairingClient({
-      cert: session.certs.cert,
-      clientName: SERVICE_NAME,
-      host,
-      key: session.certs.key,
-      port: DEFAULT_PAIRING_PORT,
-      rejectUnauthorized: false,
-    });
+    const pairingManager = await createPairingClient(
+      {
+        cert: session.certs.cert,
+        clientName: SERVICE_NAME,
+        host,
+        key: session.certs.key,
+        port: DEFAULT_PAIRING_PORT,
+        rejectUnauthorized: false,
+      },
+      (error) => {
+        void logError('androidtvremote', 'LibreControl Google TV pairing transport error', error);
+      }
+    );
 
     session.pairingManager = pairingManager;
     session.pairingReady = pairingManager
       .start()
       .then(() => undefined)
-      .catch((error: unknown) => {
+      .catch(async (error: unknown) => {
+        await pairingManager.close();
         session.pairingManager = undefined;
         throw toError(error, 'Pairing failed.');
       })
