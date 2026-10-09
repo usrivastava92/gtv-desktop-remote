@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 
+import { decodeDnsSdValue } from '../../backend/discovery/dnsSdEncoding';
 import type { DiscoveredDevice } from '../../shared/types';
 import { record } from '../capture';
 
@@ -10,10 +11,6 @@ interface ResolvedService {
   host?: string;
   port?: number;
   txt: Record<string, string>;
-}
-
-function decodeDnsSdValue(value: string): string {
-  return value.replace(/\\032/g, ' ').replace(/\\ /g, ' ').replace(/\\\\/g, '\\');
 }
 
 function buildDiscoveredId(host: string, name: string): string {
@@ -231,7 +228,7 @@ export async function discoverGoogleTvDevices(): Promise<DiscoveredDevice[]> {
       continue;
     }
 
-    const name = decodeDnsSdValue(service.instanceName);
+    const name = service.instanceName;
     devices.set(service.host, {
       id: buildDiscoveredId(service.host, name),
       name,
