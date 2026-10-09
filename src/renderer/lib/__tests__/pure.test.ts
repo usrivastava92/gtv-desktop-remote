@@ -59,6 +59,12 @@ describe('sanitizePairCode', () => {
   it('returns empty string when all chars are stripped', () => {
     expect(sanitizePairCode('---!!!')).toBe('');
   });
+
+  it('strips non-hex letters (the code alphabet is 0-9 and A-F)', () => {
+    expect(sanitizePairCode('AD0BDB')).toBe('AD0BDB');
+    expect(sanitizePairCode('ADOBDB')).toBe('ADBDB'); // 'O' is not hex
+    expect(sanitizePairCode('GHIJKL')).toBe('');
+  });
 });
 
 describe('classes', () => {
@@ -91,6 +97,7 @@ describe('shouldRestartPairingFlow', () => {
     'No pairing session is active',
     'Pairing failed',
     'PAIRING FAILED', // case-insensitive
+    'DecodeError: pairing code failed local certificate hash validation',
     'Server says: invalid pairing code, retry.',
   ])('matches: %s', (msg) => {
     expect(shouldRestartPairingFlow(msg)).toBe(true);

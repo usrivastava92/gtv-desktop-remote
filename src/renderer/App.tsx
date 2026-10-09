@@ -986,10 +986,19 @@ function App() {
   async function handleSelectDiscoveredDevice(device: DiscoveredDevice) {
     setTextInputOpen(false);
     setPairCode('');
-    setDevicePickerOpen(false);
+    setPairingReady(false);
+    setDevicePickerOpen(true);
     setBusy(true);
     try {
       const savedDevice = await saveDiscoveredDevice(device);
+      setBootstrap((current) => ({
+        ...current,
+        deviceState: {
+          ...current.deviceState,
+          status: 'connecting',
+          message: `Requesting pairing code from ${savedDevice.name}...`,
+        },
+      }));
       await startPairingFlow(savedDevice.id);
     } catch (error) {
       setPairingReady(false);
@@ -1553,8 +1562,15 @@ function App() {
 
             <div className="ui-devices-footer">{updaterPanel}</div>
 
-            {bootstrap.deviceState.status === 'error' || !bridgeReady ? (
-              <div className="ui-alert">
+            {bootstrap.deviceState.status === 'error' ||
+            bootstrap.deviceState.status === 'connecting' ||
+            !bridgeReady ? (
+              <div
+                className={classes(
+                  'ui-alert',
+                  bootstrap.deviceState.status === 'connecting' && 'ui-alert-connecting'
+                )}
+              >
                 {!bridgeReady ? 'Electron bridge not ready yet.' : bootstrap.deviceState.message}
               </div>
             ) : null}

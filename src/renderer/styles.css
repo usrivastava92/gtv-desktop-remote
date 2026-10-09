@@ -647,6 +647,11 @@ p {
   color: var(--danger-text);
 }
 
+.ui-alert-connecting {
+  background: rgba(187, 195, 255, 0.12);
+  color: var(--text-muted);
+}
+
 .ui-pair-screen {
   flex: 1;
   display: flex;

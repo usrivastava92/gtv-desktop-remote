@@ -131,6 +131,8 @@ When the remote is focused and connected, your keyboard controls the TV directly
 **Pairing not completing?**
 
 - Start a fresh pairing session and enter the latest code shown on the TV screen.
+- Pairing codes contain six hexadecimal characters (`0–9`, `A–F`); `O` is not a valid character.
+- After a certificate-hash validation error, select the device again to request a fresh code. If the error persists with the exact new code, report the app version and TV model/firmware.
 - If the device was previously saved, remove it and pair again.
 
 **App not opening or only showing the menubar icon?**
