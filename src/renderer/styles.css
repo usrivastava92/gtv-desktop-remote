@@ -121,15 +121,16 @@ p {
   -webkit-app-region: drag;
 }
 
-.ui-header-device {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-}
-
+.ui-header-device,
 .ui-header-remote,
 .ui-header-pairing {
   display: flex;
-  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.ui-header-settings-action {
+  flex: 0 0 auto;
+  margin-left: auto;
 }
 
 .ui-dragless {
@@ -229,6 +230,7 @@ p {
   color: var(--text);
   font-size: 0.8125rem;
   line-height: 1.5;
+  text-align: left;
 }
 
 .ui-settings-input:disabled {

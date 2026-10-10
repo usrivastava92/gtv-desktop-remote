@@ -7,6 +7,7 @@ import type { IFileSystem } from './core/fileSystem';
 export const DEFAULT_SHOW_HIDE_SHORTCUT = 'CommandOrControl+Shift+G';
 
 interface PreferencePlatform {
+  isMac: boolean;
   register(shortcut: string): boolean;
   unregister(shortcut: string): void;
   loginSupported: boolean;
@@ -51,6 +52,8 @@ export function normalizeShortcut(input: string): string {
 export class PreferencesController {
   private state: AppPreferences;
   private queue: Promise<unknown> = Promise.resolve();
+  private capturePaused = false;
+  private captureShortcut: string | null = null;
 
   constructor(
     private readonly fs: IFileSystem,
@@ -143,6 +146,42 @@ export class PreferencesController {
     return operation;
   }
 
+  /** Recording temporarily releases only the shortcut this controller owns. */
+  setShortcutCapture(input: unknown): Promise<PreferenceResult> {
+    const operation = this.queue.then(() => {
+      if (typeof input !== 'boolean') {
+        return { preferences: this.getState(), error: 'Invalid shortcut capture request.' };
+      }
+      if (input === this.capturePaused) {
+        return { preferences: this.getState(), error: null };
+      }
+      if (input) {
+        this.captureShortcut = this.state.activeShortcut;
+        if (this.captureShortcut) this.platform.unregister(this.captureShortcut);
+        this.state.activeShortcut = null;
+        this.capturePaused = true;
+      } else {
+        const shortcut = this.captureShortcut;
+        this.capturePaused = false;
+        this.captureShortcut = null;
+        if (shortcut) {
+          try {
+            if (!this.platform.register(shortcut)) throw new Error('Shortcut unavailable');
+            this.state.activeShortcut = shortcut;
+          } catch {
+            this.state.activeShortcut = null;
+            this.state.shortcutError =
+              'Your shortcut could not be restored after recording. It may now be occupied by another app. Save a shortcut in Settings; the menu bar still opens the remote.';
+            return { preferences: this.getState(), error: this.state.shortcutError };
+          }
+        }
+      }
+      return { preferences: this.getState(), error: null };
+    });
+    this.queue = operation.catch(() => undefined);
+    return operation;
+  }
+
   private async persist(shortcut: string, launchAtLogin: boolean | null): Promise<void> {
     await this.fs.mkdir(path.dirname(this.storePath), { recursive: true });
     const temporary = `${this.storePath}.tmp`;
@@ -154,15 +193,32 @@ export class PreferencesController {
     await this.fs.rename(temporary, this.storePath);
   }
 
+  private nativeShortcutIdentity(shortcut: string): string {
+    const parts = shortcut.split('+');
+    const key = parts.pop() ?? '';
+    const modifiers = parts.map((modifier) => {
+      if (modifier === 'CommandOrControl') return this.platform.isMac ? 'Super' : 'Control';
+      if (modifier === 'Command') return 'Super';
+      return modifier;
+    });
+    return `${[...new Set(modifiers)].sort().join('+')}+${key}`;
+  }
+
   private async apply(input: unknown): Promise<PreferenceResult> {
     try {
+      if (this.capturePaused) throw new Error('Finish or cancel shortcut recording before saving.');
       if (!input || typeof input !== 'object' || Object.keys(input).length !== 1) {
         throw new Error('Choose either a shortcut or Launch at login.');
       }
       if ('shortcut' in input && typeof input.shortcut === 'string') {
-        const shortcut = normalizeShortcut(input.shortcut);
+        let shortcut = normalizeShortcut(input.shortcut);
         const previous = this.state.activeShortcut;
-        if (shortcut === previous) {
+        if (
+          previous &&
+          this.nativeShortcutIdentity(shortcut) === this.nativeShortcutIdentity(previous)
+        ) {
+          // Keep the spelling of the owned binding: Electron treats aliases/order as one chord.
+          shortcut = previous;
           await this.persist(shortcut, this.state.launchAtLogin);
         } else {
           // Register first: a failed replacement must not remove the working shortcut.

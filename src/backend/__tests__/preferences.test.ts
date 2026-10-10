@@ -20,7 +20,7 @@ describe('launch and shortcut preferences', () => {
     await rm(directory, { recursive: true, force: true });
   });
 
-  function setup(loginSupported = true) {
+  function setup(loginSupported = true, isMac = true) {
     const occupied = new Set<string>();
     const registered = new Set<string>();
     const calls: string[] = [];
@@ -28,11 +28,41 @@ describe('launch and shortcut preferences', () => {
     let denyLogin = false;
     let failReadback = false;
     const file = path.join(directory, 'preferences.json');
+    function nativeChord(shortcut: string): string {
+      let flags = 0;
+      let key = '';
+      for (const part of shortcut.split('+')) {
+        switch (part) {
+          case 'CommandOrControl':
+            flags |= isMac ? 8 : 1;
+            break;
+          case 'Command':
+          case 'Super':
+            flags |= 8;
+            break;
+          case 'Control':
+            flags |= 1;
+            break;
+          case 'Alt':
+            flags |= 2;
+            break;
+          case 'Shift':
+            flags |= 4;
+            break;
+          default:
+            key = part.toUpperCase();
+        }
+      }
+      return `${String(flags)}:${key}`;
+    }
     const platform = {
+      isMac,
       loginSupported,
       register: (shortcut: string) => {
         calls.push(`register:${shortcut}`);
-        if (occupied.has(shortcut) || registered.has(shortcut)) return false;
+        const chord = nativeChord(shortcut);
+        if ([...occupied, ...registered].some((binding) => nativeChord(binding) === chord))
+          return false;
         registered.add(shortcut);
         return true;
       },
@@ -108,6 +138,98 @@ describe('launch and shortcut preferences', () => {
     expect([...environment.registered]).toEqual(['Control+T']);
   });
 
+  it.each([true, false])(
+    'recaptures the owned default and reordered aliases without self-conflict on Mac=%s',
+    async (isMac) => {
+      const environment = setup(false, isMac);
+      const controller = environment.create();
+      await controller.initialize();
+      await controller.setShortcutCapture(true);
+      expect(environment.registered.size).toBe(0);
+      await controller.setShortcutCapture(false);
+      const beforeSave = environment.calls.length;
+      const metaOrControl = isMac ? 'Super' : 'Control';
+      const recaptured = await controller.change({ shortcut: `${metaOrControl}+Shift+G` });
+      expect(recaptured.error).toBeNull();
+      expect(recaptured.preferences.activeShortcut).toBe(DEFAULT_SHOW_HIDE_SHORTCUT);
+      expect((await controller.change({ shortcut: `Shift+${metaOrControl}+G` })).error).toBeNull();
+      if (isMac) {
+        expect((await controller.change({ shortcut: 'Shift+Command+G' })).error).toBeNull();
+      }
+      expect(environment.calls).toHaveLength(beforeSave);
+      expect(JSON.parse(await readFile(environment.file, 'utf8'))).toMatchObject({
+        shortcut: DEFAULT_SHOW_HIDE_SHORTCUT,
+      });
+      expect([...environment.registered]).toEqual([DEFAULT_SHOW_HIDE_SHORTCUT]);
+
+      // A genuinely different chord still registers first and retains the owned binding on conflict.
+      environment.occupied.add('Alt+Control+R');
+      expect((await controller.change({ shortcut: 'Control+Alt+R' })).error).toContain(
+        'unavailable'
+      );
+      expect(controller.getState().activeShortcut).toBe(DEFAULT_SHOW_HIDE_SHORTCUT);
+      expect((await controller.change({ shortcut: 'Control+Alt+G' })).error).toBeNull();
+      expect(environment.calls.slice(-2)).toEqual([
+        'register:Control+Alt+G',
+        `unregister:${DEFAULT_SHOW_HIDE_SHORTCUT}`,
+      ]);
+    }
+  );
+
+  it('releases only its binding during capture, serializes cancellation, and never persists capture', async () => {
+    const environment = setup();
+    const controller = environment.create();
+    await controller.initialize();
+    await controller.change({ shortcut: 'Control+Alt+G' });
+    const before = await readFile(environment.file, 'utf8');
+    environment.registered.add('Control+X');
+    const paused = controller.setShortcutCapture(true);
+    const rejected = controller.change({ shortcut: 'Control+R' });
+    const restored = controller.setShortcutCapture(false);
+    expect((await paused).preferences.activeShortcut).toBeNull();
+    expect((await rejected).error).toContain('cancel');
+    expect((await restored).preferences.activeShortcut).toBe('Control+Alt+G');
+    expect([...environment.registered].sort()).toEqual(['Control+Alt+G', 'Control+X']);
+    expect(await readFile(environment.file, 'utf8')).toBe(before);
+    const calls = environment.calls.length;
+    await controller.setShortcutCapture(false);
+    expect(environment.calls).toHaveLength(calls);
+    expect((await controller.setShortcutCapture('true')).error).toContain('Invalid');
+    expect(controller.getState().activeShortcut).toBe('Control+Alt+G');
+    environment.registered.delete('Control+Alt+G');
+    const restarted = environment.create();
+    await restarted.initialize();
+    expect(restarted.getState().activeShortcut).toBe('Control+Alt+G');
+  });
+
+  it('reports lost ownership truthfully when another app takes the binding during capture', async () => {
+    const environment = setup();
+    const controller = environment.create();
+    await controller.initialize();
+    await controller.setShortcutCapture(true);
+    environment.occupied.add(DEFAULT_SHOW_HIDE_SHORTCUT);
+    const restored = await controller.setShortcutCapture(false);
+    expect(restored.error).toContain('could not be restored');
+    expect(restored.preferences.activeShortcut).toBeNull();
+    expect(restored.preferences.shortcut).toBe(DEFAULT_SHOW_HIDE_SHORTCUT);
+    expect(environment.registered.size).toBe(0);
+    const replacement = await controller.change({ shortcut: 'Control+R' });
+    expect(replacement.error).toBeNull();
+    expect(replacement.preferences.activeShortcut).toBe('Control+R');
+  });
+
+  it('does not acquire a binding it never owned when recording is cancelled', async () => {
+    const environment = setup();
+    environment.occupied.add(DEFAULT_SHOW_HIDE_SHORTCUT);
+    const controller = environment.create();
+    await controller.initialize();
+    environment.occupied.clear();
+    await controller.setShortcutCapture(true);
+    await controller.setShortcutCapture(false);
+    expect(controller.getState().activeShortcut).toBeNull();
+    expect(environment.registered.size).toBe(0);
+  });
+
   it('rejects empty, malformed, and unsafe IPC requests without changing registration', async () => {
     const environment = setup();
     const controller = environment.create();
@@ -181,6 +303,7 @@ describe('launch and shortcut preferences', () => {
           registered.delete(shortcut);
         },
         loginSupported: false,
+        isMac: true,
         getLogin: () => false,
         setLogin: () => {
           throw new Error('unsupported');

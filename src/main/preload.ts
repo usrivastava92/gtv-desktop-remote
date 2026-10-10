@@ -21,6 +21,8 @@ const api = {
   getPreferences: (): Promise<AppPreferences> => ipcRenderer.invoke(INVOKE_CHANNELS.preferencesGet),
   changePreference: (change: PreferenceChange): Promise<PreferenceResult> =>
     ipcRenderer.invoke(INVOKE_CHANNELS.preferencesChange, change),
+  setShortcutCapture: (recording: boolean): Promise<PreferenceResult> =>
+    ipcRenderer.invoke(INVOKE_CHANNELS.preferencesShortcutCapture, recording),
   bootstrap: (): Promise<BootstrapState> => ipcRenderer.invoke(INVOKE_CHANNELS.deviceBootstrap),
   scanDevices: (): Promise<DiscoveredDevice[]> => ipcRenderer.invoke(INVOKE_CHANNELS.deviceScan),
   saveDevice: (draft: DeviceDraft): Promise<SavedDevice[]> =>

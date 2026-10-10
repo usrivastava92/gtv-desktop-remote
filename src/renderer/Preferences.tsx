@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { AppPreferences, PreferenceChange } from '../shared/preferences';
 
 import { getDesktopApi } from './api';
+import { shortcutLabel } from './lib/shortcut';
+import { ShortcutRecorder } from './ShortcutRecorder';
 
 export function Preferences({ onClose }: { onClose: () => void }) {
   const [preferences, setPreferences] = useState<AppPreferences | null>(null);
@@ -10,6 +12,7 @@ export function Preferences({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [recording, setRecording] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
@@ -55,7 +58,7 @@ export function Preferences({ onClose }: { onClose: () => void }) {
       aria-labelledby="settings-heading"
       className="ui-settings ui-dragless"
       onKeyDown={(event) => {
-        if (event.key === 'Escape' && !busy) {
+        if (event.key === 'Escape' && !busy && !recording) {
           event.preventDefault();
           onClose();
         }
@@ -69,7 +72,7 @@ export function Preferences({ onClose }: { onClose: () => void }) {
           type="button"
           className="ui-settings-button ui-dragless"
           onClick={onClose}
-          disabled={busy}
+          disabled={busy || recording}
         >
           Done
         </button>
@@ -92,6 +95,7 @@ export function Preferences({ onClose }: { onClose: () => void }) {
                   }
                   disabled={
                     busy ||
+                    recording ||
                     !preferences.launchAtLoginSupported ||
                     preferences.launchAtLogin === null
                   }
@@ -126,30 +130,36 @@ export function Preferences({ onClose }: { onClose: () => void }) {
               <label htmlFor="global-shortcut" className="ui-settings-label">
                 Show / hide shortcut
               </label>
-              <input
-                id="global-shortcut"
-                type="text"
-                value={shortcut}
+              <ShortcutRecorder
+                shortcut={shortcut}
                 disabled={busy}
-                className="ui-settings-input"
-                spellCheck={false}
-                aria-describedby="shortcut-description shortcut-active"
-                onChange={(event) => {
-                  setShortcut(event.target.value);
+                onChange={(value) => {
+                  setShortcut(value);
                   setSaved(false);
                 }}
+                onPreferences={setPreferences}
+                onError={setError}
+                onRecording={setRecording}
               />
               <p id="shortcut-description" className="ui-settings-copy">
-                Use modifiers plus a letter, digit, or F1–F24. Example: CommandOrControl+Shift+G.
-                Blank shortcuts are not allowed.
+                Press modifiers plus a letter, digit, or F1–F24. Escape cancels recording; Tab or
+                leaving the control also cancels. The app shortcut is paused only while recording.
               </p>
               <p id="shortcut-active" className="ui-settings-copy">
                 Active:{' '}
                 <span className="ui-settings-value">
-                  {preferences.activeShortcut ?? 'Unavailable — use the menu bar'}
+                  {recording
+                    ? 'Paused while recording'
+                    : preferences.activeShortcut
+                      ? shortcutLabel(preferences.activeShortcut)
+                      : 'Unavailable — use the menu bar'}
                 </span>
               </p>
-              <button type="submit" className="ui-settings-button ui-settings-save" disabled={busy}>
+              <button
+                type="submit"
+                className="ui-settings-button ui-settings-save"
+                disabled={busy || recording}
+              >
                 Save shortcut
               </button>
               {preferences.shortcutError ? (

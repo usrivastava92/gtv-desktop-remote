@@ -41,6 +41,7 @@ import type {
 export const INVOKE_CHANNELS = Object.freeze({
   preferencesGet: 'preferences:get',
   preferencesChange: 'preferences:change',
+  preferencesShortcutCapture: 'preferences:shortcutCapture',
   deviceBootstrap: 'device:bootstrap',
   deviceScan: 'device:scan',
   deviceSave: 'device:save',
@@ -77,6 +78,7 @@ export type InvokeChannelName = (typeof INVOKE_CHANNELS)[InvokeChannelKey];
 export interface InvokeContract {
   preferencesGet: { args: []; res: AppPreferences };
   preferencesChange: { args: [PreferenceChange]; res: PreferenceResult };
+  preferencesShortcutCapture: { args: [boolean]; res: PreferenceResult };
   deviceBootstrap: { args: []; res: BootstrapState };
   deviceScan: { args: []; res: DiscoveredDevice[] };
   deviceSave: { args: [DeviceDraft]; res: SavedDevice[] };

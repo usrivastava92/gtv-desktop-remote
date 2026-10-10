@@ -34,6 +34,7 @@ import type { UpdaterStatus } from './types';
 export interface InvokeMethodMap {
   getPreferences: 'preferencesGet';
   changePreference: 'preferencesChange';
+  setShortcutCapture: 'preferencesShortcutCapture';
   bootstrap: 'deviceBootstrap';
   scanDevices: 'deviceScan';
   saveDevice: 'deviceSave';
