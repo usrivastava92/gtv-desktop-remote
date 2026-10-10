@@ -121,19 +121,167 @@ p {
   -webkit-app-region: drag;
 }
 
-.ui-header-device {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-}
-
+.ui-header-device,
 .ui-header-remote,
 .ui-header-pairing {
   display: flex;
-  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.ui-header-settings-action {
+  flex: 0 0 auto;
+  margin-left: auto;
 }
 
 .ui-dragless {
   -webkit-app-region: no-drag;
+}
+
+.ui-settings {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.ui-settings-header {
+  display: flex;
+  flex-shrink: 0;
+  justify-content: space-between;
+  height: auto;
+  min-height: 4.5rem;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+}
+
+.ui-settings-heading {
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: -0.02em;
+}
+
+.ui-settings-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.5rem 1.5rem 1.5rem;
+}
+
+.ui-settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  min-width: 0;
+  padding: 1.25rem 0;
+}
+
+.ui-settings-group + .ui-settings-group {
+  border-top: 1px solid var(--surface-highest);
+}
+
+.ui-settings-toggle,
+.ui-settings-label {
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.ui-settings-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 2rem;
+  cursor: pointer;
+}
+
+.ui-settings-toggle input {
+  flex: 0 0 auto;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin: 0;
+  accent-color: var(--primary);
+}
+
+.ui-settings-copy,
+.ui-settings-message {
+  font-size: 0.8125rem;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+  color: var(--text-muted);
+}
+
+.ui-settings-value {
+  color: var(--text);
+}
+
+.ui-settings-input {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--surface-highest);
+  border-radius: 0.75rem;
+  background: var(--surface-low);
+  color: var(--text);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.ui-settings-input:disabled {
+  opacity: 0.6;
+}
+
+.ui-settings-button {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.5rem;
+  padding: 0.625rem 1rem;
+  border-radius: 999px;
+  background: var(--surface-high);
+  color: var(--primary);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.ui-settings-button:hover:not(:disabled) {
+  background: var(--surface-highest);
+}
+
+.ui-settings-save {
+  align-self: flex-start;
+}
+
+.ui-settings :focus-visible,
+.ui-icon-button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+
+.ui-settings-message {
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  background: var(--surface-low);
+}
+
+.ui-settings-message + .ui-settings-message {
+  margin-top: 0.875rem;
+}
+
+.ui-settings-error {
+  color: var(--danger-text);
+}
+
+.ui-settings-success {
+  color: var(--primary);
 }
 
 .ui-brand {

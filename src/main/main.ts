@@ -13,6 +13,8 @@ import {
   Tray,
 } from 'electron';
 
+import { createNodeFileSystem } from '../backend/core/fileSystem';
+import { PreferencesController } from '../backend/preferences';
 import { INVOKE_CHANNELS } from '../shared/ipcContract';
 import type {
   CommandDispatchRequest,
@@ -42,7 +44,25 @@ let windowRef: BrowserWindow | undefined;
 
 const adapter = new GoogleTvAdapter();
 const appName = 'GTV Remote';
-const shortcut = 'CommandOrControl+Shift+G';
+const preferences = new PreferencesController(
+  createNodeFileSystem(),
+  path.join(app.getPath('userData'), 'preferences.json'),
+  {
+    isMac: process.platform === 'darwin',
+    register: (shortcut) =>
+      globalShortcut.register(shortcut, () => {
+        void toggleWindow();
+      }),
+    unregister: (shortcut) => {
+      globalShortcut.unregister(shortcut);
+    },
+    loginSupported: process.platform === 'darwin' && app.isPackaged,
+    getLogin: () => app.getLoginItemSettings().openAtLogin,
+    setLogin: (enabled) => {
+      app.setLoginItemSettings({ openAtLogin: enabled });
+    },
+  }
+);
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
 
 function getAssetPath(...parts: string[]) {
@@ -99,6 +119,7 @@ function attachWindowDiagnostics(window: BrowserWindow) {
   window.webContents.on(
     'did-fail-load',
     (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+      if (isMainFrame) void preferences.setShortcutCapture(false);
       void logError('renderer', 'Window failed to load', {
         errorCode,
         errorDescription,
@@ -107,12 +128,20 @@ function attachWindowDiagnostics(window: BrowserWindow) {
       });
     }
   );
+  window.webContents.on('did-start-navigation', (_event, _url, _inPlace, isMainFrame) => {
+    if (isMainFrame) void preferences.setShortcutCapture(false);
+  });
+  window.webContents.on('destroyed', () => {
+    void preferences.setShortcutCapture(false);
+  });
 
   window.webContents.on('render-process-gone', (_event, details) => {
+    void preferences.setShortcutCapture(false);
     void logError('renderer', 'Render process exited unexpectedly', details);
   });
 
   window.webContents.on('unresponsive', () => {
+    void preferences.setShortcutCapture(false);
     void logError('renderer', 'Window became unresponsive');
   });
 
@@ -164,12 +193,14 @@ async function createWindow(): Promise<BrowserWindow> {
   }
 
   window.on('blur', () => {
+    void preferences.setShortcutCapture(false);
     if (!window.webContents.isDevToolsOpened()) {
       window.hide();
     }
   });
 
   window.on('closed', () => {
+    void preferences.setShortcutCapture(false);
     unsubscribeUpdater();
     if (windowRef === window) {
       windowRef = undefined;
@@ -362,10 +393,11 @@ async function bootstrapApp() {
     void toggleWindow();
   });
 
-  globalShortcut.register(shortcut, () => {
-    void toggleWindow();
+  await preferences.initialize();
+  await logInfo('main', 'Application bootstrap complete', {
+    shortcut: preferences.getState().activeShortcut,
+    logPath: getLoggerPath(),
   });
-  await logInfo('main', 'Application bootstrap complete', { shortcut, logPath: getLoggerPath() });
   await showWindow();
 
   setTimeout(() => {
@@ -391,6 +423,18 @@ if (!hasSingleInstanceLock) {
 
 function registerIpc() {
   const ch = INVOKE_CHANNELS;
+  ipcMain.handle(ch.preferencesGet, (event) => {
+    if (event.sender !== windowRef?.webContents) throw new Error('Untrusted preferences request');
+    return preferences.refresh();
+  });
+  ipcMain.handle(ch.preferencesChange, (event, change: unknown) => {
+    if (event.sender !== windowRef?.webContents) throw new Error('Untrusted preferences request');
+    return preferences.change(change);
+  });
+  ipcMain.handle(ch.preferencesShortcutCapture, (event, recording: unknown) => {
+    if (event.sender !== windowRef?.webContents) throw new Error('Untrusted preferences request');
+    return preferences.setShortcutCapture(recording);
+  });
   ipcMain.handle(
     ch.deviceBootstrap,
     captureIpc(ch.deviceBootstrap, async () => adapter.getBootstrapState())

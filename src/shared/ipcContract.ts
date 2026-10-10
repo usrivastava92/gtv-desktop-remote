@@ -17,6 +17,7 @@
  * two frozen constant maps. The contract types reference shapes from
  * `./types` so the contract stays in sync with the DTOs.
  */
+import type { AppPreferences, PreferenceChange, PreferenceResult } from './preferences';
 import type {
   BootstrapState,
   CommandDispatchRequest,
@@ -38,6 +39,9 @@ import type {
  * so a typo is a compile error.
  */
 export const INVOKE_CHANNELS = Object.freeze({
+  preferencesGet: 'preferences:get',
+  preferencesChange: 'preferences:change',
+  preferencesShortcutCapture: 'preferences:shortcutCapture',
   deviceBootstrap: 'device:bootstrap',
   deviceScan: 'device:scan',
   deviceSave: 'device:save',
@@ -72,6 +76,9 @@ export type InvokeChannelName = (typeof INVOKE_CHANNELS)[InvokeChannelKey];
  * client signature is `(...args: Args) => Promise<Res>`. The two cannot drift.
  */
 export interface InvokeContract {
+  preferencesGet: { args: []; res: AppPreferences };
+  preferencesChange: { args: [PreferenceChange]; res: PreferenceResult };
+  preferencesShortcutCapture: { args: [boolean]; res: PreferenceResult };
   deviceBootstrap: { args: []; res: BootstrapState };
   deviceScan: { args: []; res: DiscoveredDevice[] };
   deviceSave: { args: [DeviceDraft]; res: SavedDevice[] };
