@@ -13,6 +13,8 @@ import {
   Tray,
 } from 'electron';
 
+import { createNodeFileSystem } from '../backend/core/fileSystem';
+import { PreferencesController } from '../backend/preferences';
 import { INVOKE_CHANNELS } from '../shared/ipcContract';
 import type {
   CommandDispatchRequest,
@@ -42,7 +44,24 @@ let windowRef: BrowserWindow | undefined;
 
 const adapter = new GoogleTvAdapter();
 const appName = 'GTV Remote';
-const shortcut = 'CommandOrControl+Shift+G';
+const preferences = new PreferencesController(
+  createNodeFileSystem(),
+  path.join(app.getPath('userData'), 'preferences.json'),
+  {
+    register: (shortcut) =>
+      globalShortcut.register(shortcut, () => {
+        void toggleWindow();
+      }),
+    unregister: (shortcut) => {
+      globalShortcut.unregister(shortcut);
+    },
+    loginSupported: process.platform === 'darwin' && app.isPackaged,
+    getLogin: () => app.getLoginItemSettings().openAtLogin,
+    setLogin: (enabled) => {
+      app.setLoginItemSettings({ openAtLogin: enabled });
+    },
+  }
+);
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
 
 function getAssetPath(...parts: string[]) {
@@ -362,10 +381,11 @@ async function bootstrapApp() {
     void toggleWindow();
   });
 
-  globalShortcut.register(shortcut, () => {
-    void toggleWindow();
+  await preferences.initialize();
+  await logInfo('main', 'Application bootstrap complete', {
+    shortcut: preferences.getState().activeShortcut,
+    logPath: getLoggerPath(),
   });
-  await logInfo('main', 'Application bootstrap complete', { shortcut, logPath: getLoggerPath() });
   await showWindow();
 
   setTimeout(() => {
@@ -391,6 +411,14 @@ if (!hasSingleInstanceLock) {
 
 function registerIpc() {
   const ch = INVOKE_CHANNELS;
+  ipcMain.handle(ch.preferencesGet, (event) => {
+    if (event.sender !== windowRef?.webContents) throw new Error('Untrusted preferences request');
+    return preferences.refresh();
+  });
+  ipcMain.handle(ch.preferencesChange, (event, change: unknown) => {
+    if (event.sender !== windowRef?.webContents) throw new Error('Untrusted preferences request');
+    return preferences.change(change);
+  });
   ipcMain.handle(
     ch.deviceBootstrap,
     captureIpc(ch.deviceBootstrap, async () => adapter.getBootstrapState())

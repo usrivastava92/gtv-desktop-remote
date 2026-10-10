@@ -39,7 +39,8 @@ GTV Desktop Remote lets you control any Google TV or Android TV device from your
 - **Keyboard control** — drive your TV from the keyboard without touching the mouse
 - **Text input** — send text directly to apps that support Android TV text entry
 - **IP-change resilient** — device identity is tracked by MAC address, not IP, so re-pairing is never needed when your TV's IP changes
-- **Global shortcut** — `CmdOrCtrl+Shift+G` shows or hides the remote from anywhere
+- **Global shortcut** — customizable show/hide shortcut (default `CmdOrCtrl+Shift+G`)
+- **Launch at login** — optional macOS Login Item, off by default
 
 ---
 
@@ -116,7 +117,15 @@ When the remote is focused and connected, your keyboard controls the TV directly
 
 > `Cmd`, `Ctrl`, and `Option` combinations are ignored so they don't interfere with normal macOS shortcuts.
 
-**Global shortcut:** `CmdOrCtrl+Shift+G` — show or hide the remote from any app.
+**Global shortcut:** `CmdOrCtrl+Shift+G` by default — show or hide the remote from any app.
+
+### Settings
+
+Settings replaces the remote or device list while open. Click **Done** or press **Escape** to return; longer settings and error messages scroll inside the app window.
+
+Click the gear in the remote header to open **Settings**. Enable or disable **Launch at login** in the installed macOS app; development Electron is never added to Login Items. It is off by default, and macOS **System Settings → General → Login Items** remains authoritative. Opening Settings refreshes the current macOS state, including external changes made while the app is running, without re-enabling a disabled item. If macOS readback fails, the toggle shows an unknown state and an error; reopen Settings to retry.
+
+Enter a show/hide shortcut such as `CommandOrControl+Shift+R` and click **Save shortcut**. Use one or more modifiers (`CommandOrControl`, `Command`, `Control`, `Alt`/`Option`, `Shift`, `Super`) plus a letter, digit, or F1–F24; at least one modifier must be other than Shift. Empty or invalid shortcuts are rejected. Shortcuts are saved across restarts. If another app occupies a replacement, an error is shown and the previous working shortcut stays registered. If the saved shortcut is occupied on startup, Settings shows the problem; the menu bar still opens the remote.
 
 ---
 

@@ -22,6 +22,7 @@ import {
 } from './lib/deviceSelection';
 import { classes, isEditableTarget, sanitizePairCode, shouldRestartPairingFlow } from './lib/pure';
 import { KEYBOARD_COMMAND_MAP } from './lib/remoteCommands';
+import { Preferences } from './Preferences';
 
 const initialDraft: DeviceDraft = {
   name: '',
@@ -277,6 +278,8 @@ function Icon({ name, className }: { name: IconName; className?: string }) {
 }
 
 function App() {
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const settingsButtonRef = useRef<HTMLButtonElement>(null);
   const [bootstrap, setBootstrap] = useState<BootstrapState>({
     devices: [],
     deviceState: {
@@ -843,7 +846,7 @@ function App() {
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (!bridgeReady || !isConnected || currentView !== 'remote') {
+      if (settingsOpen || !bridgeReady || !isConnected || currentView !== 'remote') {
         return;
       }
 
@@ -927,7 +930,7 @@ function App() {
       void stopAssistantSession();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bridgeReady, isConnected, currentView, remoteDisabled]);
+  }, [settingsOpen, bridgeReady, isConnected, currentView, remoteDisabled]);
 
   async function saveDiscoveredDevice(device: DiscoveredDevice): Promise<SavedDevice> {
     const devices = await getDesktopApi().saveDevice({
@@ -1384,497 +1387,541 @@ function App() {
   return (
     <main className="ui-shell">
       <section className="ui-frame">
-        <header className={frameHeaderClassName}>
-          {currentView === 'pairing' ? (
-            <>
-              <div className="text-xs font-extrabold uppercase tracking-widest text-on-surface">
-                Android TV
-              </div>
-              <div className="flex items-center ui-dragless">
-                <Icon name="devices" className="h-[1.15rem] w-[1.15rem] text-primary-strong" />
-              </div>
-            </>
-          ) : currentView === 'devices' ? (
-            <>
-              <div className="ui-brand">
-                <Icon name="devices" className="h-[1.28rem] w-[1.28rem] text-primary-strong" />
-                <span className="ui-brand-label ui-brand-label-muted">Android TV</span>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="ui-brand">
-                <Icon name="devices" className="h-[1.28rem] w-[1.28rem] text-primary-strong" />
-                <span className="ui-brand-label">Android TV</span>
-              </div>
-              <div className="flex min-w-0 items-center gap-3 ui-dragless">
-                <div
-                  className={classes(
-                    'ui-status-pill',
-                    bootstrap.deviceState.status === 'error' && 'ui-status-pill-error'
-                  )}
-                >
-                  <span className="ui-status-dot" />
-                  <span className="ui-pill-text">
-                    {isConnected ? 'Connected' : bootstrap.deviceState.status}
-                  </span>
-                </div>
-              </div>
-            </>
-          )}
-        </header>
-
-        {currentView === 'devices' ? (
-          <div className="ui-screen-scroll">
-            <div className="ui-devices-content">
-              <section className="ui-section">
-                <div className="ui-section-row">
-                  <h2 className="ui-section-heading">Known Devices</h2>
-                  <span className="ui-live-dot" />
-                </div>
-                <div className="ui-list">
-                  {pairedNetworkDevices.length === 0 ? (
-                    <div className="ui-empty">No paired devices yet.</div>
-                  ) : (
-                    pairedNetworkDevices.map((option) => {
-                      const status = renderStatusLabel(option.savedDevice, option.discoveredDevice);
-                      const displayName = option.discoveredDevice?.name ?? option.savedDevice.name;
-                      const subtitle = option.discoveredDevice?.model ?? option.savedDevice.host;
-                      const isActive =
-                        bootstrap.deviceState.activeDeviceId === option.savedDevice.id;
-
-                      return (
-                        <button
-                          key={option.key}
-                          className={classes('ui-card', isActive && 'ui-card-active')}
-                          disabled={bridgeDisabled}
-                          onClick={() => {
-                            void handleSelectSavedDevice(option.savedDevice.id);
-                          }}
-                        >
-                          <div className="ui-card-row">
-                            <div className={classes('ui-avatar', isActive && 'ui-avatar-active')}>
-                              <Icon name="tv" className="h-[1.2rem] w-[1.2rem]" />
-                            </div>
-                            <div className="ui-card-copy">
-                              <span className="ui-card-title">{displayName}</span>
-                              <span className="ui-card-meta">{subtitle}</span>
-                            </div>
-                            <span className={classes('ui-badge', isActive && 'ui-badge-active')}>
-                              <span className="ui-pill-text">{status}</span>
-                            </span>
-                          </div>
-                        </button>
-                      );
-                    })
-                  )}
-                </div>
-              </section>
-
-              <section className="ui-section">
-                <div className="ui-section-row">
-                  <h2 className="ui-section-heading">New Devices Found</h2>
-                  <button
-                    className="ui-icon-button"
-                    disabled={bridgeDisabled || scanning}
-                    onClick={() => {
-                      void appHandleScanDevices(false);
-                    }}
-                  >
-                    <Icon
-                      name="refresh"
-                      className={`h-5 w-5 ${scanning ? 'animate-spin' : ''}`}
-                    />{' '}
-                  </button>
-                </div>
-                <div className="ui-list">
-                  {unpairedNetworkDevices.length === 0 ? (
-                    <div className="ui-empty ui-empty-recessed">
-                      No new devices detected right now.
+        {settingsOpen ? (
+          <Preferences
+            onClose={() => {
+              setSettingsOpen(false);
+              window.requestAnimationFrame(() => {
+                settingsButtonRef.current?.focus();
+              });
+            }}
+          />
+        ) : (
+          <>
+            <header className={frameHeaderClassName}>
+              {currentView === 'pairing' ? (
+                <>
+                  <div className="text-xs font-extrabold uppercase tracking-widest text-on-surface">
+                    Android TV
+                  </div>
+                  <div className="flex items-center ui-dragless">
+                    <Icon name="devices" className="h-[1.15rem] w-[1.15rem] text-primary-strong" />
+                  </div>
+                </>
+              ) : currentView === 'devices' ? (
+                <>
+                  <div className="ui-brand">
+                    <Icon name="devices" className="h-[1.28rem] w-[1.28rem] text-primary-strong" />
+                    <span className="ui-brand-label ui-brand-label-muted">Android TV</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="ui-brand">
+                    <Icon name="devices" className="h-[1.28rem] w-[1.28rem] text-primary-strong" />
+                    <span className="ui-brand-label">Android TV</span>
+                  </div>
+                  <div className="flex min-w-0 items-center gap-3 ui-dragless">
+                    <div
+                      className={classes(
+                        'ui-status-pill',
+                        bootstrap.deviceState.status === 'error' && 'ui-status-pill-error'
+                      )}
+                    >
+                      <span className="ui-status-dot" />
+                      <span className="ui-pill-text">
+                        {isConnected ? 'Connected' : bootstrap.deviceState.status}
+                      </span>
                     </div>
-                  ) : (
-                    unpairedNetworkDevices.map((device) => (
+                  </div>
+                </>
+              )}
+              <button
+                ref={settingsButtonRef}
+                type="button"
+                aria-label="Settings"
+                title="Settings"
+                className="ui-icon-button ui-dragless"
+                onClick={() => {
+                  setSettingsOpen(true);
+                }}
+              >
+                <Icon name="settings" className="h-5 w-5" />
+              </button>
+            </header>
+
+            {currentView === 'devices' ? (
+              <div className="ui-screen-scroll">
+                <div className="ui-devices-content">
+                  <section className="ui-section">
+                    <div className="ui-section-row">
+                      <h2 className="ui-section-heading">Known Devices</h2>
+                      <span className="ui-live-dot" />
+                    </div>
+                    <div className="ui-list">
+                      {pairedNetworkDevices.length === 0 ? (
+                        <div className="ui-empty">No paired devices yet.</div>
+                      ) : (
+                        pairedNetworkDevices.map((option) => {
+                          const status = renderStatusLabel(
+                            option.savedDevice,
+                            option.discoveredDevice
+                          );
+                          const displayName =
+                            option.discoveredDevice?.name ?? option.savedDevice.name;
+                          const subtitle =
+                            option.discoveredDevice?.model ?? option.savedDevice.host;
+                          const isActive =
+                            bootstrap.deviceState.activeDeviceId === option.savedDevice.id;
+
+                          return (
+                            <button
+                              key={option.key}
+                              className={classes('ui-card', isActive && 'ui-card-active')}
+                              disabled={bridgeDisabled}
+                              onClick={() => {
+                                void handleSelectSavedDevice(option.savedDevice.id);
+                              }}
+                            >
+                              <div className="ui-card-row">
+                                <div
+                                  className={classes('ui-avatar', isActive && 'ui-avatar-active')}
+                                >
+                                  <Icon name="tv" className="h-[1.2rem] w-[1.2rem]" />
+                                </div>
+                                <div className="ui-card-copy">
+                                  <span className="ui-card-title">{displayName}</span>
+                                  <span className="ui-card-meta">{subtitle}</span>
+                                </div>
+                                <span
+                                  className={classes('ui-badge', isActive && 'ui-badge-active')}
+                                >
+                                  <span className="ui-pill-text">{status}</span>
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  </section>
+
+                  <section className="ui-section">
+                    <div className="ui-section-row">
+                      <h2 className="ui-section-heading">New Devices Found</h2>
                       <button
-                        key={device.id}
-                        className="ui-found-row"
-                        disabled={bridgeDisabled}
+                        className="ui-icon-button"
+                        disabled={bridgeDisabled || scanning}
                         onClick={() => {
-                          void handleSelectDiscoveredDevice(device);
+                          void appHandleScanDevices(false);
                         }}
                       >
-                        <div className="ui-found-content">
-                          <div className="ui-found-main">
-                            <div className="ui-found-icon">
-                              <Icon
-                                name={device.source === 'googlecast' ? 'cast' : 'devices'}
-                                className="h-[1.2rem] w-[1.2rem]"
-                              />
-                            </div>
-                            <div>
-                              <span className="block text-sm font-bold text-on-surface">
-                                {device.name}
-                              </span>
-                              <span className="block text-[10px] font-medium text-on-surface-variant">
-                                {device.model ?? 'Ready to pair'}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="ui-found-add">
-                            <Icon name="plus" className="h-4 w-4" />
-                          </div>
-                        </div>
+                        <Icon
+                          name="refresh"
+                          className={`h-5 w-5 ${scanning ? 'animate-spin' : ''}`}
+                        />{' '}
                       </button>
-                    ))
-                  )}
+                    </div>
+                    <div className="ui-list">
+                      {unpairedNetworkDevices.length === 0 ? (
+                        <div className="ui-empty ui-empty-recessed">
+                          No new devices detected right now.
+                        </div>
+                      ) : (
+                        unpairedNetworkDevices.map((device) => (
+                          <button
+                            key={device.id}
+                            className="ui-found-row"
+                            disabled={bridgeDisabled}
+                            onClick={() => {
+                              void handleSelectDiscoveredDevice(device);
+                            }}
+                          >
+                            <div className="ui-found-content">
+                              <div className="ui-found-main">
+                                <div className="ui-found-icon">
+                                  <Icon
+                                    name={device.source === 'googlecast' ? 'cast' : 'devices'}
+                                    className="h-[1.2rem] w-[1.2rem]"
+                                  />
+                                </div>
+                                <div>
+                                  <span className="block text-sm font-bold text-on-surface">
+                                    {device.name}
+                                  </span>
+                                  <span className="block text-[10px] font-medium text-on-surface-variant">
+                                    {device.model ?? 'Ready to pair'}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="ui-found-add">
+                                <Icon name="plus" className="h-4 w-4" />
+                              </div>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </section>
+
+                  <div className="ui-help">
+                    <button
+                      className="ui-help-chip"
+                      disabled={bridgeDisabled}
+                      onClick={() => {
+                        void appHandleScanDevices(false);
+                      }}
+                    >
+                      Don&apos;t see your device?
+                    </button>
+                    <button
+                      className="ui-help-chip ui-help-chip-danger"
+                      disabled={bridgeDisabled}
+                      onClick={() => {
+                        void handleResetState();
+                      }}
+                    >
+                      Reset App State
+                    </button>
+                  </div>
                 </div>
-              </section>
 
-              <div className="ui-help">
-                <button
-                  className="ui-help-chip"
-                  disabled={bridgeDisabled}
-                  onClick={() => {
-                    void appHandleScanDevices(false);
-                  }}
-                >
-                  Don&apos;t see your device?
-                </button>
-                <button
-                  className="ui-help-chip ui-help-chip-danger"
-                  disabled={bridgeDisabled}
-                  onClick={() => {
-                    void handleResetState();
-                  }}
-                >
-                  Reset App State
-                </button>
-              </div>
-            </div>
+                <div className="ui-devices-footer">{updaterPanel}</div>
 
-            <div className="ui-devices-footer">{updaterPanel}</div>
-
-            {bootstrap.deviceState.status === 'error' || !bridgeReady ? (
-              <div className="ui-alert">
-                {!bridgeReady ? 'Electron bridge not ready yet.' : bootstrap.deviceState.message}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-
-        {currentView === 'pairing' ? (
-          <div className="ui-pair-screen">
-            <div className="ui-pair-icon">
-              <Icon name="assistant" className="h-8 w-8 text-primary" />
-            </div>
-            <h1 className="mb-2 text-3xl font-bold tracking-tight text-on-surface">Enter Code</h1>
-            <p className="mb-12 text-sm text-on-surface-variant">
-              Type the 6-character pairing code displayed on your Android TV screen.
-            </p>
-
-            <button
-              className="ui-code-row"
-              disabled={busy}
-              onClick={() => pairCodeInputRef.current?.focus()}
-            >
-              {Array.from({ length: 6 }, (_, index) => {
-                const char = pairCode[index];
-                const filled = Boolean(char);
-
-                return (
-                  <span
-                    key={index}
-                    className={classes('ui-code-slot', filled && 'ui-code-slot-filled')}
-                  >
-                    {char ?? '_'}
-                  </span>
-                );
-              })}
-            </button>
-            <input
-              ref={pairCodeInputRef}
-              className="sr-only-input"
-              value={pairCode}
-              onChange={(event) => {
-                setPairCode(sanitizePairCode(event.target.value));
-              }}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' && pairCode.length === 6 && !busy) {
-                  void handlePair();
-                }
-              }}
-              maxLength={6}
-              autoComplete="one-time-code"
-            />
-
-            <div className="ui-action-stack">
-              <button
-                className="ui-primary-button"
-                disabled={busy || !bridgeReady || pairCode.length < 6 || !selectedPairedDeviceId}
-                onClick={() => {
-                  void handlePair();
-                }}
-              >
-                <span>Connect</span>
-                <Icon name="cast" className="h-5 w-5" />
-              </button>
-              <button className="ui-secondary-button" disabled={busy} onClick={openDevicePicker}>
-                Cancel
-              </button>
-            </div>
-            {bootstrap.deviceState.status === 'error' ? (
-              <div className="ui-alert mt-4 w-full">{bootstrap.deviceState.message}</div>
-            ) : null}
-          </div>
-        ) : null}
-
-        {currentView === 'remote' ? (
-          <div className="ui-remote-screen">
-            <section className="ui-remote-summary">
-              <div className="ui-status-pill">
-                <span>{currentRemoteDeviceName ?? 'Choose Device'}</span>
-              </div>
-            </section>
-
-            {bootstrap.deviceState.status === 'error' ? (
-              <div className="ui-alert mx-6 mb-3 mt-0">{bootstrap.deviceState.message}</div>
-            ) : null}
-
-            <section className="ui-dpad-wrap">
-              <div className="ui-dpad">
-                <button
-                  className="ui-dpad-edge ui-dpad-up"
-                  disabled={remoteDisabled}
-                  onClick={() => {
-                    handleCommand('up');
-                  }}
-                >
-                  <Icon name="up" className="h-7 w-7" />
-                </button>
-                <button
-                  className="ui-dpad-edge ui-dpad-down"
-                  disabled={remoteDisabled}
-                  onClick={() => {
-                    handleCommand('down');
-                  }}
-                >
-                  <Icon name="down" className="h-7 w-7" />
-                </button>
-                <button
-                  className="ui-dpad-edge ui-dpad-left"
-                  disabled={remoteDisabled}
-                  onClick={() => {
-                    handleCommand('left');
-                  }}
-                >
-                  <Icon name="left" className="h-7 w-7" />
-                </button>
-                <button
-                  className="ui-dpad-edge ui-dpad-right"
-                  disabled={remoteDisabled}
-                  onClick={() => {
-                    handleCommand('right');
-                  }}
-                >
-                  <Icon name="right" className="h-7 w-7" />
-                </button>
-                <button
-                  className="ui-dpad-center"
-                  disabled={remoteDisabled}
-                  onClick={() => {
-                    handleCommand('select');
-                  }}
-                >
-                  Select
-                </button>
-              </div>
-            </section>
-
-            {assistantStatus === 'active' ? (
-              <div className="ui-assistant-wave" aria-label="Assistant listening">
-                <span className="ui-assistant-dot ui-assistant-dot-blue" />
-                <span className="ui-assistant-dot ui-assistant-dot-red" />
-                <span className="ui-assistant-dot ui-assistant-dot-yellow" />
-                <span className="ui-assistant-dot ui-assistant-dot-green" />
-              </div>
-            ) : null}
-
-            <section className="ui-nav-well">
-              <div className="ui-nav-grid">
-                <button
-                  className="ui-nav-item"
-                  disabled={remoteDisabled}
-                  onClick={() => {
-                    handleCommand('back');
-                  }}
-                >
-                  <span className="ui-nav-button">
-                    <Icon name="back" className="h-6 w-6" />
-                  </span>
-                  <span className="ui-nav-label">Back</span>
-                </button>
-                <button
-                  className="ui-nav-item"
-                  disabled={remoteDisabled}
-                  onClick={() => {
-                    handleCommand('home');
-                  }}
-                >
-                  <span className="ui-nav-button ui-nav-button-active">
-                    <Icon name="home" className="h-7 w-7" />
-                  </span>
-                  <span className="ui-nav-label ui-nav-label-active">Home</span>
-                </button>
-                {capabilities.textInput ? (
-                  <button
-                    className="ui-nav-item"
-                    disabled={remoteDisabled}
-                    onClick={() => {
-                      setTextInputOpen((current) => !current);
-                    }}
-                  >
-                    <span className="ui-nav-button">
-                      <Icon name="keyboard" className="h-6 w-6" />
-                    </span>
-                    <span className="ui-nav-label">Text</span>
-                  </button>
+                {bootstrap.deviceState.status === 'error' || !bridgeReady ? (
+                  <div className="ui-alert">
+                    {!bridgeReady
+                      ? 'Electron bridge not ready yet.'
+                      : bootstrap.deviceState.message}
+                  </div>
                 ) : null}
               </div>
-            </section>
-
-            {textInputOpen && capabilities.textInput ? (
-              <section className="ui-glass-sheet">
-                <div className="ui-section-row">
-                  <h2 className="ui-section-heading">Text Input</h2>
-                  <button
-                    className="rounded-full px-4 py-2 text-sm text-on-surface-variant"
-                    disabled={busy}
-                    onClick={() => {
-                      setTextInputOpen(false);
-                    }}
-                  >
-                    Close
-                  </button>
-                </div>
-                <p className="ui-copy">Open this when your TV is focused on a text field.</p>
-                <textarea
-                  className="ui-textarea"
-                  value={textInput}
-                  onChange={(event) => {
-                    setTextInput(event.target.value);
-                  }}
-                  placeholder="Type text to send to the TV"
-                  rows={3}
-                />
-                <button
-                  className="ui-primary-button"
-                  disabled={remoteDisabled || !textInput.trim()}
-                  onClick={() => {
-                    void handleSendText();
-                  }}
-                >
-                  Send Text
-                </button>
-              </section>
             ) : null}
 
-            <section className="ui-media-section">
-              <div className="ui-media-grid">
-                <div className="ui-media-column">
-                  <button
-                    className="ui-media-button ui-media-button-block"
-                    disabled={remoteDisabled}
-                    onClick={() => {
-                      handleCommand('volume_up');
-                    }}
-                  >
-                    <Icon name="plus" className="h-5 w-5" />
-                  </button>
-                  <div className="ui-media-caption">
-                    <Icon name="volumeUp" className="h-4 w-4 text-on-surface-variant" />
-                    <span className="ui-media-caption-label">Vol</span>
-                  </div>
-                  <button
-                    className="ui-media-button ui-media-button-block"
-                    disabled={remoteDisabled}
-                    onClick={() => {
-                      handleCommand('volume_down');
-                    }}
-                  >
-                    <Icon name="minus" className="h-5 w-5" />
-                  </button>
+            {currentView === 'pairing' ? (
+              <div className="ui-pair-screen">
+                <div className="ui-pair-icon">
+                  <Icon name="assistant" className="h-8 w-8 text-primary" />
                 </div>
+                <h1 className="mb-2 text-3xl font-bold tracking-tight text-on-surface">
+                  Enter Code
+                </h1>
+                <p className="mb-12 text-sm text-on-surface-variant">
+                  Type the 6-character pairing code displayed on your Android TV screen.
+                </p>
 
-                <div className="ui-media-stack">
+                <button
+                  className="ui-code-row"
+                  disabled={busy}
+                  onClick={() => pairCodeInputRef.current?.focus()}
+                >
+                  {Array.from({ length: 6 }, (_, index) => {
+                    const char = pairCode[index];
+                    const filled = Boolean(char);
+
+                    return (
+                      <span
+                        key={index}
+                        className={classes('ui-code-slot', filled && 'ui-code-slot-filled')}
+                      >
+                        {char ?? '_'}
+                      </span>
+                    );
+                  })}
+                </button>
+                <input
+                  ref={pairCodeInputRef}
+                  className="sr-only-input"
+                  value={pairCode}
+                  onChange={(event) => {
+                    setPairCode(sanitizePairCode(event.target.value));
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && pairCode.length === 6 && !busy) {
+                      void handlePair();
+                    }
+                  }}
+                  maxLength={6}
+                  autoComplete="one-time-code"
+                />
+
+                <div className="ui-action-stack">
                   <button
-                    className="ui-media-button ui-media-primary"
-                    disabled={remoteDisabled}
+                    className="ui-primary-button"
+                    disabled={
+                      busy || !bridgeReady || pairCode.length < 6 || !selectedPairedDeviceId
+                    }
                     onClick={() => {
-                      handleCommand('play_pause');
+                      void handlePair();
                     }}
                   >
-                    <Icon name="play" className="h-8 w-8" />
+                    <span>Connect</span>
+                    <Icon name="cast" className="h-5 w-5" />
                   </button>
-                  <div className="ui-media-subgrid">
-                    <button
-                      className={classes(
-                        'ui-media-button',
-                        assistantStatus === 'active' && 'ui-media-button-assistant-active'
-                      )}
-                      disabled={remoteDisabled}
-                      onClick={() => {
-                        if (assistantActiveRef.current || assistantStartingRef.current) {
-                          void stopAssistantSession();
-                        } else {
-                          void startAssistantSession();
-                        }
-                      }}
-                    >
-                      <Icon name="assistant" className="h-10 w-10" />
-                    </button>
-                    <button
-                      className="ui-media-button ui-media-danger"
-                      disabled={remoteDisabled}
-                      onClick={() => {
-                        handleCommand('power');
-                      }}
-                    >
-                      <Icon name="power" className="h-5 w-5" />
-                    </button>
-                  </div>
+                  <button
+                    className="ui-secondary-button"
+                    disabled={busy}
+                    onClick={openDevicePicker}
+                  >
+                    Cancel
+                  </button>
                 </div>
+                {bootstrap.deviceState.status === 'error' ? (
+                  <div className="ui-alert mt-4 w-full">{bootstrap.deviceState.message}</div>
+                ) : null}
               </div>
-            </section>
+            ) : null}
 
-            <footer className="ui-footer-bar">
-              <button className="ui-footer-item" disabled={busy} onClick={openDevicePicker}>
-                <Icon name="back" className="h-5 w-5" />
-                <span className="ui-footer-label">Devices</span>
-              </button>
-              <button
-                className="ui-footer-item"
-                disabled={bridgeDisabled}
-                onClick={() => {
-                  void handleDisconnect();
-                }}
-              >
-                <Icon name="disconnect" className="h-5 w-5" />
-                <span className="ui-footer-label">Disconnect</span>
-              </button>
-              <button
-                className="ui-footer-item"
-                disabled={bridgeDisabled || !currentRemoteDevice}
-                onClick={() => {
-                  if (currentRemoteDevice) {
-                    void handleRemove(currentRemoteDevice.id);
-                  }
-                }}
-              >
-                <Icon name="trash" className="h-5 w-5" />
-                <span className="ui-footer-label">Forget</span>
-              </button>
-            </footer>
-          </div>
-        ) : null}
+            {currentView === 'remote' ? (
+              <div className="ui-remote-screen">
+                <section className="ui-remote-summary">
+                  <div className="ui-status-pill">
+                    <span>{currentRemoteDeviceName ?? 'Choose Device'}</span>
+                  </div>
+                </section>
+
+                {bootstrap.deviceState.status === 'error' ? (
+                  <div className="ui-alert mx-6 mb-3 mt-0">{bootstrap.deviceState.message}</div>
+                ) : null}
+
+                <section className="ui-dpad-wrap">
+                  <div className="ui-dpad">
+                    <button
+                      className="ui-dpad-edge ui-dpad-up"
+                      disabled={remoteDisabled}
+                      onClick={() => {
+                        handleCommand('up');
+                      }}
+                    >
+                      <Icon name="up" className="h-7 w-7" />
+                    </button>
+                    <button
+                      className="ui-dpad-edge ui-dpad-down"
+                      disabled={remoteDisabled}
+                      onClick={() => {
+                        handleCommand('down');
+                      }}
+                    >
+                      <Icon name="down" className="h-7 w-7" />
+                    </button>
+                    <button
+                      className="ui-dpad-edge ui-dpad-left"
+                      disabled={remoteDisabled}
+                      onClick={() => {
+                        handleCommand('left');
+                      }}
+                    >
+                      <Icon name="left" className="h-7 w-7" />
+                    </button>
+                    <button
+                      className="ui-dpad-edge ui-dpad-right"
+                      disabled={remoteDisabled}
+                      onClick={() => {
+                        handleCommand('right');
+                      }}
+                    >
+                      <Icon name="right" className="h-7 w-7" />
+                    </button>
+                    <button
+                      className="ui-dpad-center"
+                      disabled={remoteDisabled}
+                      onClick={() => {
+                        handleCommand('select');
+                      }}
+                    >
+                      Select
+                    </button>
+                  </div>
+                </section>
+
+                {assistantStatus === 'active' ? (
+                  <div className="ui-assistant-wave" aria-label="Assistant listening">
+                    <span className="ui-assistant-dot ui-assistant-dot-blue" />
+                    <span className="ui-assistant-dot ui-assistant-dot-red" />
+                    <span className="ui-assistant-dot ui-assistant-dot-yellow" />
+                    <span className="ui-assistant-dot ui-assistant-dot-green" />
+                  </div>
+                ) : null}
+
+                <section className="ui-nav-well">
+                  <div className="ui-nav-grid">
+                    <button
+                      className="ui-nav-item"
+                      disabled={remoteDisabled}
+                      onClick={() => {
+                        handleCommand('back');
+                      }}
+                    >
+                      <span className="ui-nav-button">
+                        <Icon name="back" className="h-6 w-6" />
+                      </span>
+                      <span className="ui-nav-label">Back</span>
+                    </button>
+                    <button
+                      className="ui-nav-item"
+                      disabled={remoteDisabled}
+                      onClick={() => {
+                        handleCommand('home');
+                      }}
+                    >
+                      <span className="ui-nav-button ui-nav-button-active">
+                        <Icon name="home" className="h-7 w-7" />
+                      </span>
+                      <span className="ui-nav-label ui-nav-label-active">Home</span>
+                    </button>
+                    {capabilities.textInput ? (
+                      <button
+                        className="ui-nav-item"
+                        disabled={remoteDisabled}
+                        onClick={() => {
+                          setTextInputOpen((current) => !current);
+                        }}
+                      >
+                        <span className="ui-nav-button">
+                          <Icon name="keyboard" className="h-6 w-6" />
+                        </span>
+                        <span className="ui-nav-label">Text</span>
+                      </button>
+                    ) : null}
+                  </div>
+                </section>
+
+                {textInputOpen && capabilities.textInput ? (
+                  <section className="ui-glass-sheet">
+                    <div className="ui-section-row">
+                      <h2 className="ui-section-heading">Text Input</h2>
+                      <button
+                        className="rounded-full px-4 py-2 text-sm text-on-surface-variant"
+                        disabled={busy}
+                        onClick={() => {
+                          setTextInputOpen(false);
+                        }}
+                      >
+                        Close
+                      </button>
+                    </div>
+                    <p className="ui-copy">Open this when your TV is focused on a text field.</p>
+                    <textarea
+                      className="ui-textarea"
+                      value={textInput}
+                      onChange={(event) => {
+                        setTextInput(event.target.value);
+                      }}
+                      placeholder="Type text to send to the TV"
+                      rows={3}
+                    />
+                    <button
+                      className="ui-primary-button"
+                      disabled={remoteDisabled || !textInput.trim()}
+                      onClick={() => {
+                        void handleSendText();
+                      }}
+                    >
+                      Send Text
+                    </button>
+                  </section>
+                ) : null}
+
+                <section className="ui-media-section">
+                  <div className="ui-media-grid">
+                    <div className="ui-media-column">
+                      <button
+                        className="ui-media-button ui-media-button-block"
+                        disabled={remoteDisabled}
+                        onClick={() => {
+                          handleCommand('volume_up');
+                        }}
+                      >
+                        <Icon name="plus" className="h-5 w-5" />
+                      </button>
+                      <div className="ui-media-caption">
+                        <Icon name="volumeUp" className="h-4 w-4 text-on-surface-variant" />
+                        <span className="ui-media-caption-label">Vol</span>
+                      </div>
+                      <button
+                        className="ui-media-button ui-media-button-block"
+                        disabled={remoteDisabled}
+                        onClick={() => {
+                          handleCommand('volume_down');
+                        }}
+                      >
+                        <Icon name="minus" className="h-5 w-5" />
+                      </button>
+                    </div>
+
+                    <div className="ui-media-stack">
+                      <button
+                        className="ui-media-button ui-media-primary"
+                        disabled={remoteDisabled}
+                        onClick={() => {
+                          handleCommand('play_pause');
+                        }}
+                      >
+                        <Icon name="play" className="h-8 w-8" />
+                      </button>
+                      <div className="ui-media-subgrid">
+                        <button
+                          className={classes(
+                            'ui-media-button',
+                            assistantStatus === 'active' && 'ui-media-button-assistant-active'
+                          )}
+                          disabled={remoteDisabled}
+                          onClick={() => {
+                            if (assistantActiveRef.current || assistantStartingRef.current) {
+                              void stopAssistantSession();
+                            } else {
+                              void startAssistantSession();
+                            }
+                          }}
+                        >
+                          <Icon name="assistant" className="h-10 w-10" />
+                        </button>
+                        <button
+                          className="ui-media-button ui-media-danger"
+                          disabled={remoteDisabled}
+                          onClick={() => {
+                            handleCommand('power');
+                          }}
+                        >
+                          <Icon name="power" className="h-5 w-5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <footer className="ui-footer-bar">
+                  <button className="ui-footer-item" disabled={busy} onClick={openDevicePicker}>
+                    <Icon name="back" className="h-5 w-5" />
+                    <span className="ui-footer-label">Devices</span>
+                  </button>
+                  <button
+                    className="ui-footer-item"
+                    disabled={bridgeDisabled}
+                    onClick={() => {
+                      void handleDisconnect();
+                    }}
+                  >
+                    <Icon name="disconnect" className="h-5 w-5" />
+                    <span className="ui-footer-label">Disconnect</span>
+                  </button>
+                  <button
+                    className="ui-footer-item"
+                    disabled={bridgeDisabled || !currentRemoteDevice}
+                    onClick={() => {
+                      if (currentRemoteDevice) {
+                        void handleRemove(currentRemoteDevice.id);
+                      }
+                    }}
+                  >
+                    <Icon name="trash" className="h-5 w-5" />
+                    <span className="ui-footer-label">Forget</span>
+                  </button>
+                </footer>
+              </div>
+            ) : null}
+          </>
+        )}
       </section>
     </main>
   );

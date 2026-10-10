@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 import type { DesktopApi } from '../shared/desktopApi';
 import { EVENT_CHANNELS, INVOKE_CHANNELS } from '../shared/ipcContract';
+import type { AppPreferences, PreferenceChange, PreferenceResult } from '../shared/preferences';
 import type {
   BootstrapState,
   CommandDispatchRequest,
@@ -17,6 +18,9 @@ import type {
 } from '../shared/types';
 
 const api = {
+  getPreferences: (): Promise<AppPreferences> => ipcRenderer.invoke(INVOKE_CHANNELS.preferencesGet),
+  changePreference: (change: PreferenceChange): Promise<PreferenceResult> =>
+    ipcRenderer.invoke(INVOKE_CHANNELS.preferencesChange, change),
   bootstrap: (): Promise<BootstrapState> => ipcRenderer.invoke(INVOKE_CHANNELS.deviceBootstrap),
   scanDevices: (): Promise<DiscoveredDevice[]> => ipcRenderer.invoke(INVOKE_CHANNELS.deviceScan),
   saveDevice: (draft: DeviceDraft): Promise<SavedDevice[]> =>

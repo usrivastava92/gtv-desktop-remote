@@ -32,6 +32,8 @@ import type { UpdaterStatus } from './types';
  * the type system forces preload and the renderer to follow.
  */
 export interface InvokeMethodMap {
+  getPreferences: 'preferencesGet';
+  changePreference: 'preferencesChange';
   bootstrap: 'deviceBootstrap';
   scanDevices: 'deviceScan';
   saveDevice: 'deviceSave';
