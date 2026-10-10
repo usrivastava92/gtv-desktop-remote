@@ -57,26 +57,30 @@ describe('pairing over real TLS', () => {
   async function pairingServer(reply = true) {
     const { FrameParser, decodePairingMessage, encodeFrame, encodePairingMessage } = await protocol;
     const received: PairingMessage[] = [];
-    server = createServer({ ...peer, requestCert: true, rejectUnauthorized: false }, (socket) => {
-      sockets.add(socket);
-      const parser = new FrameParser();
-      socket.on('data', (data: Buffer) => {
-        for (const frame of parser.push(data)) {
-          const message = decodePairingMessage(frame);
-          received.push(message);
-          if (!reply) continue;
-          const type =
-            message.type === 'request'
-              ? 'request-ack'
-              : message.type === 'configuration'
-                ? 'configuration-ack'
-                : message.type === 'secret'
-                  ? 'secret-ack'
-                  : 'options';
-          socket.write(encodeFrame(encodePairingMessage({ type, status: 'ok' })));
-        }
-      });
-    });
+    server = createServer(
+      { ...peer, ca: local.cert, requestCert: true, rejectUnauthorized: true },
+      (socket) => {
+        expect(socket.authorized).toBe(true);
+        sockets.add(socket);
+        const parser = new FrameParser();
+        socket.on('data', (data: Buffer) => {
+          for (const frame of parser.push(data)) {
+            const message = decodePairingMessage(frame);
+            received.push(message);
+            if (!reply) continue;
+            const type =
+              message.type === 'request'
+                ? 'request-ack'
+                : message.type === 'configuration'
+                  ? 'configuration-ack'
+                  : message.type === 'secret'
+                    ? 'secret-ack'
+                    : 'options';
+            socket.write(encodeFrame(encodePairingMessage({ type, status: 'ok' })));
+          }
+        });
+      }
+    );
     server.listen(0, '127.0.0.1');
     await once(server, 'listening');
     const address = server.address();
@@ -116,10 +120,16 @@ describe('pairing over real TLS', () => {
     const { port, received } = await pairingServer();
     const errors: Error[] = [];
     const pairing = await client(port, errors);
-    await expect(pairing.start()).resolves.toMatchObject({ type: 'configuration-ack', status: 'ok' });
+    await expect(pairing.start()).resolves.toMatchObject({
+      type: 'configuration-ack',
+      status: 'ok',
+    });
     const secret = expectedSecret();
     const code = `${secret.subarray(0, 1).toString('hex')}0bdb`;
-    await expect(pairing.submitCode(code)).resolves.toMatchObject({ type: 'secret-ack', status: 'ok' });
+    await expect(pairing.submitCode(code)).resolves.toMatchObject({
+      type: 'secret-ack',
+      status: 'ok',
+    });
     expect(received.map((message) => message.type)).toEqual([
       'request',
       'options',
@@ -140,7 +150,11 @@ describe('pairing over real TLS', () => {
     await expect(pairing.submitCode(`${wrongPrefix}0bdb`)).rejects.toThrow(
       'pairing code failed local certificate hash validation'
     );
-    expect(received.map((message) => message.type)).toEqual(['request', 'options', 'configuration']);
+    expect(received.map((message) => message.type)).toEqual([
+      'request',
+      'options',
+      'configuration',
+    ]);
   });
 
   it('rejects a service that connects but does not answer the pairing request', async () => {
