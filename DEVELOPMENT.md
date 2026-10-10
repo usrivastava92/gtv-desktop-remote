@@ -124,6 +124,30 @@ This is intentional so short navigation bursts remain responsive while sustained
 - Saved pairing state lives in the app data directory
 - Text input support depends on the capabilities exposed by the current TV app / input surface
 
+### Pairing regression checks
+
+The Android TV bridge constructs the pairing client with a TLS transport error
+listener before connecting, so refused connections reject rather than leave the
+renderer busy. Failed and cleared pairing sessions close their client.
+Certificate-bound hash validation remains enabled.
+
+`src/backend/pairing/__tests__/createPairingClient.test.ts` exercises the actual
+client over local TLS: configuration and secret exchange, independently computed
+RSA/SHA-256 secret bytes, rejected checksum, refused port, and unanswered request.
+
+```sh
+node .yarn/releases/yarn-4.18.0.cjs test src/backend/pairing/__tests__/createPairingClient.test.ts
+```
+
+For an Electron smoke check, request pairing with `127.0.0.1` while no service is
+listening on port 6467. The failure must clear busy state and allow another attempt.
+This checks lifecycle recovery, not real-device compatibility.
+
+To investigate a device-specific certificate-hash failure, collect the client
+and TV public certificates from the same failed TLS session, the exact displayed
+code, and the TV model/firmware. Public certificates are sufficient; never share
+private keys. A screenshot code alone cannot reproduce the certificate-bound hash.
+
 ## Repository Notes
 
 - Renderer source: `src/renderer`
