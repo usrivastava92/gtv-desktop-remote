@@ -98,6 +98,10 @@ The Homebrew cask removes the quarantine flag automatically during install and p
 
 The app remembers paired devices, so future connections are instant.
 
+### Remote appearance
+
+Click the sun in the device-list or remote header to switch to light theme, or the moon to return to dark theme. Dark is the default; your choice is remembered across launches and also applies to Settings. The remote header uses a centered, subtly green **Connected** pill for an active connection and a neutral pill while connecting; the device-list header has no connection pill.
+
 ### Finding, hiding, and quitting the remote
 
 On first launch, a dismissible **Welcome to GTV Remote** hint explains where the app lives. Click **Got it** to acknowledge it; it will not appear again on later launches.

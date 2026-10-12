@@ -55,6 +55,8 @@ type IconName =
   | 'back'
   | 'keyboard'
   | 'settings'
+  | 'sun'
+  | 'moon'
   | 'play'
   | 'power'
   | 'volumeUp'
@@ -87,6 +89,19 @@ function Icon({ name, className }: { name: IconName; className?: string }) {
   };
 
   switch (name) {
+    case 'sun':
+      return (
+        <svg {...props}>
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2V4M12 20V22M2 12H4M20 12H22M4.9 4.9L6.3 6.3M17.7 17.7L19.1 19.1M4.9 19.1L6.3 17.7M17.7 6.3L19.1 4.9" />
+        </svg>
+      );
+    case 'moon':
+      return (
+        <svg {...props}>
+          <path d="M20.5 14A8.5 8.5 0 0 1 10 3.5 8.5 8.5 0 1 0 20.5 14Z" />
+        </svg>
+      );
     case 'devices':
       return (
         <svg {...props}>
@@ -271,6 +286,24 @@ function Icon({ name, className }: { name: IconName; className?: string }) {
 }
 
 function App() {
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    if (typeof window === 'undefined') return 'dark';
+    try {
+      return window.localStorage.getItem('gtv-remote.theme') === 'light' ? 'light' : 'dark';
+    } catch {
+      return 'dark';
+    }
+  });
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try {
+      window.localStorage.setItem('gtv-remote.theme', theme);
+    } catch {
+      // Ignore storage failures; theme switching still works for this session.
+    }
+  }, [theme]);
+
   const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsButtonRef = useRef<HTMLButtonElement>(null);
   const [bootstrap, setBootstrap] = useState<BootstrapState>({
@@ -1442,31 +1475,33 @@ function App() {
                     <Icon name="devices" className="h-[1.15rem] w-[1.15rem] text-primary-strong" />
                   </div>
                 </>
-              ) : currentView === 'devices' ? (
-                <>
-                  <div className="ui-brand">
-                    <Icon name="devices" className="h-[1.28rem] w-[1.28rem] text-primary-strong" />
-                    <span className="ui-brand-label ui-brand-label-muted">Android TV</span>
-                  </div>
-                </>
               ) : (
                 <>
-                  <div className="ui-brand">
-                    <Icon name="devices" className="h-[1.28rem] w-[1.28rem] text-primary-strong" />
-                    <span className="ui-brand-label">Android TV</span>
-                  </div>
-                  <div className="flex min-w-0 items-center gap-3 ui-dragless">
-                    <div
-                      className={classes(
-                        'ui-status-pill',
-                        bootstrap.deviceState.status === 'error' && 'ui-status-pill-error'
-                      )}
-                    >
-                      <span className="ui-status-dot" />
-                      <span className="ui-pill-text">
-                        {isConnected ? 'Connected' : bootstrap.deviceState.status}
-                      </span>
-                    </div>
+                  <button
+                    type="button"
+                    className="ui-icon-button ui-dragless"
+                    aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+                    title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+                    onClick={() => {
+                      setTheme((current) => (current === 'dark' ? 'light' : 'dark'));
+                    }}
+                  >
+                    <Icon name={theme === 'dark' ? 'sun' : 'moon'} className="h-5 w-5" />
+                  </button>
+                  <div className="ui-header-status ui-dragless">
+                    {currentView === 'remote' ? (
+                      <div
+                        className={classes(
+                          'ui-status-pill',
+                          isConnected && 'ui-status-pill-connected',
+                          bootstrap.deviceState.status === 'error' && 'ui-status-pill-error'
+                        )}
+                      >
+                        <span className="ui-pill-text">
+                          {isConnected ? 'Connected' : bootstrap.deviceState.status}
+                        </span>
+                      </div>
+                    ) : null}
                   </div>
                 </>
               )}
@@ -1528,7 +1563,11 @@ function App() {
                                   <span className="ui-card-meta">{subtitle}</span>
                                 </div>
                                 <span
-                                  className={classes('ui-badge', isActive && 'ui-badge-active')}
+                                  className={classes(
+                                    'ui-badge',
+                                    isActive &&
+                                      (isConnected ? 'ui-badge-connected' : 'ui-badge-active')
+                                  )}
                                 >
                                   <span className="ui-pill-text">{status}</span>
                                 </span>
