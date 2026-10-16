@@ -140,7 +140,7 @@ jobs:
 
       - name: Package macOS DMG + ZIP
         if: steps.dry-run.outputs.will_release == 'true'
-        run: npx electron-builder --mac dmg zip --publish never
+        run: npx electron-builder --mac dmg zip --x64 --arm64 --publish never
 
       - name: Normalize release artifact names
         if: steps.dry-run.outputs.will_release == 'true'
@@ -265,28 +265,54 @@ jobs:
           RELEASE_VERSION: ${{ needs.build-macos.outputs.next-version }}
           SOURCE_REPOSITORY: ${{ github.repository }}
         run: |
-          DMG_PATH=$(find dmg-artifacts -type f -name '*.dmg' | head -n 1)
-          if [ -z "$DMG_PATH" ]; then
-            echo "No DMG artifact found."
+          ARM64_DMG_PATH=$(find dmg-artifacts -type f -name '*-mac-arm64.dmg' | head -n 1)
+          X64_DMG_PATH=$(find dmg-artifacts -type f -name '*-mac-x64.dmg' | head -n 1)
+
+          if [ -z "$ARM64_DMG_PATH" ] || [ -z "$X64_DMG_PATH" ]; then
+            echo "Expected both arm64 and x64 DMG artifacts." >&2
+            find dmg-artifacts -type f | sort
             exit 1
           fi
 
-          DMG_SHA256=$(shasum -a 256 "$DMG_PATH" | awk '{print $1}')
+          ARM64_SHA256=$(shasum -a 256 "$ARM64_DMG_PATH" | awk '{print $1}')
+          X64_SHA256=$(shasum -a 256 "$X64_DMG_PATH" | awk '{print $1}')
           RELEASE_JSON=$(curl -fsSL \
             -H "Authorization: Bearer ${GITHUB_TOKEN}" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${SOURCE_REPOSITORY}/releases/tags/v${RELEASE_VERSION}")
-          RELEASE_DMG_NAME=$(printf '%s\n' "$RELEASE_JSON" | node -e "const fs = require('fs'); const release = JSON.parse(fs.readFileSync(0, 'utf8')); const digest = 'sha256:' + process.argv[1]; const asset = release.assets.find((candidate) => candidate.name.endsWith('.dmg') && candidate.digest === digest) ?? release.assets.find((candidate) => candidate.name.endsWith('.dmg') && candidate.name.includes('-mac-')); if (!asset) { process.exit(1); } process.stdout.write(asset.name);" "$DMG_SHA256")
+          RELEASE_DMG_NAMES=$(ARM64_SHA256="$ARM64_SHA256" X64_SHA256="$X64_SHA256" printf '%s\n' "$RELEASE_JSON" | node -e "
+            const fs = require('fs');
+            const release = JSON.parse(fs.readFileSync(0, 'utf8'));
+            const findByDigest = (digest, archSuffix) => release.assets.find(
+              (candidate) => candidate.name.endsWith('.dmg') && candidate.digest === 'sha256:' + digest
+            ) ?? release.assets.find(
+              (candidate) => candidate.name.endsWith('-mac-' + archSuffix + '.dmg')
+            );
+            const arm64 = findByDigest(process.env.ARM64_SHA256, 'arm64');
+            const x64 = findByDigest(process.env.X64_SHA256, 'x64');
+            if (!arm64 || !x64) { process.exit(1); }
+            process.stdout.write(arm64.name + '\n' + x64.name);
+          ")
 
-          if [ -z "$RELEASE_DMG_NAME" ]; then
-            echo "Could not determine uploaded DMG asset name from GitHub release." >&2
+          if [ -z "$RELEASE_DMG_NAMES" ]; then
+            echo "Could not determine uploaded DMG asset names from GitHub release." >&2
+            exit 1
+          fi
+
+          RELEASE_DMG_NAME_ARM64=$(printf '%s\n' "$RELEASE_DMG_NAMES" | sed -n '1p')
+          RELEASE_DMG_NAME_X64=$(printf '%s\n' "$RELEASE_DMG_NAMES" | sed -n '2p')
+
+          if [ -z "$RELEASE_DMG_NAME_ARM64" ] || [ -z "$RELEASE_DMG_NAME_X64" ]; then
+            echo "Could not determine uploaded DMG asset names from GitHub release." >&2
             exit 1
           fi
 
           node scripts/render-homebrew-cask.mjs \
             --version "$RELEASE_VERSION" \
-            --sha256 "$DMG_SHA256" \
-            --artifact-name "$RELEASE_DMG_NAME" \
+            --sha256-arm64 "$ARM64_SHA256" \
+            --artifact-name-arm64 "$RELEASE_DMG_NAME_ARM64" \
+            --sha256-x64 "$X64_SHA256" \
+            --artifact-name-x64 "$RELEASE_DMG_NAME_X64" \
             --repository "$SOURCE_REPOSITORY" \
             > homebrew-tap/Casks/gtv-desktop-remote.rb
 

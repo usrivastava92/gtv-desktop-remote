@@ -90,17 +90,18 @@ export function isDmgAsset(asset: ReleaseAssetInfo): boolean {
 }
 
 /**
- * Pick the best macOS asset from a release. Preference matrix:
+ * Pick the best macOS asset from a release. Strict architecture matching:
  *
  *   1. Architecture-matched `.zip`     (e.g. `app-mac-arm64.zip` when arch=arm64)
- *   2. Any `-mac-*.zip`                (fallback for cross-arch installs)
- *   3. Architecture-matched `.dmg`
- *   4. Any `-mac-*.dmg`
+ *   2. Architecture-matched `.dmg`
  *
  * `arch` is injected (defaulting to `process.arch`) so tests can exercise both
  * x64 and arm64 selection without spawning a different process.
  *
- * Returns `undefined` if no mac asset is present.
+ * Cross-arch fallback is intentionally NOT performed: installing an arm64
+ * bundle on Intel x64 (or vice versa) bricks the app on next relaunch.
+ * Returns `undefined` if no arch-matched mac asset is present, letting the
+ * caller surface "no compatible macOS asset" instead.
  */
 export function findBestMacAsset<T extends ReleaseAssetInfo>(
   assets: readonly T[],
@@ -109,13 +110,8 @@ export function findBestMacAsset<T extends ReleaseAssetInfo>(
   const preferredZip = assets.find((asset) => asset.name.endsWith(`-mac-${arch}.zip`));
   if (preferredZip) return preferredZip;
 
-  const anyZip = assets.find(
-    (asset) => asset.name.includes('-mac-') && asset.name.endsWith('.zip')
-  );
-  if (anyZip) return anyZip;
-
   const preferredDmg = assets.find((asset) => asset.name.endsWith(`-mac-${arch}.dmg`));
   if (preferredDmg) return preferredDmg;
 
-  return assets.find((asset) => asset.name.includes('-mac-') && isDmgAsset(asset));
+  return undefined;
 }

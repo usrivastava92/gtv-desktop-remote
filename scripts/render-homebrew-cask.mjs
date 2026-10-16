@@ -41,13 +41,8 @@ function releaseAssetUrl(repository, version, artifactName) {
   return `https://github.com/${repository}/releases/download/v${version}/${encodedArtifactName}`;
 }
 
-function renderCask({ version, sha256, artifactName, repository }) {
-  return `cask "${CASK_TOKEN}" do
-  version "${version}"
-  sha256 "${sha256}"
-
-  url "${releaseAssetUrl(repository, version, artifactName)}"
-  name "GTV Remote"
+function renderSharedBody(repository) {
+  return `  name "GTV Remote"
   desc "Desktop remote for Google TV and Android TV"
   homepage "https://github.com/${repository}"
 
@@ -78,22 +73,78 @@ function renderCask({ version, sha256, artifactName, repository }) {
     "~/Library/Preferences/com.utkarsh.gtvdesktopremote.plist",
     "~/Library/Saved Application State/com.utkarsh.gtvdesktopremote.savedState",
   ]
-end
+`;
+}
+
+function renderSingleArchCask({ version, sha256, artifactName, repository }) {
+  return `cask "${CASK_TOKEN}" do
+  version "${version}"
+  sha256 "${sha256}"
+
+  url "${releaseAssetUrl(repository, version, artifactName)}"
+${renderSharedBody(repository)}end
+`;
+}
+
+function renderDualArchCask({
+  version,
+  sha256Arm64,
+  artifactNameArm64,
+  sha256X64,
+  artifactNameX64,
+  repository,
+}) {
+  return `cask "${CASK_TOKEN}" do
+  version "${version}"
+  on_arm do
+    sha256 "${sha256Arm64}"
+
+    url "${releaseAssetUrl(repository, version, artifactNameArm64)}"
+  end
+  on_intel do
+    sha256 "${sha256X64}"
+
+    url "${releaseAssetUrl(repository, version, artifactNameX64)}"
+  end
+${renderSharedBody(repository)}end
 `;
 }
 
 try {
   const args = parseArgs(process.argv.slice(2));
   const version = requireArg(args, 'version');
-  const sha256 = requireArg(args, 'sha256');
-  const artifactName = requireArg(args, 'artifact-name');
   const repository = args.repository || DEFAULT_REPOSITORY;
 
-  process.stdout.write(renderCask({ version, sha256, artifactName, repository }));
+  const dualArch =
+    args['sha256-arm64'] &&
+    args['artifact-name-arm64'] &&
+    args['sha256-x64'] &&
+    args['artifact-name-x64'];
+
+  if (dualArch) {
+    process.stdout.write(
+      renderDualArchCask({
+        version,
+        sha256Arm64: args['sha256-arm64'],
+        artifactNameArm64: args['artifact-name-arm64'],
+        sha256X64: args['sha256-x64'],
+        artifactNameX64: args['artifact-name-x64'],
+        repository,
+      })
+    );
+  } else {
+    // Legacy single-arch path: exactly one DMG asset.
+    const sha256 = requireArg(args, 'sha256');
+    const artifactName = requireArg(args, 'artifact-name');
+    process.stdout.write(renderSingleArchCask({ version, sha256, artifactName, repository }));
+  }
 } catch (error) {
   console.error(error.message);
   console.error(
-    'Usage: node scripts/render-homebrew-cask.mjs --version 1.2.3 --sha256 <sha256> --artifact-name <asset.dmg> [--repository owner/repo]'
+    'Single-arch usage: node scripts/render-homebrew-cask.mjs --version 1.2.3 --sha256 <sha256> --artifact-name <asset.dmg> [--repository owner/repo]'
+  );
+  console.error(
+    'Dual-arch usage:   node scripts/render-homebrew-cask.mjs --version 1.2.3 --sha256-arm64 <sha256> --artifact-name-arm64 <asset.dmg> --sha256-x64 <sha256> --artifact-name-x64 <asset.dmg> [--repository owner/repo]'
   );
   process.exit(1);
 }

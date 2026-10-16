@@ -335,7 +335,7 @@ pattern, computes the DMG checksum, and renders `Casks/gtv-desktop-remote.rb`
 using:
 
 ```bash
-yarn homebrew:cask --version 0.8.0 --sha256 <sha256> --artifact-name "GTV Remote-0.8.0-mac-arm64.dmg"
+yarn homebrew:cask --version 0.8.0 --sha256-arm64 <sha256> --artifact-name-arm64 "GTV Remote-0.8.0-mac-arm64.dmg" --sha256-x64 <sha256> --artifact-name-x64 "GTV Remote-0.8.0-mac-x64.dmg"
 ```
 
 Users can install the published cask with:

@@ -148,9 +148,14 @@ describe('findBestMacAsset — preference matrix', () => {
     expect(findBestMacAsset(assets, 'x64')?.name).toBe('gtv-desktop-remote-mac-x64.zip');
   });
 
-  it('falls back to any mac zip when arch zip absent', () => {
-    const noArm = assets.filter((a) => a.name !== 'gtv-desktop-remote-mac-arm64.zip');
-    expect(findBestMacAsset(noArm, 'arm64')?.name).toBe('gtv-desktop-remote-mac-x64.zip');
+  it('picks arch dmg when arch zip absent', () => {
+    const noArmZip = assets.filter((a) => a.name !== 'gtv-desktop-remote-mac-arm64.zip');
+    expect(findBestMacAsset(noArmZip, 'arm64')?.name).toBe('gtv-desktop-remote-mac-arm64.dmg');
+  });
+
+  it('returns undefined when no arch asset exists instead of cross-arch install', () => {
+    const noArmAssets = assets.filter((a) => !a.name.includes('-mac-arm64.'));
+    expect(findBestMacAsset(noArmAssets, 'arm64')).toBeUndefined();
   });
 
   it('falls back to arch-matched dmg when no zip exists', () => {
@@ -158,9 +163,9 @@ describe('findBestMacAsset — preference matrix', () => {
     expect(findBestMacAsset(onlyDmg, 'arm64')?.name).toBe('gtv-desktop-remote-mac-arm64.dmg');
   });
 
-  it('falls back to any mac dmg when arch dmg absent', () => {
+  it('returns undefined when arch dmg absent instead of cross-arch install', () => {
     const onlyX64Dmg = [{ name: 'gtv-desktop-remote-mac-x64.dmg' }];
-    expect(findBestMacAsset(onlyX64Dmg, 'arm64')?.name).toBe('gtv-desktop-remote-mac-x64.dmg');
+    expect(findBestMacAsset(onlyX64Dmg, 'arm64')).toBeUndefined();
   });
 
   it('returns undefined when no mac asset exists', () => {
