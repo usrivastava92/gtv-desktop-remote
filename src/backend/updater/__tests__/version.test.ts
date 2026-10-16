@@ -153,10 +153,13 @@ describe('findBestMacAsset — preference matrix', () => {
     expect(findBestMacAsset(noArmZip, 'arm64')?.name).toBe('gtv-desktop-remote-mac-arm64.dmg');
   });
 
-  it('returns undefined when no arch asset exists instead of cross-arch install', () => {
-    const noArmAssets = assets.filter((a) => !a.name.includes('-mac-arm64.'));
-    expect(findBestMacAsset(noArmAssets, 'arm64')).toBeUndefined();
-  });
+  it.each(['arm64', 'x64'])(
+    'returns undefined for %s when only the other architecture is available',
+    (arch) => {
+      const otherArchAssets = assets.filter((asset) => !asset.name.includes(`-mac-${arch}.`));
+      expect(findBestMacAsset(otherArchAssets, arch)).toBeUndefined();
+    }
+  );
 
   it('falls back to arch-matched dmg when no zip exists', () => {
     const onlyDmg = assets.filter((a) => a.name.endsWith('.dmg'));

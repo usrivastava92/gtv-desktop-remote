@@ -280,7 +280,7 @@ jobs:
             -H "Authorization: Bearer ${GITHUB_TOKEN}" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${SOURCE_REPOSITORY}/releases/tags/v${RELEASE_VERSION}")
-          RELEASE_DMG_NAMES=$(ARM64_SHA256="$ARM64_SHA256" X64_SHA256="$X64_SHA256" printf '%s\n' "$RELEASE_JSON" | node -e "
+          RELEASE_DMG_NAMES=$(printf '%s\n' "$RELEASE_JSON" | ARM64_SHA256="$ARM64_SHA256" X64_SHA256="$X64_SHA256" node -e "
             const fs = require('fs');
             const release = JSON.parse(fs.readFileSync(0, 'utf8'));
             const findByDigest = (digest, archSuffix) => release.assets.find(
