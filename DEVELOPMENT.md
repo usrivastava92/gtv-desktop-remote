@@ -321,7 +321,7 @@ After this setup, the flow for a release is:
 
 Homebrew installation is published through a tap repository. The release workflow
 updates `usrivastava92/homebrew-tap` after semantic-release creates a GitHub
-release and uploads the macOS DMG.
+release and uploads the arm64 and x64 macOS DMGs.
 
 Required setup:
 
@@ -331,8 +331,11 @@ Required setup:
   `APP_PRIVATE_KEY`.
 
 The workflow normalizes packaged filenames to the expected `GTV Remote-...`
-pattern, computes the DMG checksum, and renders `Casks/gtv-desktop-remote.rb`
-using:
+pattern and computes each DMG's checksum. It passes both checksums to the Node
+asset resolver as environment variables, matching uploaded assets by digest first
+and architecture-specific filename suffix when a digest match is unavailable.
+It then renders `Casks/gtv-desktop-remote.rb` with separate downloads for Apple
+Silicon and Intel using:
 
 ```bash
 yarn homebrew:cask --version 0.8.0 --sha256-arm64 <sha256> --artifact-name-arm64 "GTV Remote-0.8.0-mac-arm64.dmg" --sha256-x64 <sha256> --artifact-name-x64 "GTV Remote-0.8.0-mac-x64.dmg"
