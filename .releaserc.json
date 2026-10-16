@@ -26,8 +26,22 @@
       "@semantic-release/github",
       {
         "assets": [
-          { "path": "dmg-artifacts/*.dmg", "label": "macOS DMG" },
-          { "path": "zip-artifacts/*.zip", "label": "macOS ZIP" }
+          {
+            "path": "dmg-artifacts/*-mac-arm64.dmg",
+            "label": "macOS — Apple Silicon (ARM64) — DMG"
+          },
+          {
+            "path": "zip-artifacts/*-mac-arm64.zip",
+            "label": "macOS — Apple Silicon (ARM64) — ZIP"
+          },
+          {
+            "path": "dmg-artifacts/*-mac-x64.dmg",
+            "label": "macOS — Intel (x64) — DMG"
+          },
+          {
+            "path": "zip-artifacts/*-mac-x64.zip",
+            "label": "macOS — Intel (x64) — ZIP"
+          }
         ],
         "successComment": false,
         "failComment": false

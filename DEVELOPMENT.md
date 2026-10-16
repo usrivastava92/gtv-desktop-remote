@@ -323,6 +323,11 @@ Homebrew installation is published through a tap repository. The release workflo
 updates `usrivastava92/homebrew-tap` after semantic-release creates a GitHub
 release and uploads the arm64 and x64 macOS DMGs.
 
+GitHub download labels identify Apple Silicon (ARM64) or Intel (x64), followed by
+DMG or ZIP. These display labels are configured in `.releaserc.json`; artifact
+filenames retain their `-mac-arm64` or `-mac-x64` suffixes. Homebrew selects the
+download through the cask's `on_arm` and `on_intel` blocks, not GitHub labels.
+
 Required setup:
 
 - Create the tap repository: `usrivastava92/homebrew-tap`.
