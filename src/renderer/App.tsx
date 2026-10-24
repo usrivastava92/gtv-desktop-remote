@@ -6,10 +6,15 @@ import type {
   DeviceCapabilities,
   DeviceDraft,
   DiscoveredDevice,
+  DeviceState,
+  RemoteCommand,
+  ProviderIcon,
+  RemoteCommandSource,
   SavedDevice,
 } from '../shared/types';
 
 import { useDeviceScanner } from './hooks/useDeviceScanner';
+import { useHomePress } from './hooks/useHomePress';
 import { usePairingFlow } from './hooks/usePairingFlow';
 import { useRemoteSession } from './hooks/useRemoteSession';
 import { useUpdaterStatus } from './hooks/useUpdaterStatus';
@@ -20,9 +25,19 @@ import {
   resolveSelectedDevice,
   type DevicePickerSelection as DevicePickerSelectionFromLib,
 } from './lib/deviceSelection';
-import { classes, isEditableTarget, sanitizePairCode, shouldRestartPairingFlow } from './lib/pure';
+import {
+  classes,
+  DEFAULT_PAIRING_STEP,
+  isEditableTarget,
+  isPairCodeComplete,
+  sanitizePairCode,
+  shouldRestartPairingFlow,
+  supportsAssistantVoice,
+  supportsCommand,
+} from './lib/pure';
 import { KEYBOARD_COMMAND_MAP } from './lib/remoteCommands';
 import { Preferences } from './Preferences';
+import { resolveProviderIcon } from './providerIcons';
 
 const initialDraft: DeviceDraft = {
   name: '',
@@ -38,11 +53,11 @@ const ASSISTANT_VOICE_STREAM_CHUNK_BYTES = 20 * 1024;
 type DevicePickerSelection = DevicePickerSelectionFromLib;
 
 type IconName =
+  | ProviderIcon
   | 'devices'
   | 'dropdown'
   | 'disconnect'
   | 'trash'
-  | 'tv'
   | 'cast'
   | 'refresh'
   | 'plus'
@@ -61,8 +76,7 @@ type IconName =
   | 'power'
   | 'volumeUp'
   | 'volumeDown'
-  | 'remote'
-  | 'assistant';
+  | 'remote';
 
 function getDesktopApi() {
   const api = window.gtvRemote;
@@ -271,6 +285,29 @@ function Icon({ name, className }: { name: IconName; className?: string }) {
           <circle cx="12" cy="16" r="0.9" fill="currentColor" stroke="none" />
         </svg>
       );
+    case 'apple':
+      return (
+        <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+          <path d="M17.1 12.3c0-2 1.6-3 1.7-3.1-1-1.5-2.6-1.7-3.2-1.7-1.4-.1-2.7.8-3.4.8-.7 0-1.8-.8-2.9-.8-1.5 0-2.9.9-3.7 2.2-1.6 2.7-.4 6.8 1.1 9 .7 1.1 1.6 2.2 2.7 2.1 1.1 0 1.5-.7 2.9-.7 1.3 0 1.7.7 2.9.7s1.9-1.1 2.7-2.1c.8-1.2 1.2-2.4 1.2-2.5-.1 0-2.3-.9-2.3-3.9ZM14.8 6c.6-.8 1.1-1.9 1-3-.9 0-2.1.6-2.8 1.4-.6.7-1.2 1.8-1 2.9 1 .1 2.1-.5 2.8-1.3Z" />
+        </svg>
+      );
+    case 'fire-tv':
+      return (
+        <svg className={className} viewBox="0 0 64 48" fill="none" aria-hidden>
+          <g stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M7 27V10c0-4 3-5 6-4M3 14h10M18 14v13M25 27V14m0 5c0-4 3-5 6-5M36 21h9c0-9-10-9-10 0 0 7 5 8 9 5" />
+            <path d="M49 10v12c0 4 1 5 4 5M46 14h7M55 14l4 13 4-13" />
+          </g>
+          <circle cx="18" cy="8" r="1.8" fill="currentColor" />
+          <path
+            d="M9 35c12 8 31 8 45-1M48 33l7 1-2 6"
+            stroke="#FF9900"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      );
     case 'assistant':
       return (
         <svg className={className} viewBox="0 0 28 24" fill="none" aria-hidden>
@@ -322,6 +359,7 @@ function App() {
     pairingReady,
     setPairingReady,
     pairCodeInputRef,
+    submitPairCode,
   } = usePairingFlow();
   const [textInput, setTextInput] = useState('');
   const [textInputOpen, setTextInputOpen] = useState(false);
@@ -330,7 +368,11 @@ function App() {
     powerToggle: true,
   });
   const [devicePickerOpen, setDevicePickerOpen] = useState(true);
-  const { busy, setBusy, handleCommand } = useRemoteSession((error: Error) => {
+  const {
+    busy,
+    setBusy,
+    handleCommand: dispatchCommand,
+  } = useRemoteSession((error: Error) => {
     setBootstrap((current) => ({
       ...current,
       deviceState: {
@@ -379,7 +421,7 @@ function App() {
   const assistantChunkCountRef = useRef(0);
   const assistantFirstChunkSentRef = useRef(false);
 
-  const findDiscoveredForSaved = (savedDevice: { host: string; macAddress?: string }) =>
+  const findDiscoveredForSaved = (savedDevice: SavedDevice) =>
     findDiscoveredForSavedPure(savedDevice, discoveredDevices);
   const pairedNetworkDevices = derivePairedNetworkDevices(bootstrap.devices, discoveredDevices);
   const unpairedNetworkDevices = deriveUnpairedNetworkDevices(bootstrap.devices, discoveredDevices);
@@ -413,6 +455,29 @@ function App() {
       : 'devices';
   const bridgeDisabled = busy || !bridgeReady;
   const remoteDisabled = bridgeDisabled || !isConnected;
+  const pairingStep = bootstrap.deviceState.pairing ?? DEFAULT_PAIRING_STEP;
+  const pairCodeComplete = isPairCodeComplete(pairCode, pairingStep);
+  const pairingDevice =
+    bootstrap.devices.find((device) => device.id === pairingDeviceId) ?? currentRemoteDevice;
+  const pairingIcon = resolveProviderIcon(pairingDevice?.platform, bootstrap.providers);
+  const voiceDisabled = remoteDisabled || !supportsAssistantVoice(capabilities);
+  const commandDisabled = (command: RemoteCommand) =>
+    remoteDisabled || !supportsCommand(capabilities, command);
+  function handleCommand(command: RemoteCommand, source: RemoteCommandSource = 'button') {
+    if (!commandDisabled(command)) {
+      dispatchCommand(command, source);
+    }
+  }
+  const homeHoldSupported = capabilities.supportedCommands?.includes('home_hold') === true;
+  const homePress = useHomePress({
+    enabled: !settingsOpen && currentView === 'remote' && !commandDisabled('home'),
+    holdSupported: homeHoldSupported,
+    contextKey: `${currentView}:${selectedDeviceKey}:${bootstrap.deviceState.activeDeviceId ?? ''}`,
+    onCommand: handleCommand,
+  });
+  const platformLabel = (platform = 'google-tv') =>
+    bootstrap.providers?.find((provider) => provider.id === platform)?.name ??
+    (platform === 'google-tv' ? 'Google TV' : platform);
   const frameHeaderClassName = classes(
     'ui-header',
     currentView === 'devices'
@@ -423,9 +488,19 @@ function App() {
   );
 
   async function refreshState(): Promise<BootstrapState> {
-    const nextBootstrap = await getDesktopApi().bootstrap();
+    const [nextBootstrap, nextCapabilities] = await Promise.all([
+      getDesktopApi().bootstrap(),
+      getDesktopApi().capabilities(),
+    ]);
+    setCapabilities(nextCapabilities);
     setBootstrap(nextBootstrap);
     return nextBootstrap;
+  }
+
+  async function applyDeviceState(deviceState: DeviceState) {
+    const nextCapabilities = await getDesktopApi().capabilities();
+    setCapabilities(nextCapabilities);
+    setBootstrap((current) => ({ ...current, deviceState }));
   }
 
   // Wrapped handleScanDevices from the hook to add App-level state updates
@@ -470,7 +545,7 @@ function App() {
             message:
               devices.length > 0
                 ? `Found ${String(devices.length)} device${devices.length > 1 ? 's' : ''}.`
-                : 'No Google TV devices found on the local network.',
+                : 'No TV devices found on the local network.',
           },
         }));
       }
@@ -488,12 +563,10 @@ function App() {
   useEffect(() => {
     async function initialize() {
       try {
-        const [nextBootstrap, nextCapabilities, nextUpdaterStatus] = await Promise.all([
+        const [nextBootstrap, nextUpdaterStatus] = await Promise.all([
           refreshState(),
-          getDesktopApi().capabilities(),
           getDesktopApi().getUpdaterStatus(),
         ]);
-        setCapabilities(nextCapabilities);
         setUpdaterStatus(nextUpdaterStatus);
         setBridgeReady(true);
         setDevicePickerOpen(!nextBootstrap.deviceState.activeDeviceId);
@@ -663,7 +736,7 @@ function App() {
       assistantActiveRef.current ||
       assistantStartingRef.current ||
       assistantStoppingRef.current ||
-      remoteDisabled ||
+      voiceDisabled ||
       currentView !== 'remote'
     ) {
       return;
@@ -836,7 +909,13 @@ function App() {
   }
 
   useEffect(() => {
-    if (!bridgeReady || !isConnected || currentView !== 'remote' || assistantActiveRef.current) {
+    if (
+      !bridgeReady ||
+      !isConnected ||
+      currentView !== 'remote' ||
+      !supportsAssistantVoice(capabilities) ||
+      assistantActiveRef.current
+    ) {
       return;
     }
 
@@ -866,10 +945,15 @@ function App() {
       window.clearInterval(intervalId);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bridgeReady, isConnected, currentView]);
+  }, [bridgeReady, isConnected, currentView, capabilities.assistantVoice]);
 
   useEffect(() => {
-    if (!bridgeReady || !isConnected || currentView !== 'remote') {
+    if (
+      !bridgeReady ||
+      !isConnected ||
+      currentView !== 'remote' ||
+      !supportsAssistantVoice(capabilities)
+    ) {
       return;
     }
 
@@ -900,7 +984,7 @@ function App() {
       window.clearInterval(intervalId);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bridgeReady, isConnected, currentView]);
+  }, [bridgeReady, isConnected, currentView, capabilities.assistantVoice]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -929,6 +1013,7 @@ function App() {
       }
 
       if (event.key === 'g' || event.key === 'G') {
+        if (voiceDisabled) return;
         event.preventDefault();
 
         if (
@@ -944,6 +1029,7 @@ function App() {
       }
 
       if (event.key === 'v' || event.key === 'V') {
+        if (voiceDisabled) return;
         event.preventDefault();
         if (event.repeat) {
           return;
@@ -958,7 +1044,7 @@ function App() {
       }
 
       const command = KEYBOARD_COMMAND_MAP[event.key];
-      if (!command) {
+      if (!command || command === 'home' || commandDisabled(command)) {
         return;
       }
 
@@ -988,12 +1074,14 @@ function App() {
       void stopAssistantSession();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settingsOpen, bridgeReady, isConnected, currentView, remoteDisabled]);
+  }, [settingsOpen, bridgeReady, isConnected, currentView, remoteDisabled, capabilities]);
 
   async function saveDiscoveredDevice(device: DiscoveredDevice): Promise<SavedDevice> {
     const devices = await getDesktopApi().saveDevice({
       name: device.name,
       host: device.host,
+      platform: device.platform,
+      providerData: device.providerData,
       adbPort: device.adbPort ?? initialDraft.adbPort,
       pairingPort: device.pairingPort,
       macAddress: device.macAddress,
@@ -1001,7 +1089,9 @@ function App() {
       networkHostName: device.networkHostName,
       deviceFingerprint: device.deviceFingerprint,
     });
-    const savedDevice = devices.find((item: SavedDevice) => item.host === device.host);
+    const savedDevice = devices.find((item: SavedDevice) =>
+      findDiscoveredForSavedPure(item, [device])
+    );
 
     if (!savedDevice) {
       throw new Error('Saved device could not be resolved after saving.');
@@ -1077,7 +1167,7 @@ function App() {
   }
 
   async function handlePair() {
-    if (!selectedPairedDeviceId || !pairCode.trim()) {
+    if (!selectedPairedDeviceId || !pairCodeComplete || busy || !bridgeReady) {
       return;
     }
 
@@ -1088,22 +1178,37 @@ function App() {
 
     setBusy(true);
     try {
-      await getDesktopApi().pair({
+      const nextBootstrap = await submitPairCode(getDesktopApi(), {
         deviceId: device.id,
         host: device.host,
         code: pairCode,
         macAddress: device.macAddress,
       });
-      setPairCode('');
+      setBootstrap(nextBootstrap);
+      setCapabilities(await getDesktopApi().capabilities());
+      if (nextBootstrap.deviceState.pairing) {
+        setPairingReady(true);
+        pairCodeInputRef.current?.focus();
+        return;
+      }
       setPairingReady(false);
       setDevicePickerOpen(false);
       setSelectedDeviceKey(`saved:${device.id}`);
 
       const connectingDeviceState = await getDesktopApi().connect(device.id);
-      setBootstrap((current) => ({ ...current, deviceState: connectingDeviceState }));
+      await applyDeviceState(connectingDeviceState);
     } catch (error) {
       const message = (error as Error).message;
-      if (shouldRestartPairingFlow(message)) {
+      let restartPairing = shouldRestartPairingFlow(message);
+      try {
+        const nextBootstrap = await getDesktopApi().bootstrap();
+        setBootstrap(nextBootstrap);
+        restartPairing = !nextBootstrap.deviceState.pairing;
+        setPairingReady(Boolean(nextBootstrap.deviceState.pairing));
+      } catch {
+        // Preserve the submission error when recovery cannot reach the bridge.
+      }
+      if (restartPairing) {
         setPairCode('');
         setPairingReady(false);
         setDevicePickerOpen(true);
@@ -1112,6 +1217,7 @@ function App() {
       setBootstrap((current) => ({
         ...current,
         deviceState: {
+          ...current.deviceState,
           status: 'error',
           message,
         },
@@ -1125,7 +1231,7 @@ function App() {
     setBusy(true);
     try {
       const deviceState = await getDesktopApi().connect(deviceId);
-      setBootstrap((current) => ({ ...current, deviceState }));
+      await applyDeviceState(deviceState);
     } catch (error) {
       setBootstrap((current) => ({
         ...current,
@@ -1144,7 +1250,7 @@ function App() {
     setBusy(true);
     try {
       const deviceState = await getDesktopApi().disconnect();
-      setBootstrap((current) => ({ ...current, deviceState }));
+      await applyDeviceState(deviceState);
       setTextInputOpen(false);
     } catch (error) {
       setBootstrap((current) => ({
@@ -1161,7 +1267,7 @@ function App() {
   }
 
   async function handleSendText() {
-    if (!textInput.trim()) {
+    if (!textInput.trim() || remoteDisabled || !capabilities.textInput) {
       return;
     }
 
@@ -1277,7 +1383,25 @@ function App() {
     }
   }
 
-  function openDevicePicker() {
+  async function openDevicePicker() {
+    if (pairingReady) {
+      setBusy(true);
+      try {
+        await applyDeviceState(await getDesktopApi().disconnect());
+      } catch (error) {
+        setBootstrap((current) => ({
+          ...current,
+          deviceState: {
+            ...current.deviceState,
+            status: 'error',
+            message: (error as Error).message,
+          },
+        }));
+        return;
+      } finally {
+        setBusy(false);
+      }
+    }
     setTextInputOpen(false);
     setPairingReady(false);
     setPairCode('');
@@ -1469,7 +1593,7 @@ function App() {
               {currentView === 'pairing' ? (
                 <>
                   <div className="text-xs font-extrabold uppercase tracking-widest text-on-surface">
-                    Android TV
+                    {platformLabel(pairingDevice?.platform)}
                   </div>
                   <div className="flex items-center ui-dragless">
                     <Icon name="devices" className="h-[1.15rem] w-[1.15rem] text-primary-strong" />
@@ -1538,8 +1662,6 @@ function App() {
                           );
                           const displayName =
                             option.discoveredDevice?.name ?? option.savedDevice.name;
-                          const subtitle =
-                            option.discoveredDevice?.model ?? option.savedDevice.host;
                           const isActive =
                             bootstrap.deviceState.activeDeviceId === option.savedDevice.id;
 
@@ -1560,7 +1682,9 @@ function App() {
                                 </div>
                                 <div className="ui-card-copy">
                                   <span className="ui-card-title">{displayName}</span>
-                                  <span className="ui-card-meta">{subtitle}</span>
+                                  <span className="ui-card-meta">
+                                    {platformLabel(option.savedDevice.platform)}
+                                  </span>
                                 </div>
                                 <span
                                   className={classes(
@@ -1623,7 +1747,7 @@ function App() {
                                     {device.name}
                                   </span>
                                   <span className="block text-[10px] font-medium text-on-surface-variant">
-                                    {device.model ?? 'Ready to pair'}
+                                    {platformLabel(device.platform)}
                                   </span>
                                 </div>
                               </div>
@@ -1681,21 +1805,19 @@ function App() {
             {currentView === 'pairing' ? (
               <div className="ui-pair-screen">
                 <div className="ui-pair-icon">
-                  <Icon name="assistant" className="h-8 w-8 text-primary" />
+                  <Icon name={pairingIcon} className="h-8 w-8 text-primary" />
                 </div>
                 <h1 className="mb-2 text-3xl font-bold tracking-tight text-on-surface">
                   Enter Code
                 </h1>
-                <p className="mb-12 text-sm text-on-surface-variant">
-                  Type the 6-character pairing code displayed on your Android TV screen.
-                </p>
+                <p className="mb-12 text-sm text-on-surface-variant">{pairingStep.instructions}</p>
 
                 <button
                   className="ui-code-row"
                   disabled={busy}
                   onClick={() => pairCodeInputRef.current?.focus()}
                 >
-                  {Array.from({ length: 6 }, (_, index) => {
+                  {Array.from({ length: pairingStep.codeLength }, (_, index) => {
                     const char = pairCode[index];
                     const filled = Boolean(char);
 
@@ -1714,34 +1836,36 @@ function App() {
                   className="sr-only-input"
                   value={pairCode}
                   onChange={(event) => {
-                    setPairCode(sanitizePairCode(event.target.value));
+                    setPairCode(sanitizePairCode(event.target.value, pairingStep));
                   }}
                   onKeyDown={(event) => {
-                    if (event.key === 'Enter' && pairCode.length === 6 && !busy) {
+                    if (event.key === 'Enter' && pairCodeComplete && !busy) {
                       void handlePair();
                     }
                   }}
-                  maxLength={6}
+                  maxLength={pairingStep.codeLength}
+                  aria-label="Pairing code"
+                  inputMode={pairingStep.inputPattern === '[0-9]' ? 'numeric' : 'text'}
                   autoComplete="one-time-code"
                 />
 
                 <div className="ui-action-stack">
                   <button
                     className="ui-primary-button"
-                    disabled={
-                      busy || !bridgeReady || pairCode.length < 6 || !selectedPairedDeviceId
-                    }
+                    disabled={busy || !bridgeReady || !pairCodeComplete || !selectedPairedDeviceId}
                     onClick={() => {
                       void handlePair();
                     }}
                   >
-                    <span>Connect</span>
+                    <span>Continue</span>
                     <Icon name="cast" className="h-5 w-5" />
                   </button>
                   <button
                     className="ui-secondary-button"
                     disabled={busy}
-                    onClick={openDevicePicker}
+                    onClick={() => {
+                      void openDevicePicker();
+                    }}
                   >
                     Cancel
                   </button>
@@ -1768,7 +1892,7 @@ function App() {
                   <div className="ui-dpad">
                     <button
                       className="ui-dpad-edge ui-dpad-up"
-                      disabled={remoteDisabled}
+                      disabled={commandDisabled('up')}
                       onClick={() => {
                         handleCommand('up');
                       }}
@@ -1777,7 +1901,7 @@ function App() {
                     </button>
                     <button
                       className="ui-dpad-edge ui-dpad-down"
-                      disabled={remoteDisabled}
+                      disabled={commandDisabled('down')}
                       onClick={() => {
                         handleCommand('down');
                       }}
@@ -1786,7 +1910,7 @@ function App() {
                     </button>
                     <button
                       className="ui-dpad-edge ui-dpad-left"
-                      disabled={remoteDisabled}
+                      disabled={commandDisabled('left')}
                       onClick={() => {
                         handleCommand('left');
                       }}
@@ -1795,7 +1919,7 @@ function App() {
                     </button>
                     <button
                       className="ui-dpad-edge ui-dpad-right"
-                      disabled={remoteDisabled}
+                      disabled={commandDisabled('right')}
                       onClick={() => {
                         handleCommand('right');
                       }}
@@ -1804,7 +1928,7 @@ function App() {
                     </button>
                     <button
                       className="ui-dpad-center"
-                      disabled={remoteDisabled}
+                      disabled={commandDisabled('select')}
                       onClick={() => {
                         handleCommand('select');
                       }}
@@ -1827,7 +1951,7 @@ function App() {
                   <div className="ui-nav-grid">
                     <button
                       className="ui-nav-item"
-                      disabled={remoteDisabled}
+                      disabled={commandDisabled('back')}
                       onClick={() => {
                         handleCommand('back');
                       }}
@@ -1839,10 +1963,13 @@ function App() {
                     </button>
                     <button
                       className="ui-nav-item"
-                      disabled={remoteDisabled}
-                      onClick={() => {
-                        handleCommand('home');
-                      }}
+                      disabled={commandDisabled('home')}
+                      {...homePress}
+                      title={
+                        homeHoldSupported
+                          ? 'Home (H). Hold for Control Center (about 1.5 seconds).'
+                          : 'Home (H)'
+                      }
                     >
                       <span className="ui-nav-button ui-nav-button-active">
                         <Icon name="home" className="h-7 w-7" />
@@ -1907,7 +2034,7 @@ function App() {
                     <div className="ui-media-column">
                       <button
                         className="ui-media-button ui-media-button-block"
-                        disabled={remoteDisabled}
+                        disabled={commandDisabled('volume_up')}
                         onClick={() => {
                           handleCommand('volume_up');
                         }}
@@ -1920,7 +2047,7 @@ function App() {
                       </div>
                       <button
                         className="ui-media-button ui-media-button-block"
-                        disabled={remoteDisabled}
+                        disabled={commandDisabled('volume_down')}
                         onClick={() => {
                           handleCommand('volume_down');
                         }}
@@ -1932,7 +2059,7 @@ function App() {
                     <div className="ui-media-stack">
                       <button
                         className="ui-media-button ui-media-primary"
-                        disabled={remoteDisabled}
+                        disabled={commandDisabled('play_pause')}
                         onClick={() => {
                           handleCommand('play_pause');
                         }}
@@ -1945,7 +2072,7 @@ function App() {
                             'ui-media-button',
                             assistantStatus === 'active' && 'ui-media-button-assistant-active'
                           )}
-                          disabled={remoteDisabled}
+                          disabled={voiceDisabled}
                           onClick={() => {
                             if (assistantActiveRef.current || assistantStartingRef.current) {
                               void stopAssistantSession();
@@ -1958,7 +2085,7 @@ function App() {
                         </button>
                         <button
                           className="ui-media-button ui-media-danger"
-                          disabled={remoteDisabled}
+                          disabled={commandDisabled('power')}
                           onClick={() => {
                             handleCommand('power');
                           }}
@@ -1971,7 +2098,13 @@ function App() {
                 </section>
 
                 <footer className="ui-footer-bar">
-                  <button className="ui-footer-item" disabled={busy} onClick={openDevicePicker}>
+                  <button
+                    className="ui-footer-item"
+                    disabled={busy}
+                    onClick={() => {
+                      void openDevicePicker();
+                    }}
+                  >
                     <Icon name="back" className="h-5 w-5" />
                     <span className="ui-footer-label">Devices</span>
                   </button>

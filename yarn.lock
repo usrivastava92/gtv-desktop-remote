@@ -1052,6 +1052,33 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@librecontrol/apple-tv@npm:1.0.0":
+  version: 1.0.0
+  resolution: "@librecontrol/apple-tv@npm:1.0.0"
+  bin:
+    librecontrol-apple-tv: dist/cli/repl.js
+  checksum: 10c0/c2e7b4ec0bcfdb213e4b0641d34e42952a61c2ebe5a98b23dff88658acf0b8648d98d001606b7b66c940846965e4b57c9715ff3893a995d7678616779bb6bef1
+  languageName: node
+  linkType: hard
+
+"@librecontrol/apple-tv@patch:@librecontrol/apple-tv@npm%3A1.0.0#~/.yarn/patches/@librecontrol-apple-tv-npm-1.0.0-2f984c783d.patch":
+  version: 1.0.0
+  resolution: "@librecontrol/apple-tv@patch:@librecontrol/apple-tv@npm%3A1.0.0#~/.yarn/patches/@librecontrol-apple-tv-npm-1.0.0-2f984c783d.patch::version=1.0.0&hash=117760"
+  bin:
+    librecontrol-apple-tv: dist/cli/repl.js
+  checksum: 10c0/21203619f513b4f4cd902bfe0427eaf6896c335d429b37cfb60692124ffdc4077be99a124b677cd93ecca92fa302234bcff21498cf8cdde4b8d4ead8300eff79
+  languageName: node
+  linkType: hard
+
+"@librecontrol/fire-tv@npm:1.1.0":
+  version: 1.1.0
+  resolution: "@librecontrol/fire-tv@npm:1.1.0"
+  bin:
+    librecontrol-fire-tv: dist/cli/repl.js
+  checksum: 10c0/76efe9bce8bb50ab4173cc897d08b7606e034c40341b1c28cdfc27cd724d3d8e7c0ec18691ba6c1fedf6c857fcf1195c93f19a3c9b2f3fc46b4eea310c132158
+  languageName: node
+  linkType: hard
+
 "@librecontrol/google-tv@npm:^1.0.2":
   version: 1.0.2
   resolution: "@librecontrol/google-tv@npm:1.0.2"
@@ -1091,6 +1118,13 @@ __metadata:
     "@emnapi/core": ^1.7.1
     "@emnapi/runtime": ^1.7.1
   checksum: 10c0/2e88e1955258949ccf2d18c79975821ad38071b465ef126a5e14110977b97868867b016c1ad046e963cccc42c0bd9db6c8ff5fd1ebb61b87bb3487f339041658
+  languageName: node
+  linkType: hard
+
+"@noble/ciphers@npm:2.4.0":
+  version: 2.4.0
+  resolution: "@noble/ciphers@npm:2.4.0"
+  checksum: 10c0/f8c0cfec0c96554a379385e0a851e4f4eb3ceb1ac645885d8f94f6e75b8d56233e4a434413cb2bf37ec08960cc05dad1ddf98d25311e990ea6505c56a1c1ca95
   languageName: node
   linkType: hard
 
@@ -5039,7 +5073,10 @@ __metadata:
     "@commitlint/cli": "npm:^21.0.0"
     "@commitlint/config-conventional": "npm:^21.0.0"
     "@eslint/js": "npm:^10.0.0"
+    "@librecontrol/apple-tv": "patch:@librecontrol/apple-tv@npm%3A1.0.0#~/.yarn/patches/@librecontrol-apple-tv-npm-1.0.0-2f984c783d.patch"
+    "@librecontrol/fire-tv": "npm:1.1.0"
     "@librecontrol/google-tv": "npm:^1.0.2"
+    "@noble/ciphers": "npm:2.4.0"
     "@playwright/test": "npm:1.64.1"
     "@semantic-release/commit-analyzer": "npm:^13.0.1"
     "@semantic-release/git": "npm:^11.0.0"

@@ -44,6 +44,8 @@ export type DevicePickerSelection =
 export function findDiscoveredForSaved(
   savedDevice: {
     host: string;
+    platform?: string | undefined;
+    providerData?: Record<string, string | number> | undefined;
     macAddress?: string | undefined;
     castDeviceId?: string | undefined;
     networkHostName?: string | undefined;
@@ -51,6 +53,19 @@ export function findDiscoveredForSaved(
   },
   discoveredDevices: readonly DiscoveredDevice[]
 ): DiscoveredDevice | undefined {
+  discoveredDevices = discoveredDevices.filter(
+    (device) => (device.platform ?? 'google-tv') === (savedDevice.platform ?? 'google-tv')
+  );
+  const identifier = savedDevice.providerData?.identifier;
+  if (identifier !== undefined) {
+    const byIdentifier = discoveredDevices.find(
+      (device) => device.providerData?.identifier === identifier
+    );
+    if (byIdentifier) return byIdentifier;
+    discoveredDevices = discoveredDevices.filter(
+      (device) => device.providerData?.identifier === undefined
+    );
+  }
   if (savedDevice.macAddress) {
     const byMac = discoveredDevices.find((d) => d.macAddress === savedDevice.macAddress);
     if (byMac) return byMac;

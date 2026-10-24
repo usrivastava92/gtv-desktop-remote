@@ -17,7 +17,10 @@ import type {
 } from '../shared/types';
 
 import { captureIpc, closeCapture, initCapture } from './capture';
-import { GoogleTvAdapter } from './device/googleTvAdapter';
+import { AppleTvProvider } from './device/appleTvProvider';
+import { FireTvProvider } from './device/fireTvProvider';
+import { GoogleTvProvider } from './device/googleTvProvider';
+import { TvAdapter } from './device/tvAdapter';
 import {
   getLogin,
   integrationEnvironment,
@@ -43,7 +46,11 @@ declare const _MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 let tray: Tray | undefined;
 let windowRef: BrowserWindow | undefined;
 
-const adapter = new GoogleTvAdapter();
+const adapter = new TvAdapter([
+  new GoogleTvProvider(),
+  new AppleTvProvider(),
+  new FireTvProvider(),
+]);
 const appName = 'GTV Remote';
 const preferences = new PreferencesController(
   createNodeFileSystem(),
@@ -195,9 +202,6 @@ async function createWindow(): Promise<BrowserWindow> {
 
   window.on('blur', () => {
     void preferences.setShortcutCapture(false);
-    if (!window.webContents.isDevToolsOpened()) {
-      window.hide();
-    }
   });
 
   window.on('closed', () => {

@@ -16,6 +16,8 @@ export interface IntegrationConfig {
   remotePort: number;
   discoveryCommand: string;
   discoveryStatePath: string;
+  /** Discovery scope only; connection/pairing providers remain registered. */
+  discoveryPlatforms?: string[];
   systemStatePath: string;
   dialogStatePath: string;
   updater?: {
@@ -108,6 +110,7 @@ export function validateIntegrationConfig(value: unknown, root: string): Integra
     'discoveryCommand',
     'discoveryStatePath',
     'systemStatePath',
+    'discoveryPlatforms',
     'dialogStatePath',
     'updater',
   ];
@@ -126,6 +129,14 @@ export function validateIntegrationConfig(value: unknown, root: string): Integra
   for (const port of [pairingPort, remotePort]) {
     if (!Number.isInteger(port) || port < 1 || port > 65535)
       throw new Error('Invalid integration port');
+  }
+  const discoveryPlatforms = config.discoveryPlatforms;
+  if (
+    discoveryPlatforms !== undefined &&
+    (!Array.isArray(discoveryPlatforms) ||
+      discoveryPlatforms.some((platform) => typeof platform !== 'string' || !platform.trim()))
+  ) {
+    throw new Error('Invalid integration discovery platforms');
   }
   executable(discoveryCommand);
   if (
@@ -176,6 +187,9 @@ export function validateIntegrationConfig(value: unknown, root: string): Integra
     discoveryStatePath,
     systemStatePath,
     dialogStatePath,
+    ...(discoveryPlatforms !== undefined
+      ? { discoveryPlatforms: discoveryPlatforms as string[] }
+      : {}),
     ...(updater ? { updater } : {}),
   };
 }

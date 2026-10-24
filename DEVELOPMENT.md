@@ -45,9 +45,9 @@ Type test doubles with `Mock<ProductionFunction>` and `vi.fn<ProductionFunction>
 rather than `ReturnType<typeof vi.fn>` so callable signatures remain precise across
 Vitest versions.
 
-Dependency updates retain Node 24 and Yarn's minimum package-age gate. The only
-preapproved package is the owned `@librecontrol/google-tv@1.0.1` release; a newly
-published third-party version must age normally rather than receive an exemption.
+Dependency updates retain Node 24 and Yarn's minimum package-age gate. Exact owned
+releases preapproved in `.yarnrc.yml` are Google TV 1.0.2, Apple TV 1.0.0 and Fire TV
+1.1.0. Newly published third-party versions must age normally, without exemptions.
 Keep TypeScript within the supported range of `typescript-eslint` (currently
 `>=4.8.4 <6.1.0`); a published compiler major alone does not establish lint-toolchain
 compatibility. Concurrently 10's CLI requires Node 22 or later and remains compatible
@@ -115,6 +115,76 @@ cleanup failures do not mask the original error. Overlapping writes use separate
 temporary files, but this is not a read-modify-write transaction: the last successful
 replacement wins.
 
+## Multi-TV provider contract
+
+`src/main/device/tvProvider.ts` is the application-owned protocol boundary.
+`TvAdapter` owns the saved-device repository, active/pairing device identity,
+serialized lifecycle transitions, discovery aggregation, capabilities and IPC
+behavior. Each provider owns discovery, protocol sessions, PIN progression,
+credential persistence, key mapping, text input, forget/reset and address
+migration. Protocol library types never cross preload into the renderer.
+
+To add a platform:
+
+1. Implement `TvProvider` with a stable `id`, display `name`, explicit capabilities,
+   discovery and lifecycle/control methods. Map app `RemoteCommand` values inside
+   the provider. Reject unsupported operations rather than substituting commands.
+2. Return non-secret reconnect metadata in `providerData`; use its `identifier`
+   for stable matching across address changes. Identity is scoped to platform,
+   so different providers at the same address remain distinct devices.
+3. Return a `PairingStep` from `startPairing`. Each `pair` submission returns the
+   next step or `undefined` only when fully paired. `DeviceState.pairing` drives
+   instructions, code alphabet and length; after a submission the renderer reads
+   bootstrap before deciding whether to connect. Failed sessions are closed;
+   retry starts a fresh handshake.
+4. Register the provider once in `src/main/main.ts` and add its dependency.
+   Bootstrap exposes provider names and optional semantic `icon` metadata from
+   `TvProvider` via `ProviderDescriptor`. Tokens are app-owned: `assistant`
+   (Google Assistant), `apple`, `fire-tv`, or `tv` (generic). The pairing screen
+   resolves the device's provider descriptor and renders bundled SVG artwork;
+   missing/unknown tokens or providers use the generic TV icon, not Google
+   branding. Historical saved devices without a platform still resolve through
+   the Google provider descriptor. No platform-specific pairing or control
+   branches are needed. `DiscoveredDevice.source` currently enumerates
+   discovery origins, so extend that type for a new origin.
+5. Exercise the real protocol path, credential restoration, cancellation,
+   unsupported commands and platform identity boundaries. Hardware
+   interoperability is a separate acceptance gate.
+
+`platform` omitted in historical records means `google-tv`. Apple/Fire credentials
+are separate encrypted files under `<userData>/provider-credentials`, keyed by
+provider plus saved-device ID. Atomic replacements use owner-only files and
+directories. No plaintext fallback is allowed; keychain unavailability is an
+explicit pairing error. Google retains its existing certificate store.
+`reset:app` and in-app reset remove the new credentials as well.
+Apple TV starts a fresh AirPlay/Companion handshake without reading saved credentials
+or checking Keychain availability first. Only after both PINs succeed does it request
+encrypted persistence; macOS may ask permission to use Keychain at that point.
+That OS authorization is not an Apple TV account password. Failure to save remains
+an explicit error; credentials are never silently stored in plaintext.
+
+The spike uses `@librecontrol/apple-tv@1.0.0` and
+`@librecontrol/fire-tv@1.1.0` through native dynamic ESM imports from the CommonJS
+Electron main process. Apple requires a local Yarn patch plus pinned
+`@noble/ciphers` for portable ChaCha20-Poly1305: Electron's crypto backend does not
+expose that cipher through Node `createCipheriv`. The patch covers pairing AEAD
+and Companion frame encryption/decryption without changing the cipher, AAD,
+nonce counters or authentication-tag requirements. Fire adds no runtime transitive
+dependencies. Apple requires AirPlay then Companion PINs; Fire requires one PIN. Google microphone
+behavior is preserved; Apple/Fire microphone controls are intentionally disabled.
+Fire has no volume mapping. Fire HTTPS accepts self-signed receiver certificates
+by default and does not authenticate the receiver's certificate chain: trusted
+LAN only, with no automatic HTTP fallback. An explicit HTTP provider setting is
+unencrypted and is used by the loopback protocol fixture.
+
+Discovery is concurrent across providers and isolates provider failures.
+Lifecycle transitions, including scans that can migrate identities, are serialized.
+An address/identity migration closes any affected active session and clears its
+connected state before migrating; reconnect is explicit. This favors safe session
+ownership over transparent handover. Apple re-resolves its advertised service
+through the library when pairing/connecting; multicast restrictions can therefore
+affect connection even after an earlier scan.
+
 ## Debug Telemetry
 
 The app contains command and transport tracing that is useful during debugging.
@@ -158,6 +228,14 @@ The renderer uses a bounded command queue for remote key dispatch.
 - Once the queue is full, new key presses are dropped
 
 This is intentional so short navigation bursts remain responsive while sustained input spam is bounded.
+
+Apple TV advertises `home_hold`, mapped to the native library's `homeHold`.
+`useHomePress` recognizes keyboard H and pointer holds after 500 ms; the library
+then holds the TV/Home key down for 1000 ms. Short gestures send one `home` on
+release, while completed holds send one `home_hold` and suppress the later tap.
+Pending gestures cancel on blur, pointer cancellation/exit, view/device/settings
+changes, disabled controls and unmount. Google TV and Fire TV do not advertise
+or accept `home_hold`; their ordinary Home behavior is unchanged.
 
 ## Useful Runtime Notes
 

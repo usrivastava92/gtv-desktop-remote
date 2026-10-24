@@ -35,6 +35,47 @@ function discovered(overrides: Partial<DiscoveredDevice> = {}): DiscoveredDevice
 }
 
 describe('findDiscoveredForSaved', () => {
+  it('never matches another platform even when all network identities collide', () => {
+    const s = saved({ platform: 'apple-tv', macAddress: 'same', deviceFingerprint: 'same' });
+    const other = discovered({
+      platform: 'fire-tv',
+      macAddress: 'same',
+      deviceFingerprint: 'same',
+    });
+    expect(findDiscoveredForSaved(s, [other])).toBeUndefined();
+    expect(deriveUnpairedNetworkDevices([s], [other])).toEqual([other]);
+  });
+
+  it('treats omitted platforms as Google TV for legacy saved records', () => {
+    const device = discovered({ platform: 'google-tv' });
+    expect(findDiscoveredForSaved(saved(), [device])).toBe(device);
+  });
+
+  it('prefers a stable provider identifier after a host change', () => {
+    const s = saved({ platform: 'apple-tv', providerData: { identifier: 'apple-1' } });
+    const moved = discovered({
+      id: 'moved',
+      platform: 'apple-tv',
+      host: '192.168.1.99',
+      providerData: { identifier: 'apple-1' },
+    });
+    const replacement = discovered({
+      platform: 'apple-tv',
+      providerData: { identifier: 'apple-2' },
+    });
+    expect(findDiscoveredForSaved(s, [replacement, moved])).toBe(moved);
+    expect(findDiscoveredForSaved(s, [replacement])).toBeUndefined();
+  });
+
+  it('scopes stable provider identifiers to their platform', () => {
+    const s = saved({ platform: 'apple-tv', providerData: { identifier: 'shared' } });
+    const device = discovered({
+      platform: 'fire-tv',
+      providerData: { identifier: 'shared' },
+    });
+    expect(findDiscoveredForSaved(s, [device])).toBeUndefined();
+  });
+
   it('matches by MAC first (stable across IP changes)', () => {
     const s = saved({ host: '192.168.1.99', macAddress: 'aa:bb:cc:dd:ee:ff' });
     const pool: DiscoveredDevice[] = [

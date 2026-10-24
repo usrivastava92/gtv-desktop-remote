@@ -42,6 +42,36 @@ GTV Desktop Remote lets you control any Google TV or Android TV device from your
 - **Global shortcut** — customizable show/hide shortcut (default `CmdOrCtrl+Shift+G`)
 - **Launch at login** — optional macOS Login Item, off by default
 
+### Local multi-TV spike
+
+This branch adds Apple TV and Fire TV alongside the existing Google TV/Android TV
+provider without renaming the application or replacing its remote layout.
+Discovery labels each platform and routes pairing and controls through the
+app-owned `TvProvider` contract.
+
+- Google TV retains its six-character pairing flow and microphone support.
+- Apple TV requests two successive four-digit PINs: AirPlay, then Companion.
+- Fire TV requests one four-digit PIN. Volume and microphone controls are disabled;
+  navigation, playback toggle, power toggle, and text entry use its native library.
+- Apple TV microphone controls are disabled in this spike. Text entry on every
+  platform requires a compatible focused TV input field.
+- Apple/Fire credentials are encrypted with Electron `safeStorage`, kept outside
+  device metadata, and require an available OS keychain. Fire TV uses HTTPS by
+  default with self-signed receiver certificates accepted; use only a trusted LAN.
+- Apple TV uses a pinned local library patch with portable ChaCha20-Poly1305,
+  because Electron's Node crypto backend does not expose that cipher. Pairing
+  and Companion frames retain their authentication checks; no cipher downgrade
+  or external Node installation is used.
+
+Physical Apple TV and Fire TV discovery was observed in the packaged app.
+Automated Fire TV checks use an independent local HTTP/HTTPS receiver, not real
+Fire OS. Apple pairing, authenticated reconnection and native Home tap/hold
+dispatch were exercised against a physical Apple TV. The operator confirmed
+that holding H or Home opens Control Center. No TV-screen capture was taken;
+full hardware coverage and physical Fire pairing remain unverified.
+See [the provider extension contract](DEVELOPMENT.md#multi-tv-provider-contract)
+and [test fidelity limits](tests/integration/README.md#multi-tv-spike).
+
 ---
 
 ## Screenshots
@@ -108,7 +138,7 @@ On first launch, a dismissible **Welcome to GTV Remote** hint explains where the
 
 - Look for the GTV Remote icon in the **menu bar** at the top of your screen. The app does not stay in the Dock.
 - Click the menu-bar icon to show or hide the remote, or use the global shortcut shown in the welcome hint.
-- The remote automatically hides when you click away or switch apps. It is still running and stays connected; click its menu-bar icon to bring it back.
+- In this multi-TV spike, the remote stays visible when you click away or switch apps. Hide it explicitly with the menu-bar icon or global shortcut.
 - Right-click the menu-bar icon for **Show Remote**, **Hide Remote**, and **Quit**. Choose **Quit** to exit completely, rather than just hide the window.
 
 ---
@@ -127,6 +157,11 @@ When the remote is focused and connected, your keyboard controls the TV directly
 | `+` / `=`              | Volume Up    |
 | `-` / `_`              | Volume Down  |
 | `P`                    | Power        |
+
+For **Apple TV Control Center**, hold `H` or press and hold the on-screen **Home**
+button for about **1.5 seconds**. A short tap remains Home. Long press is enabled
+only for providers that advertise it; Google TV and Fire TV keep their existing
+Home behavior. Keyboard auto-repeat does not generate extra Apple Home presses.
 
 > `Cmd`, `Ctrl`, and `Option` combinations are ignored so they don't interfere with normal macOS shortcuts.
 

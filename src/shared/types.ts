@@ -5,6 +5,7 @@ export type RemoteCommand =
   | 'right'
   | 'select'
   | 'home'
+  | 'home_hold'
   | 'back'
   | 'play_pause'
   | 'volume_up'
@@ -113,8 +114,27 @@ export interface CommandMetricsSnapshot {
   recentCommands: CommandMetricsRecord[];
 }
 
+export type DevicePlatform = string;
+
+export interface PairingStep {
+  instructions: string;
+  codeLength: number;
+  inputPattern: string;
+}
+
+/** Semantic, app-owned artwork tokens; never protocol-library types or asset URLs. */
+export type ProviderIcon = 'assistant' | 'apple' | 'fire-tv' | 'tv';
+
+export interface ProviderDescriptor {
+  id: DevicePlatform;
+  name: string;
+  icon?: ProviderIcon;
+}
+
 export interface SavedDevice {
   id: string;
+  platform?: DevicePlatform;
+  providerData?: Record<string, string | number>;
   name: string;
   host: string;
   isPaired?: boolean;
@@ -129,6 +149,8 @@ export interface SavedDevice {
 
 export interface DiscoveredDevice {
   id: string;
+  platform?: DevicePlatform;
+  providerData?: Record<string, string | number>;
   name: string;
   host: string;
   adbPort?: number;
@@ -139,7 +161,7 @@ export interface DiscoveredDevice {
   networkHostName?: string;
   deviceFingerprint?: string;
   model?: string;
-  source: 'googlecast' | 'adb' | 'androidtvremote';
+  source: 'googlecast' | 'adb' | 'androidtvremote' | 'apple-tv' | 'fire-tv';
 }
 
 export interface PairingRequest {
@@ -151,6 +173,8 @@ export interface PairingRequest {
 }
 
 export interface DeviceDraft {
+  platform?: DevicePlatform;
+  providerData?: Record<string, string | number>;
   name: string;
   host: string;
   adbPort: number;
@@ -165,16 +189,20 @@ export interface DeviceState {
   status: 'idle' | 'connecting' | 'connected' | 'error';
   message: string;
   activeDeviceId?: string;
+  pairing?: PairingStep;
 }
 
 export interface BootstrapState {
   devices: SavedDevice[];
   deviceState: DeviceState;
+  providers?: ProviderDescriptor[];
 }
 
 export interface DeviceCapabilities {
   textInput: boolean;
   powerToggle: boolean;
+  supportedCommands?: RemoteCommand[];
+  assistantVoice?: boolean;
 }
 
 export interface UpdaterStatus {

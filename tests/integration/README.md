@@ -22,6 +22,8 @@ After upgrading Playwright, rerun `yarn playwright install ffmpeg`: the runner s
 
 Every case owns a `mkdtemp` profile below `os.tmpdir()`. `--user-data-dir` and `GTV_INTEGRATION_CONFIG` select that profile before production stores initialize. Config schemaVersion 1 includes pairingPort, remotePort, discoveryCommand, discoveryStatePath, systemStatePath and dialogStatePath. Runtime rejects packaged use, non-temporary profiles, paths outside the profile, non-loopback endpoints and foreign renderer IPC. Fixture executables may reside in this repository.
 
+Integration configuration optionally accepts `discoveryPlatforms: string[]`. Entries must name registered providers. Omission preserves the Google regression suite's `['google-tv']` discovery scope; an empty list disables discovery, while explicit lists select real provider discovery implementations. This setting does not remove providers or replace pairing, connection, or command transports: saved Apple/Fire devices remain usable in isolated wire tests. Production scans all registered providers. Google fixture discovery tests do not establish Apple/Fire native discovery correctness or physical-device interoperability.
+
 `STARTUP-SINGLETON` launches a real second Electron child with the first main process's application arguments, working directory, isolated profile and integration environment. Playwright strips inherited `NODE_OPTIONS` from its first launch, so the raw child must strip it too; Playwright's debugger/loader arguments are not application arguments and are not replayed. Success requires the original window to be currently visible **and focused**, with exactly one window, plus a normal child exit code of zero. Startup focus/show observations cannot satisfy this assertion after the explicit hide. A `singleton-launch-diagnostics` attachment records allowlisted launch arguments, first-process lock ownership, singleton symlink paths/targets, child exit/signal/error and bounded sanitized stdout/stderr; it never reads credential files or dumps the environment. Environment parity is a driver invariant, not proof of the cause of a native singleton failure.
 
 Pairing first attempts a refused real loopback port. Production generates its own certificate in `<profile>/androidtvremote/<safeKey>.cert.pem` and private key beside it. The harness reads only the public certificate, explicitly trusts it in the emulator, starts TLS listeners and retries. The emulator requires and verifies the app's client certificate; the actual application retains its production `rejectUnauthorized: false` behavior and does not verify the server certificate's trust chain. The real pairing exchange independently binds both certificates' RSA public keys to the six-hex pairing code, and remote access additionally requires successful pairing. Separate independent raw TLS-client tests verify certificates in both directions. No private key, certificate dump or profile dump is attached to results.
@@ -101,6 +103,31 @@ This is a functional regression guardrail, not a hardware/interoperability guara
 
 Physical native dialog appearance/post-dismiss focus recovery, Login Items service writes/permissions, menu-bar placement/physical tray selection, system-wide physical shortcut delivery, TCC/device selection, signed installer/quarantine/Gatekeeper behavior, launching an actually installed signed `.app`, and a browser/DMG mount are native boundaries. Fixtures preserve application choices, execute real installed menu callbacks and assert concrete sandbox disk/relaunch metadata; they do not certify these physical OS effects. Automated tray tests simulate OS selection only, not the underlying application action.
 
-`GoogleTvAdapter.getCapabilities()` currently advertises textInput/powerToggle unconditionally. WIRE-CAPABILITY-ABSENCE tests real reduced server negotiation and recovery, but does not claim the production UI hides text based on server capability. The existing updater reads `skippedVersion` compatibility state but has no UI/public writer; UPDATE-LEGACY-SKIP explicitly seeds historical input and does not invent a user-facing skip action. Negative-only missing-device/native-start errors exercise the production capture error path; physical microphone selection/removal still requires a native check. Reachable failures remain hard assertions, never `test.skip`, conditional green tests or business-method mocks.
+`GoogleTvProvider.capabilities` advertises textInput/powerToggle unconditionally. WIRE-CAPABILITY-ABSENCE tests real reduced server negotiation and recovery, but does not claim the production UI hides text based on Google server negotiation. `TvAdapter` and the renderer enforce each provider's advertised command, text, power and microphone capabilities. The existing updater reads `skippedVersion` compatibility state but has no UI/public writer; UPDATE-LEGACY-SKIP explicitly seeds historical input and does not invent a user-facing skip action. Negative-only missing-device/native-start errors exercise the production capture error path; physical microphone selection/removal still requires a native check. Reachable failures remain hard assertions, never `test.skip`, conditional green tests or business-method mocks.
 
 The adopted [LibreControl 1.0.2](https://github.com/LibreControl/google-tv/releases/tag/1.0.2) retains the immediate text-readiness and connection-lifecycle fixes from 1.0.1 and corrects odd-length RSA modulus encoding without weakening certificate-bound checksum validation. Upstream real-TLS regressions independently derive expected hashes from unsigned JWK integers and separately exercise genuine 2049-bit client and TV certificates; both failed before the fix and passed afterward. Its 31-test suite also covers delayed/nonzero and zero IME metadata, pending-text closure/reconnect and unsupported IME behavior. This desktop suite still uses an ordered transport setup barrier for the restored-capability scenario and exercises the published dependency through the actual Electron application; it does not claim that scenario independently proves the upstream immediate-readiness contract. The reported Streamer hash failure has no same-session certificate/code vector, so this demonstrated RSA defect is not an established diagnosis or resolution of that hardware report.
+
+## Multi-TV spike
+
+`multi-tv.spec.ts` runs the real Fire TV provider and published library through
+Electron IPC against an independent loopback HTTP/HTTPS receiver. It models PIN
+display/verification, authentication tokens, status, keyboard state, key events
+and text. Assertions cover wrong-PIN recovery, cancellation, credential restoration
+after restart, Unicode text, unsupported volume/microphone rejection, same-host
+platform identities and switching away from an active Fire session.
+
+The receiver is not Fire OS. It does not establish SSDP/mDNS discovery, DIAL
+activation, certificate trust provisioning, voice or hardware interoperability.
+An independent Apple AirPlay receiver additionally exercises `/pair-pin-start`
+and initial pair-setup M1/M2 through the real provider/library. An existing corrupt
+encrypted credential must not block this fresh PIN request. Cancellation closes
+the stage and rejects a late submission without another wire request. This does
+not emulate SRP proof, encrypted AirPlay/Companion authentication or completed
+pairing; unit tests separately cover two-step pairing presentation.
+Production packaged-app discovery was separately observed against
+physical Apple TV and Fire TV devices. These fixtures do not perform physical
+PIN pairing. Separately, a paired physical Apple TV was reconnected through the
+packaged app, and renderer H/mouse Home taps, holds and blur cancellation were
+exercised using its native transport. TV-screen state was not captured. This
+does not certify the complete hardware feature matrix. Keychain-unavailable
+credential behavior is not exercised by the wire fixture.

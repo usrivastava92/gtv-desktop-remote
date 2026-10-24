@@ -1,3 +1,5 @@
+import type { DeviceCapabilities, PairingStep, RemoteCommand } from '../../shared/types';
+
 /**
  * pure renderer helpers extracted from
  * `App.tsx`. These are the easiest 4 functions to lift because they have
@@ -31,16 +33,35 @@ export function isEditableTarget(target: EventTarget | null): boolean {
   return tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT' || editable;
 }
 
-/**
- * Normalises a user-typed pair code: strips non-hex characters (the Android
- * TV Remote v2 protocol encodes the 6-character code as hexadecimal),
- * upper-cases the rest, and truncates to the 6-character protocol limit.
- */
-export function sanitizePairCode(value: string): string {
-  return value
-    .replace(/[^a-f0-9]/gi, '')
-    .toUpperCase()
-    .slice(0, 6);
+export const DEFAULT_PAIRING_STEP: PairingStep = {
+  instructions: 'Type the 6-character pairing code displayed on your Android TV screen.',
+  codeLength: 6,
+  inputPattern: '[0-9A-Fa-f]',
+};
+
+/** Provider patterns describe the allowed alphabet for each code character. */
+export function sanitizePairCode(value: string, step: PairingStep = DEFAULT_PAIRING_STEP): string {
+  const allowed = new RegExp(`^(?:${step.inputPattern})$`, 'i');
+  return Array.from(value.toUpperCase())
+    .filter((character) => allowed.test(character))
+    .slice(0, step.codeLength)
+    .join('');
+}
+
+export function isPairCodeComplete(value: string, step: PairingStep): boolean {
+  return value.length === step.codeLength && sanitizePairCode(value, step) === value;
+}
+
+/** Shared by button and keyboard dispatch, including legacy capability defaults. */
+export function supportsCommand(capabilities: DeviceCapabilities, command: RemoteCommand): boolean {
+  return (
+    (command !== 'power' || capabilities.powerToggle) &&
+    (capabilities.supportedCommands?.includes(command) ?? true)
+  );
+}
+
+export function supportsAssistantVoice(capabilities: DeviceCapabilities): boolean {
+  return capabilities.assistantVoice !== false;
 }
 
 /**

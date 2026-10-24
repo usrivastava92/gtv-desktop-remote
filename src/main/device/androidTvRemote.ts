@@ -1,7 +1,7 @@
 import { createNodeFileSystem, type IFileSystem } from '../../backend/core/fileSystem';
 import { AndroidTvCertStore } from '../../backend/devices/credentials/androidTvCertStore';
 import { createPairingClient } from '../../backend/pairing/createPairingClient';
-import type { CommandDispatchRequest } from '../../shared/types';
+import type { CommandDispatchRequest, RemoteCommand } from '../../shared/types';
 import { isCaptureEnabled, record, recordBuffer } from '../capture';
 import { assertLoopbackHost, integrationEnvironment } from '../integrationEnvironment';
 import { createNodeLogger, getAppDataPath, logError } from '../logger';
@@ -66,13 +66,14 @@ interface LibretvGoogleModule {
   }) => LibretvRemoteClientInstance;
 }
 
-const COMMAND_TO_LIBRETV_KEY: Record<CommandDispatchRequest['command'], string> = {
+const COMMAND_TO_LIBRETV_KEY: Record<RemoteCommand, string | undefined> = {
   up: 'up',
   down: 'down',
   left: 'left',
   right: 'right',
   select: 'select',
   home: 'home',
+  home_hold: undefined,
   back: 'back',
   play_pause: 'playPause',
   volume_up: 'volumeUp',
@@ -81,6 +82,10 @@ const COMMAND_TO_LIBRETV_KEY: Record<CommandDispatchRequest['command'], string> 
   assistant_press: 'assistant',
   assistant_release: 'assistant',
 };
+
+export const GOOGLE_TV_SUPPORTED_COMMANDS = (
+  Object.keys(COMMAND_TO_LIBRETV_KEY) as RemoteCommand[]
+).filter((command) => COMMAND_TO_LIBRETV_KEY[command] !== undefined);
 
 let librecontrolGoogleTvModule: Promise<LibretvGoogleModule> | undefined;
 
@@ -152,8 +157,9 @@ class LibretvGoogleRemoteClient implements RemoteClientPort {
   }
 
   async sendCommand(request: CommandDispatchRequest): Promise<void> {
-    const client = this.requireClient();
     const key = COMMAND_TO_LIBRETV_KEY[request.command];
+    if (!key) throw new Error('This command is not supported by Google TV.');
+    const client = this.requireClient();
     if (request.command === 'assistant_press') {
       await client.keyDown(key);
     } else if (request.command === 'assistant_release') {
@@ -511,9 +517,18 @@ export class AndroidTvRemoteBridge {
     }
   }
 
+  async cancelPairing(host: string): Promise<void> {
+    const session = this.sessions.get(host.trim());
+    if (!session) return;
+    await session.pairingManager?.close();
+    session.pairingManager = undefined;
+    session.pairingReady = undefined;
+  }
+
   async reset(): Promise<void> {
     for (const session of this.sessions.values()) {
       session.remoteClient?.disconnect();
+      await session.pairingManager?.close();
       session.remoteClient = undefined;
       session.pairingManager = undefined;
       session.pairingReady = undefined;

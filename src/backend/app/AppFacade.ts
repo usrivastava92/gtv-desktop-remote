@@ -6,7 +6,7 @@
  *   - VoiceSessionService (src/backend/voice/VoiceSessionService.ts)
  *   - IMetricsRecorder (src/backend/metrics/)
  * And exposes a typed surface that main.ts IPC handlers call into.
- * GoogleTvAdapter delegates to AppFacade for the logic it already owns.
+ * GoogleTvProvider uses the extracted VoiceSessionService directly.
  */
 
 import path from 'node:path';

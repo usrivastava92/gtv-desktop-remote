@@ -1,0 +1,72 @@
+diff --git a/dist/protocol/companion.js b/dist/protocol/companion.js
+index b3064b19f0686e58b21d3da43ff7cb677fc6881f..c5f8bf420c2c3fc12621c9231e76cd7f61b612f6 100644
+--- a/dist/protocol/companion.js
++++ b/dist/protocol/companion.js
+@@ -1,4 +1,5 @@
+-import { createCipheriv, createDecipheriv, randomInt } from "node:crypto";
++import { chacha20poly1305 } from "@noble/ciphers/chacha.js";
++import { randomInt } from "node:crypto";
+ import { createConnection } from "node:net";
+ import { decodeOpack, encodeOpack } from "../codec/opack.js";
+ export const CompanionFrame = {
+@@ -159,9 +160,8 @@ export class CompanionConnection {
+         header[0] = type;
+         header.writeUIntBE(length, 1, 3);
+         if (encrypted) {
+-            const cipher = createCipheriv("chacha20-poly1305", this.writeKey, nonce(this.writeCounter++), { authTagLength: 16 });
+-            cipher.setAAD(header, { plaintextLength: payload.length });
+-            payload = Buffer.concat([cipher.update(payload), cipher.final(), cipher.getAuthTag()]);
++            const ciphertext = chacha20poly1305(this.writeKey, nonce(this.writeCounter++), header).encrypt(payload);
++            payload = Buffer.from(ciphertext.buffer, ciphertext.byteOffset, ciphertext.byteLength);
+         }
+         const socket = this.socket;
+         socket.write(Buffer.concat([header, payload]), (error) => {
+@@ -182,10 +182,8 @@ export class CompanionConnection {
+             if (this.readKey && payload.length) {
+                 if (payload.length < 16)
+                     throw new Error("Truncated encrypted Companion frame");
+-                const decipher = createDecipheriv("chacha20-poly1305", this.readKey, nonce(this.readCounter++), { authTagLength: 16 });
+-                decipher.setAAD(header, { plaintextLength: payload.length - 16 });
+-                decipher.setAuthTag(payload.subarray(-16));
+-                payload = Buffer.concat([decipher.update(payload.subarray(0, -16)), decipher.final()]);
++                const plaintext = chacha20poly1305(this.readKey, nonce(this.readCounter++), header).decrypt(payload);
++                payload = Buffer.from(plaintext.buffer, plaintext.byteOffset, plaintext.byteLength);
+             }
+             const pending = this.exchanges.get(header[0]);
+             if (pending) {
+diff --git a/dist/protocol/crypto.js b/dist/protocol/crypto.js
+index adc4a09222904753c2ced8ae415cd3fcffe31119..3bad0a5901c5b0b4a26e04fe29311b96090bce7a 100644
+--- a/dist/protocol/crypto.js
++++ b/dist/protocol/crypto.js
+@@ -1,4 +1,5 @@
+-import { createCipheriv, createDecipheriv, createHash, createPrivateKey, createPublicKey, diffieHellman, getDiffieHellman, hkdfSync, randomBytes, sign, timingSafeEqual, verify, } from "node:crypto";
++import { chacha20poly1305 } from "@noble/ciphers/chacha.js";
++import { createHash, createPrivateKey, createPublicKey, diffieHellman, getDiffieHellman, hkdfSync, randomBytes, sign, timingSafeEqual, verify, } from "node:crypto";
+ export function requireLength(value, length, label) {
+     if (value.length !== length)
+         throw new Error(`Invalid ${label} length`);
+@@ -15,20 +16,15 @@ function nonce12(nonce) {
+ }
+ export function seal(key, nonce, plaintext, aad = Buffer.alloc(0)) {
+     requireLength(key, 32, "ChaCha20 key");
+-    const cipher = createCipheriv("chacha20-poly1305", key, nonce12(nonce), { authTagLength: 16 });
+-    cipher.setAAD(aad, { plaintextLength: plaintext.length });
+-    return Buffer.concat([cipher.update(plaintext), cipher.final(), cipher.getAuthTag()]);
++    const ciphertext = chacha20poly1305(key, nonce12(nonce), aad).encrypt(plaintext);
++    return Buffer.from(ciphertext.buffer, ciphertext.byteOffset, ciphertext.byteLength);
+ }
+ export function open(key, nonce, ciphertext, aad = Buffer.alloc(0)) {
+     requireLength(key, 32, "ChaCha20 key");
+     if (ciphertext.length < 16)
+         throw new Error("Truncated authenticated ciphertext");
+-    const decipher = createDecipheriv("chacha20-poly1305", key, nonce12(nonce), {
+-        authTagLength: 16,
+-    });
+-    decipher.setAuthTag(ciphertext.subarray(-16));
+-    decipher.setAAD(aad, { plaintextLength: ciphertext.length - 16 });
+-    return Buffer.concat([decipher.update(ciphertext.subarray(0, -16)), decipher.final()]);
++    const plaintext = chacha20poly1305(key, nonce12(nonce), aad).decrypt(ciphertext);
++    return Buffer.from(plaintext.buffer, plaintext.byteOffset, plaintext.byteLength);
+ }
+ const prefixes = {
+     ed25519: { private: "302e020100300506032b657004220420", public: "302a300506032b6570032100" },

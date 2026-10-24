@@ -2,6 +2,7 @@ node_modules
 .yarn/*
 !.yarn/releases/
 !.yarn/releases/yarn-*.cjs
+!.yarn/patches/
 dist
 dist-electron
 # electron-builder output directory — anchored & trailing slash so it only

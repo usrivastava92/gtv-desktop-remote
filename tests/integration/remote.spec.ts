@@ -13,6 +13,31 @@ for (const control of ['body', 'plus'] as const) {
   });
 }
 
+test('REMOTE-CAPABILITIES: Google rejects Home hold without sending keys or breaking Home', async ({
+  harness: h,
+}) => {
+  await h.pair();
+  const capabilities = await h.api('capabilities');
+  expect(capabilities.supportedCommands).not.toContain('home_hold');
+  const before = h.tv.snapshot().keyEvents.length;
+  await expect(
+    h.api('sendCommand', {
+      id: 'unsupported-home-hold',
+      command: 'home_hold',
+      source: 'button',
+      issuedAt: Date.now(),
+    })
+  ).rejects.toThrow('not supported');
+  expect(h.tv.snapshot().keyEvents).toHaveLength(before);
+  await h.api('sendCommand', {
+    id: 'supported-home',
+    command: 'home',
+    source: 'button',
+    issuedAt: Date.now(),
+  });
+  await h.tv.waitFor((state) => state.keyEvents.length === before + 2 && state.screen === 'home');
+});
+
 test('REMOTE-MOUSE: every remote control changes independent TV model', async ({ harness: h }) => {
   await h.pair();
   for (const [selector, x, y] of [

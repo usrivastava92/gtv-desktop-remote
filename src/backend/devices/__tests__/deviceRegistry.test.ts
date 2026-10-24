@@ -268,3 +268,42 @@ describe('normalizeDraft', () => {
     expect(result.castDeviceId).toBe('OLD-CAST');
   });
 });
+
+describe('provider-scoped identity', () => {
+  it('does not deduplicate different platforms sharing a host or physical identity', () => {
+    const legacy = saved({ macAddress: 'AA' });
+    const native = discovered({ platform: 'apple-tv', macAddress: 'AA' });
+    expect(matchSavedToDiscovered(legacy, [native])).toBeUndefined();
+    expect(
+      findExistingForDraft(draft({ platform: 'apple-tv', macAddress: 'AA' }), [legacy])
+    ).toBeUndefined();
+  });
+
+  it('matches an explicit Google platform to legacy records', () => {
+    const legacy = saved();
+    expect(matchSavedToDiscovered(legacy, [discovered({ platform: 'google-tv' })])).toBeDefined();
+    expect(findExistingForDraft(draft({ platform: 'google-tv' }), [legacy])).toBe(legacy);
+  });
+
+  it('uses native stable identifiers across address changes without falling back on conflicting hosts', () => {
+    const native = saved({ platform: 'apple-tv', providerData: { identifier: 'apple-1' } });
+    const moved = discovered({
+      platform: 'apple-tv',
+      host: 'NEW',
+      providerData: { identifier: 'apple-1', port: 49153 },
+    });
+    expect(matchSavedToDiscovered(native, [moved])).toBe(moved);
+    expect(mergeIdentity(native, moved).providerData).toEqual({
+      identifier: 'apple-1',
+      port: 49153,
+    });
+    expect(
+      matchSavedToDiscovered(native, [
+        discovered({
+          platform: 'apple-tv',
+          providerData: { identifier: 'apple-2' },
+        }),
+      ])
+    ).toBeUndefined();
+  });
+});

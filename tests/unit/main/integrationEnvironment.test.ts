@@ -139,6 +139,30 @@ describe('isolated integration OS boundaries', () => {
       environment.assertLoopbackUrl('http://127.0.0.2:8080/release');
     }).not.toThrow();
   });
+  it('accepts explicit discovery scope and rejects malformed platform lists', async () => {
+    const environment = await import('../../../src/main/integrationEnvironment.js');
+    expect(
+      environment.validateIntegrationConfig(
+        {
+          ...config,
+          discoveryPlatforms: ['google-tv', 'fire-tv'],
+        },
+        root
+      ).discoveryPlatforms
+    ).toEqual(['google-tv', 'fire-tv']);
+    expect(environment.validateIntegrationConfig(config, root).discoveryPlatforms).toBeUndefined();
+    for (const discoveryPlatforms of ['google-tv', [1], ['']]) {
+      expect(() =>
+        environment.validateIntegrationConfig(
+          {
+            ...config,
+            discoveryPlatforms,
+          },
+          root
+        )
+      ).toThrow('discovery platforms');
+    }
+  });
   it('rejects symlink escapes even when the state file does not yet exist', async () => {
     const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'gtv-outside-'));
     try {
