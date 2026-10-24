@@ -1,0 +1,87 @@
+diff --git a/dist/FireTvDevice.js b/dist/FireTvDevice.js
+index 121d49a42fafe318ab76b1237f0f54d3a8c9bf41..d5d36d18f639f3b45726582f95e1dca33f5c183c 100644
+--- a/dist/FireTvDevice.js
++++ b/dist/FireTvDevice.js
+@@ -1,5 +1,61 @@
++import { createConnection } from "node:net";
++import { performance } from "node:perf_hooks";
+ import { FireTvError, jsonObject, request } from "./transport/http.js";
+ import { VoiceClient } from "./voice/VoiceClient.js";
++// DIAL acceptance precedes native-service startup on some receivers. This only
++// waits for TCP acceptance; the subsequent native HTTPS request still verifies the API.
++function waitForRemotePort(host, port, timeoutMs, signal) {
++    return new Promise((resolve, reject) => {
++        if (signal.aborted) {
++            reject(new FireTvError("Fire TV request cancelled", "cancelled"));
++            return;
++        }
++        if (timeoutMs <= 0) {
++            reject(new FireTvError("Fire TV request timed out", "timeout"));
++            return;
++        }
++        let socket;
++        let retry;
++        let settled = false;
++        const finish = (error) => {
++            if (settled)
++                return;
++            settled = true;
++            clearTimeout(timer);
++            clearTimeout(retry);
++            signal.removeEventListener("abort", abort);
++            socket?.destroy();
++            if (error)
++                reject(error);
++            else
++                resolve();
++        };
++        const abort = () => finish(new FireTvError("Fire TV request cancelled", "cancelled"));
++        const timer = setTimeout(() => finish(new FireTvError("Fire TV request timed out", "timeout")), timeoutMs);
++        const probe = () => {
++            if (settled)
++                return;
++            try {
++                socket = createConnection({ host, port });
++                socket.once("connect", () => finish());
++                socket.once("error", (error) => {
++                    socket.destroy();
++                    if (settled)
++                        return;
++                    if (error.code === "ECONNREFUSED")
++                        retry = setTimeout(probe, 50);
++                    else
++                        finish(new FireTvError("Fire TV network request failed", "network"));
++                });
++            }
++            catch {
++                finish(new FireTvError("Fire TV network request failed", "network"));
++            }
++        };
++        signal.addEventListener("abort", abort, { once: true });
++        probe();
++    });
++}
+ const heldActions = {
+     up: "dpad_up",
+     down: "dpad_down",
+@@ -332,16 +388,19 @@ export class FireTvDevice {
+     }
+     launchRemote() {
+         return this.enqueue(async (signal) => {
++            const timeoutMs = this.config.timeoutMs ?? 5000;
++            const deadline = performance.now() + timeoutMs;
+             await request({
+                 host: this.host,
+                 port: this.config.dialPort ?? 8009,
+                 protocol: "http",
+                 path: "/apps/FireTVRemote",
+                 method: "POST",
+-                timeoutMs: this.config.timeoutMs ?? 5000,
++                timeoutMs,
+                 signal,
+                 dial: true,
+             });
++            await waitForRemotePort(this.host, this.config.port ?? 8080, deadline - performance.now(), signal);
+         }, false);
+     }
+ }

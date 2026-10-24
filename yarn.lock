@@ -1079,6 +1079,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@librecontrol/fire-tv@patch:@librecontrol/fire-tv@npm%3A1.1.0#~/.yarn/patches/@librecontrol-fire-tv-npm-1.1.0-238e59a7ca.patch":
+  version: 1.1.0
+  resolution: "@librecontrol/fire-tv@patch:@librecontrol/fire-tv@npm%3A1.1.0#~/.yarn/patches/@librecontrol-fire-tv-npm-1.1.0-238e59a7ca.patch::version=1.1.0&hash=7147fb"
+  bin:
+    librecontrol-fire-tv: dist/cli/repl.js
+  checksum: 10c0/c8b7556da71343b73940909f9952a1ee70236204efb3bc874893fa951eac818d646b08c75b81383ab4f40ef80d772667954bcffe768b823228997bbd1f76da2f
+  languageName: node
+  linkType: hard
+
 "@librecontrol/google-tv@npm:^1.0.2":
   version: 1.0.2
   resolution: "@librecontrol/google-tv@npm:1.0.2"
@@ -5074,7 +5083,7 @@ __metadata:
     "@commitlint/config-conventional": "npm:^21.0.0"
     "@eslint/js": "npm:^10.0.0"
     "@librecontrol/apple-tv": "patch:@librecontrol/apple-tv@npm%3A1.0.0#~/.yarn/patches/@librecontrol-apple-tv-npm-1.0.0-2f984c783d.patch"
-    "@librecontrol/fire-tv": "npm:1.1.0"
+    "@librecontrol/fire-tv": "patch:@librecontrol/fire-tv@npm%3A1.1.0#~/.yarn/patches/@librecontrol-fire-tv-npm-1.1.0-238e59a7ca.patch"
     "@librecontrol/google-tv": "npm:^1.0.2"
     "@noble/ciphers": "npm:2.4.0"
     "@playwright/test": "npm:1.64.1"

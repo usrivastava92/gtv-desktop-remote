@@ -177,6 +177,16 @@ by default and does not authenticate the receiver's certificate chain: trusted
 LAN only, with no automatic HTTP fallback. An explicit HTTP provider setting is
 unencrypted and is used by the loopback protocol fixture.
 
+DIAL-discovered Fire devices call the library's `launchRemote()` once before each
+explicit Pair or Connect intent; discovery and direct/mDNS records never activate
+the service. A pinned local Fire library patch waits for native TCP acceptance
+after DIAL HTTP 201, using the remaining configured timeout (default 5 seconds).
+Only refused TCP connections are probed again; timers, sockets and abort listeners
+are cleaned up on completion, timeout or cancellation. PIN and control requests
+are never retried. TCP acceptance is not API authentication or TLS verification;
+the normal native HTTPS request still performs that work. DIAL's reported
+`stopped` state is not used as a readiness signal.
+
 Discovery is concurrent across providers and isolates provider failures.
 Lifecycle transitions, including scans that can migrate identities, are serialized.
 An address/identity migration closes any affected active session and clears its

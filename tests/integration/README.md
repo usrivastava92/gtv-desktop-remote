@@ -109,15 +109,19 @@ The adopted [LibreControl 1.0.2](https://github.com/LibreControl/google-tv/relea
 
 ## Multi-TV spike
 
-`multi-tv.spec.ts` runs the real Fire TV provider and published library through
-Electron IPC against an independent loopback HTTP/HTTPS receiver. It models PIN
-display/verification, authentication tokens, status, keyboard state, key events
-and text. Assertions cover wrong-PIN recovery, cancellation, credential restoration
-after restart, Unicode text, unsupported volume/microphone rejection, same-host
-platform identities and switching away from an active Fire session.
+`multi-tv.spec.ts` runs the real Fire TV provider and locally patched library
+through Electron IPC against an independent loopback HTTP/HTTPS receiver and
+separate HTTP DIAL endpoint. It models PIN display/verification, authentication
+tokens, status, keyboard state, key events and text. The DIAL case accepts launch
+before its native TCP listener starts, covering cold pairing and token-based
+reconnect without PIN retries. Assertions also cover activation failure preventing
+native requests, credential-free DIAL headers, no activation for direct/mDNS
+records, wrong-PIN recovery, cancellation, credential restoration after restart,
+Unicode text, unsupported volume/microphone rejection, same-host platform
+identities and switching away from an active Fire session.
 
-The receiver is not Fire OS. It does not establish SSDP/mDNS discovery, DIAL
-activation, certificate trust provisioning, voice or hardware interoperability.
+The receiver is not Fire OS. It does not establish SSDP/mDNS discovery, physical
+DIAL interoperability, certificate trust provisioning, voice or hardware coverage.
 An independent Apple AirPlay receiver additionally exercises `/pair-pin-start`
 and initial pair-setup M1/M2 through the real provider/library. An existing corrupt
 encrypted credential must not block this fresh PIN request. Cancellation closes

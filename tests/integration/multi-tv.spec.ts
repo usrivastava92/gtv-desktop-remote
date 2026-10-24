@@ -14,13 +14,21 @@ import { test, expect, repository } from './app-harness';
  * Independent receiver model for @librecontrol/fire-tv 1.1.0's published native
  * HTTP protocol (dist/FireTvDevice.js and dist/transport/http.js). No app or
  * library methods are replaced. This is not a claim of physical Fire OS parity:
- * SSDP/mDNS, DIAL, TLS trust provisioning and voice are outside this model.
+ * SSDP/mDNS discovery, TLS trust provisioning and voice are outside this model.
  */
+const DIAL_SERVICE = 'urn:dial-multiscreen-org:service:dial:1';
+
 class FireReceiver {
   readonly token = `local-receiver-${randomUUID()}`;
   readonly pin = '4826';
   readonly errors: string[] = [];
   readonly requests: Array<{ method: string; path: string; authenticated: boolean }> = [];
+  readonly launches: Array<{
+    method: string;
+    path: string;
+    headers: IncomingMessage['headers'];
+    body: string;
+  }> = [];
   readonly keys: string[] = [];
   phase: 'idle' | 'pin-displayed' | 'paired' = 'idle';
   displays = 0;
@@ -30,6 +38,12 @@ class FireReceiver {
   keyboardVisible = true;
   held?: string;
   port = 0;
+  dialPort = 0;
+  active = true;
+  launchStatus = 201;
+  nativeStarts = 0;
+  private startupTimer?: NodeJS.Timeout;
+  private dialServer?: Server;
   private server?: Server;
 
   async start(protocol: 'http' | 'https') {
@@ -61,14 +75,69 @@ class FireReceiver {
     const address = this.server.address();
     if (!address || typeof address === 'string') throw new Error('Receiver did not bind TCP');
     this.port = address.port;
+    this.dialServer = createHttpServer((request, response) => {
+      void this.receiveLaunch(request, response).catch((error: unknown) => {
+        this.errors.push(String(error));
+        if (!response.headersSent) response.writeHead(500);
+        response.end();
+      });
+    });
+    const dialListening = once(this.dialServer, 'listening');
+    this.dialServer.listen(0, '127.0.0.1');
+    await dialListening;
+    const dialAddress = this.dialServer.address();
+    if (!dialAddress || typeof dialAddress === 'string') throw new Error('DIAL did not bind TCP');
+    this.dialPort = dialAddress.port;
   }
 
-  async stop() {
-    if (!this.server) return;
+  async pauseNative() {
+    if (!this.server?.listening) throw new Error('Native receiver is not listening');
+    this.active = false;
     this.server.closeAllConnections();
     const closed = once(this.server, 'close');
     this.server.close();
     await closed;
+  }
+
+  async stop() {
+    clearTimeout(this.startupTimer);
+    for (const server of [this.server, this.dialServer]) {
+      if (!server?.listening) continue;
+      server.closeAllConnections();
+      const closed = once(server, 'close');
+      server.close();
+      await closed;
+    }
+  }
+
+  private async receiveLaunch(request: IncomingMessage, response: ServerResponse) {
+    const chunks: Buffer[] = [];
+    for await (const chunk of request) chunks.push(Buffer.from(chunk));
+    const launch = {
+      method: request.method ?? '',
+      path: request.url ?? '',
+      headers: request.headers,
+      body: Buffer.concat(chunks).toString('utf8'),
+    };
+    this.launches.push(launch);
+    this.requests.push({ method: launch.method, path: launch.path, authenticated: false });
+    if (launch.method !== 'POST' || launch.path !== '/apps/FireTVRemote') {
+      this.errors.push('Unexpected DIAL request');
+      response.writeHead(404);
+    } else {
+      if (this.launchStatus === 201) this.active = true;
+      response.writeHead(this.launchStatus, { Location: '/apps/FireTVRemote/run' });
+    }
+    response.end();
+    if (this.launchStatus === 201 && !this.server?.listening && !this.startupTimer) {
+      // The DIAL response is already complete, but native TCP still refuses connections.
+      this.startupTimer = setTimeout(() => {
+        this.startupTimer = undefined;
+        this.server?.listen(this.port, '127.0.0.1', () => {
+          this.nativeStarts++;
+        });
+      }, 200);
+    }
   }
 
   private async receive(request: IncomingMessage, response: ServerResponse) {
@@ -87,6 +156,10 @@ class FireReceiver {
       response.writeHead(status, { 'Content-Type': 'application/json' });
       response.end(JSON.stringify(value));
     };
+    if (!this.active) {
+      reply(503, {});
+      return;
+    }
     if (request.headers['x-api-key'] !== '0987654321') {
       this.errors.push('Missing native API key');
       reply(403, {});
@@ -175,23 +248,53 @@ class FireReceiver {
   }
 }
 
-for (const protocol of ['http', 'https'] as const) {
-  test(`MULTI-TV-FIRE-${protocol}: real provider PIN, stored token, controls and text`, async ({
+for (const { protocol, serviceName, label } of [
+  { protocol: 'http', serviceName: undefined, label: 'http' },
+  {
+    protocol: 'https',
+    serviceName: 'Living Room._amzn-fireTv._tcp.local.',
+    label: 'https-mdns',
+  },
+  { protocol: 'https', serviceName: DIAL_SERVICE, label: 'https-dial' },
+] as const) {
+  test(`MULTI-TV-FIRE-${label}: real provider PIN, stored token, controls and text`, async ({
     harness: h,
   }, info) => {
     const receiver = new FireReceiver();
     await receiver.start(protocol);
+    const requiresLaunch = serviceName === DIAL_SERVICE;
+    receiver.active = !requiresLaunch;
+    if (requiresLaunch) await receiver.pauseNative();
     try {
       const devices = await h.api('saveDevice', {
         name: `Fire receiver ${protocol}`,
         host: '127.0.0.1',
         adbPort: 5555,
         platform: 'fire-tv',
-        providerData: { port: receiver.port, protocol, rejectUnauthorized: 0 },
+        providerData: {
+          port: receiver.port,
+          dialPort: receiver.dialPort,
+          protocol,
+          rejectUnauthorized: 0,
+          ...(serviceName ? { serviceName } : {}),
+        },
       });
       const device = devices.find((entry) => entry.platform === 'fire-tv');
       expect(device).toBeDefined();
       if (!device) throw new Error('Fire device not saved');
+      expect(receiver.requests).toEqual([]);
+      expect(receiver.launches).toEqual([]);
+      if (requiresLaunch) {
+        receiver.launchStatus = 503;
+        await expect(h.api('startPairing', device.id)).rejects.toThrow(
+          'Fire TV HTTP request failed (503)'
+        );
+        expect(receiver.requests.map((request) => request.path)).toEqual(['/apps/FireTVRemote']);
+        expect(receiver.displays).toBe(0);
+        expect(receiver.statuses).toBe(0);
+        expect(receiver.active).toBe(false);
+        receiver.launchStatus = 201;
+      }
       for (const platform of ['google-tv', 'apple-tv']) {
         await h.api('saveDevice', {
           name: `${platform} same address`,
@@ -212,6 +315,8 @@ for (const protocol of ['http', 'https'] as const) {
       const pairing = await h.api('startPairing', device.id);
       expect(pairing.pairing).toMatchObject({ codeLength: 4 });
       expect(receiver.phase).toBe('pin-displayed');
+      expect(receiver.displays).toBe(1);
+      expect(receiver.nativeStarts).toBe(requiresLaunch ? 1 : 0);
       await h.api('disconnect');
       const canceledRequests = receiver.requests.length;
       await expect(
@@ -232,6 +337,20 @@ for (const protocol of ['http', 'https'] as const) {
       await h.api('pair', { deviceId: device.id, host: device.host, code: receiver.pin });
       expect(receiver.phase).toBe('paired');
       expect((await h.api('bootstrap')).deviceState.pairing).toBeUndefined();
+      if (requiresLaunch) {
+        receiver.active = false;
+        receiver.launchStatus = 503;
+        const beforeFailure = receiver.requests.length;
+        await expect(h.api('connect', device.id)).rejects.toThrow(
+          'Fire TV HTTP request failed (503)'
+        );
+        expect(receiver.requests.slice(beforeFailure).map((request) => request.path)).toEqual([
+          '/apps/FireTVRemote',
+        ]);
+        expect(receiver.statuses).toBe(0);
+        expect(receiver.active).toBe(false);
+        receiver.launchStatus = 201;
+      }
       expect((await h.api('connect', device.id)).status).toBe('connected');
       const capabilities = await h.api('capabilities');
       expect(capabilities.assistantVoice).toBe(false);
@@ -296,10 +415,12 @@ for (const protocol of ['http', 'https'] as const) {
       await h.api('disconnect');
       const statuses = receiver.statuses;
       const displays = receiver.displays;
+      if (requiresLaunch) await receiver.pauseNative();
       await h.restart();
       expect((await h.api('connect', device.id)).status).toBe('connected');
       expect(receiver.statuses).toBeGreaterThan(statuses);
       expect(receiver.displays).toBe(displays);
+      expect(receiver.nativeStarts).toBe(requiresLaunch ? 2 : 0);
       expect(
         receiver.requests
           .filter((entry) => entry.path === '/v1/FireTV/status')
@@ -337,9 +458,31 @@ for (const protocol of ['http', 'https'] as const) {
       expect((await h.api('connect', device.id)).status).toBe('connected');
       await h.api('sendText', 'returned from other provider');
       expect(receiver.text).toBe('returned from other provider');
+      if (requiresLaunch) {
+        // Each explicit pairing/connect intent launches once, including the two failed launches.
+        expect(receiver.launches).toHaveLength(receiver.displays + receiver.statuses + 2);
+        for (const [index, request] of receiver.requests.entries()) {
+          if (request.path === '/v1/FireTV/pin/display' || request.path === '/v1/FireTV/status') {
+            expect(receiver.requests[index - 1]?.path).toBe('/apps/FireTVRemote');
+          }
+        }
+        for (const launch of receiver.launches) {
+          expect(launch.method).toBe('POST');
+          expect(launch.path).toBe('/apps/FireTVRemote');
+          expect(launch.body).toBe('');
+          expect(launch.headers['content-type']).toBe('text/plain');
+          expect(launch.headers.host).toBe(`127.0.0.1:${receiver.dialPort}`);
+          for (const header of ['x-api-key', 'x-client-token', 'authorization', 'cookie']) {
+            expect(launch.headers[header]).toBeUndefined();
+          }
+          expect(JSON.stringify(launch)).not.toContain(receiver.token);
+        }
+      } else {
+        expect(receiver.launches).toEqual([]);
+      }
       expect(receiver.errors).toEqual([]);
     } finally {
-      await info.attach(`fire-${protocol}-wire-state`, {
+      await info.attach(`fire-${label}-wire-state`, {
         body: JSON.stringify({
           phase: receiver.phase,
           requests: receiver.requests,

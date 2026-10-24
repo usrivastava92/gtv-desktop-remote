@@ -51,7 +51,9 @@ app-owned `TvProvider` contract.
 
 - Google TV retains its six-character pairing flow and microphone support.
 - Apple TV requests two successive four-digit PINs: AirPlay, then Companion.
-- Fire TV requests one four-digit PIN. Volume and microphone controls are disabled;
+- Fire TV requests one four-digit PIN. For DIAL-discovered devices, Pair and Connect
+  explicitly launch the remote service and wait for its native port before HTTPS.
+  Scanning never activates the service. Volume and microphone controls are disabled;
   navigation, playback toggle, power toggle, and text entry use its native library.
 - Apple TV microphone controls are disabled in this spike. Text entry on every
   platform requires a compatible focused TV input field.
@@ -64,11 +66,13 @@ app-owned `TvProvider` contract.
   or external Node installation is used.
 
 Physical Apple TV and Fire TV discovery was observed in the packaged app.
-Automated Fire TV checks use an independent local HTTP/HTTPS receiver, not real
-Fire OS. Apple pairing, authenticated reconnection and native Home tap/hold
-dispatch were exercised against a physical Apple TV. The operator confirmed
-that holding H or Home opens Control Center. No TV-screen capture was taken;
-full hardware coverage and physical Fire pairing remain unverified.
+Fire TV protocol regressions use an independent local HTTP/HTTPS receiver, not
+Fire OS. Physical Fire service activation and the native four-digit PIN request
+were also exercised successfully; PIN verification, saved-token reconnection and
+authenticated Fire controls remain unverified on hardware. Apple pairing,
+authenticated reconnection and native Home tap/hold dispatch were exercised
+against a physical Apple TV. The operator confirmed that holding H or Home opens
+Control Center. No TV-screen capture was taken; full hardware coverage is pending.
 See [the provider extension contract](DEVELOPMENT.md#multi-tv-provider-contract)
 and [test fidelity limits](tests/integration/README.md#multi-tv-spike).
 

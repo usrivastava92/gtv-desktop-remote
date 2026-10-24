@@ -90,11 +90,18 @@ export class FireTvProvider implements TvProvider {
     });
   }
 
+  private async prepareReceiver(device: SavedDevice, client: FireTvDevice): Promise<void> {
+    if (device.providerData?.serviceName === 'urn:dial-multiscreen-org:service:dial:1') {
+      await client.launchRemote();
+    }
+  }
+
   async startPairing(device: SavedDevice): Promise<PairingStep> {
     providerCredentials.assertAvailable();
     await this.disconnect(device);
     const client = await this.createClient(device);
     try {
+      await this.prepareReceiver(device, client);
       const pairing = await client.startPairing();
       this.clients.set(device.id, { client, pairing, connected: false });
       return {
@@ -129,6 +136,7 @@ export class FireTvProvider implements TvProvider {
     await this.disconnect(device);
     const client = await this.createClient(device);
     try {
+      await this.prepareReceiver(device, client);
       await client.connect();
       this.clients.set(device.id, { client, connected: true });
     } catch (error) {
