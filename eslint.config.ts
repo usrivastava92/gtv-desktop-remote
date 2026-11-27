@@ -20,6 +20,7 @@ export default tseslint.config(
       'test-results/**',
       'playwright-report/**',
       'node_modules/**',
+      '.yarn/**',
       'build/**',
       'public/**',
     ],

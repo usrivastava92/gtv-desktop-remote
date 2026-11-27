@@ -217,11 +217,13 @@ export class TvAdapter implements DeviceAdapter {
   pair(request: PairingRequest): Promise<void> {
     return this.transition(async () => {
       const device = this.pairingDevice;
+      if (!device) {
+        throw new Error('No pending device pairing session. Start pairing and request a new code.');
+      }
       if (
-        !device ||
-        (request.deviceId
+        request.deviceId
           ? request.deviceId !== device.id
-          : platformOf(device) !== 'google-tv' || request.host.trim() !== device.host)
+          : platformOf(device) !== 'google-tv' || request.host.trim() !== device.host
       ) {
         throw new Error('Pairing request does not match the pending device.');
       }

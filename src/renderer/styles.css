@@ -408,6 +408,13 @@ p {
 
 .ui-devices-content {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.ui-devices-content .ui-section,
+.ui-devices-content .ui-list {
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .ui-devices-footer {
@@ -496,6 +503,7 @@ p {
 
 .ui-card {
   width: 100%;
+  min-width: 0;
   border-radius: 2rem;
   background: var(--surface-low);
   padding: 1.25rem;
@@ -528,6 +536,7 @@ p {
 .ui-avatar {
   width: 3rem;
   height: 3rem;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -611,6 +620,8 @@ p {
 
 .ui-found-main {
   display: flex;
+  min-width: 0;
+  flex: 1;
   align-items: center;
   gap: 1rem;
 }
@@ -618,6 +629,7 @@ p {
 .ui-found-icon {
   width: 2.5rem;
   height: 2.5rem;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -625,9 +637,16 @@ p {
   color: var(--primary);
 }
 
+.ui-found-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .ui-found-add {
   width: 2.25rem;
   height: 2.25rem;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;

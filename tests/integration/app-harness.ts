@@ -138,6 +138,7 @@ export class AppHarness {
         `--use-file-for-fake-audio-capture=${path.join(this.profile, 'microphone.wav')}`,
         '--disable-background-networking',
         '--no-sandbox',
+        ...(process.platform === 'linux' ? ['--password-store=gnome-libsecret'] : []),
       ],
       recordVideo: { dir: path.join(this.profile, 'videos'), size: { width: 360, height: 720 } },
       env: {
@@ -247,7 +248,7 @@ export class AppHarness {
     const device = await this.preparePairing(control);
     await this.openPairing(control);
     await this.page.locator('input[autocomplete="one-time-code"]').fill(this.tv.pairingCode);
-    await this.page.getByRole('button', { name: 'Connect', exact: true }).click();
+    await this.page.getByRole('button', { name: 'Continue', exact: true }).click();
     await this.tv.waitFor((state) => state.ready);
     await expect(this.page.getByRole('button', { name: 'Select', exact: true })).toBeEnabled();
     return device;

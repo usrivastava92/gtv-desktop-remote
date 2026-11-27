@@ -4,6 +4,7 @@ import type {
   FireTvPairingSession,
 } from '@librecontrol/fire-tv' with { 'resolution-mode': 'import' };
 
+import { FIRE_TV_DIAL_SERVICE, mergeFireTvProviderData } from '../../shared/fireTvIdentity';
 import type {
   CommandDispatchRequest,
   DeviceCapabilities,
@@ -12,6 +13,7 @@ import type {
   RemoteCommand,
   SavedDevice,
 } from '../../shared/types';
+import { integrationDiscoveryOptions } from '../integrationEnvironment';
 import { commandMetricsStore } from '../metrics';
 
 import { providerCredentials } from './providerCredentials';
@@ -52,18 +54,21 @@ export class FireTvProvider implements TvProvider {
   // Native import() is required: this ESM-only library cannot be require()d by Electron's CommonJS main.
   async discover(): Promise<DiscoveredDevice[]> {
     const { discoverFireTv } = await import('@librecontrol/fire-tv');
-    return (await discoverFireTv()).map((device) => ({
+    return (await discoverFireTv(integrationDiscoveryOptions())).map((device) => ({
       id: `${this.id}:${device.id}`,
       platform: this.id,
       source: 'fire-tv',
       name: device.name,
       host: device.host,
       remotePort: device.port,
-      providerData: {
+      providerData: mergeFireTvProviderData(undefined, {
         identifier: device.id,
         port: device.port,
         serviceName: device.serviceName,
-      },
+        ...(typeof device.txt['librecontrol.mdnsId'] === 'string'
+          ? { mdnsIdentifier: device.txt['librecontrol.mdnsId'] }
+          : {}),
+      }),
     }));
   }
 
@@ -91,7 +96,7 @@ export class FireTvProvider implements TvProvider {
   }
 
   private async prepareReceiver(device: SavedDevice, client: FireTvDevice): Promise<void> {
-    if (device.providerData?.serviceName === 'urn:dial-multiscreen-org:service:dial:1') {
+    if (device.providerData?.serviceName === FIRE_TV_DIAL_SERVICE) {
       await client.launchRemote();
     }
   }

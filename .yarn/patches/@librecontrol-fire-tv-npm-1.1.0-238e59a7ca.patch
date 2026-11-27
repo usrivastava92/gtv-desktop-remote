@@ -85,3 +85,22 @@ index 121d49a42fafe318ab76b1237f0f54d3a8c9bf41..d5d36d18f639f3b45726582f95e1dca3
          }, false);
      }
  }
+diff --git a/dist/discovery/mdns.js b/dist/discovery/mdns.js
+--- a/dist/discovery/mdns.js
++++ b/dist/discovery/mdns.js
+@@ -45,7 +45,14 @@ export async function discoverFireTv(options = {}) {
+                 ...previous,
+                 ...result,
+                 addresses: [...new Set([...previous.addresses, ...result.addresses])],
+-                txt: { ...previous.txt, ...result.txt },
++                txt: {
++                    ...previous.txt,
++                    ...result.txt,
++                    // Retain co-observed identity evidence when SSDP takes precedence.
++                    ...(/\._amzn-firetv\._tcp\.local\.?$/i.test(previous.serviceName)
++                        ? { "librecontrol.mdnsId": previous.id }
++                        : {}),
++                },
+             }
+             : result);
+     }

@@ -4,6 +4,7 @@ release/
 test-results/
 playwright-report/
 node_modules/
+.yarn/
 build/
 public/
 *.lock

@@ -18,6 +18,8 @@ export interface IntegrationConfig {
   discoveryStatePath: string;
   /** Discovery scope only; connection/pairing providers remain registered. */
   discoveryPlatforms?: string[];
+  /** Real DNS/SSDP wire endpoints, always bound to IPv4 loopback. */
+  nativeDiscovery?: { mdnsPort: number; ssdpPort: number };
   systemStatePath: string;
   dialogStatePath: string;
   updater?: {
@@ -111,6 +113,7 @@ export function validateIntegrationConfig(value: unknown, root: string): Integra
     'discoveryStatePath',
     'systemStatePath',
     'discoveryPlatforms',
+    'nativeDiscovery',
     'dialogStatePath',
     'updater',
   ];
@@ -137,6 +140,23 @@ export function validateIntegrationConfig(value: unknown, root: string): Integra
       discoveryPlatforms.some((platform) => typeof platform !== 'string' || !platform.trim()))
   ) {
     throw new Error('Invalid integration discovery platforms');
+  }
+  let nativeDiscovery: IntegrationConfig['nativeDiscovery'];
+  if (config.nativeDiscovery !== undefined) {
+    const raw = config.nativeDiscovery;
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw))
+      throw new Error('Invalid native discovery endpoints');
+    const endpoints = raw as Record<string, unknown>;
+    if (Object.keys(endpoints).some((key) => !['mdnsPort', 'ssdpPort'].includes(key)))
+      throw new Error('Invalid native discovery endpoints');
+    for (const port of [endpoints.mdnsPort, endpoints.ssdpPort]) {
+      if (typeof port !== 'number' || !Number.isInteger(port) || port < 1 || port > 65535)
+        throw new Error('Invalid native discovery port');
+    }
+    nativeDiscovery = {
+      mdnsPort: endpoints.mdnsPort as number,
+      ssdpPort: endpoints.ssdpPort as number,
+    };
   }
   executable(discoveryCommand);
   if (
@@ -190,6 +210,7 @@ export function validateIntegrationConfig(value: unknown, root: string): Integra
     ...(discoveryPlatforms !== undefined
       ? { discoveryPlatforms: discoveryPlatforms as string[] }
       : {}),
+    ...(nativeDiscovery ? { nativeDiscovery } : {}),
     ...(updater ? { updater } : {}),
   };
 }
@@ -227,6 +248,19 @@ function loadEnvironment(): IntegrationConfig | undefined {
 }
 // Imported before stores/credentials initialize, so no file can reach the ordinary profile.
 export const integrationEnvironment = loadEnvironment();
+
+/** Shared native-library transport boundary; no fixture can query a real NIC. */
+export function integrationDiscoveryOptions() {
+  if (!integrationEnvironment) return undefined;
+  if (!integrationEnvironment.nativeDiscovery)
+    throw new Error('Native integration discovery requires isolated loopback endpoints');
+  return {
+    ...integrationEnvironment.nativeDiscovery,
+    mdnsAddress: '127.0.0.1',
+    ssdpAddress: '127.0.0.1',
+    networkInterfaces: ['127.0.0.1'],
+  };
+}
 
 let integrationTrayMenu: Electron.Menu | undefined;
 export function recordIntegrationTrayMenu(menu: Electron.Menu): void {

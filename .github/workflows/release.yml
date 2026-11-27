@@ -99,6 +99,14 @@ jobs:
 
       - run: yarn install --immutable
 
+      - name: Verify generated casks with the actual Homebrew DSL
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: '1'
+          HOMEBREW_NO_ANALYTICS: '1'
+        run: |
+          brew --version
+          node --test tests/release/homebrew-cask.test.mjs
+
       - name: Determine next version (dry-run)
         id: dry-run
         env:

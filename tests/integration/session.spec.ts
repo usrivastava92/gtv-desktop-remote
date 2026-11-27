@@ -197,6 +197,11 @@ for (const failure of ['device-unavailable', 'audio-context-start'] as const) {
     }, failure);
     await h.page.locator('.ui-media-subgrid button').first().click();
     await expect(h.page.locator('.ui-alert')).toBeVisible();
+    await expect(h.page.locator('.ui-alert')).toContainText(
+      failure === 'device-unavailable'
+        ? 'Microphone unavailable: Synthetic missing microphone device'
+        : 'Synthetic native audio start failure'
+    );
     await expect(h.page.getByLabel('Assistant listening')).toHaveCount(0);
     expect(h.tv.snapshot().voice.bytes).toBe(0);
     expect(await h.api('hasPendingAssistantVoiceSession')).toBe(false);
@@ -206,6 +211,7 @@ for (const failure of ['device-unavailable', 'audio-context-start'] as const) {
     await h.page.getByRole('button', { name: 'Devices', exact: true }).click();
     await h.page.getByRole('button').filter({ hasText: 'Synthetic TV' }).first().click();
     await h.page.locator('.ui-media-subgrid button').first().click();
+    await expect(h.page.getByLabel('Assistant listening')).toBeVisible();
     await h.tv.waitFor((state) => state.voice.samples >= 4096);
     await h.page.locator('.ui-media-subgrid button').first().click();
     const state = await h.tv.waitFor((state) => state.voice.phase === 'ended');

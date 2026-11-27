@@ -1071,10 +1071,26 @@ function App() {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
       clearAssistantLongPressTimer();
-      void stopAssistantSession();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settingsOpen, bridgeReady, isConnected, currentView, remoteDisabled, capabilities]);
+
+  useEffect(() => {
+    // Refreshing capability data also rebinds keyboard handlers. Only a change
+    // in voice availability or the owning device should cancel capture.
+    return () => {
+      clearAssistantLongPressTimer();
+      void stopAssistantSession();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    settingsOpen,
+    bridgeReady,
+    isConnected,
+    currentView,
+    voiceDisabled,
+    bootstrap.deviceState.activeDeviceId,
+  ]);
 
   async function saveDiscoveredDevice(device: DiscoveredDevice): Promise<SavedDevice> {
     const devices = await getDesktopApi().saveDevice({
@@ -1681,7 +1697,9 @@ function App() {
                                   <Icon name="tv" className="h-[1.2rem] w-[1.2rem]" />
                                 </div>
                                 <div className="ui-card-copy">
-                                  <span className="ui-card-title">{displayName}</span>
+                                  <span className="ui-card-title" title={displayName}>
+                                    {displayName}
+                                  </span>
                                   <span className="ui-card-meta">
                                     {platformLabel(option.savedDevice.platform)}
                                   </span>
@@ -1742,8 +1760,11 @@ function App() {
                                     className="h-[1.2rem] w-[1.2rem]"
                                   />
                                 </div>
-                                <div>
-                                  <span className="block text-sm font-bold text-on-surface">
+                                <div className="ui-card-copy">
+                                  <span
+                                    className="ui-found-title block text-sm font-bold text-on-surface"
+                                    title={device.name}
+                                  >
                                     {device.name}
                                   </span>
                                   <span className="block text-[10px] font-medium text-on-surface-variant">

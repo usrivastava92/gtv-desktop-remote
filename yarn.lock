@@ -1063,10 +1063,10 @@ __metadata:
 
 "@librecontrol/apple-tv@patch:@librecontrol/apple-tv@npm%3A1.0.0#~/.yarn/patches/@librecontrol-apple-tv-npm-1.0.0-2f984c783d.patch":
   version: 1.0.0
-  resolution: "@librecontrol/apple-tv@patch:@librecontrol/apple-tv@npm%3A1.0.0#~/.yarn/patches/@librecontrol-apple-tv-npm-1.0.0-2f984c783d.patch::version=1.0.0&hash=117760"
+  resolution: "@librecontrol/apple-tv@patch:@librecontrol/apple-tv@npm%3A1.0.0#~/.yarn/patches/@librecontrol-apple-tv-npm-1.0.0-2f984c783d.patch::version=1.0.0&hash=3a4899"
   bin:
     librecontrol-apple-tv: dist/cli/repl.js
-  checksum: 10c0/21203619f513b4f4cd902bfe0427eaf6896c335d429b37cfb60692124ffdc4077be99a124b677cd93ecca92fa302234bcff21498cf8cdde4b8d4ead8300eff79
+  checksum: 10c0/c30c1edec6fa808f5080dab68411b06254e74458c17702e5d269b135756dc104a2668e7335b5aef367be7b0092ce8565ee8e4cef074f04a02e578a67dbabedcd
   languageName: node
   linkType: hard
 
@@ -1081,10 +1081,10 @@ __metadata:
 
 "@librecontrol/fire-tv@patch:@librecontrol/fire-tv@npm%3A1.1.0#~/.yarn/patches/@librecontrol-fire-tv-npm-1.1.0-238e59a7ca.patch":
   version: 1.1.0
-  resolution: "@librecontrol/fire-tv@patch:@librecontrol/fire-tv@npm%3A1.1.0#~/.yarn/patches/@librecontrol-fire-tv-npm-1.1.0-238e59a7ca.patch::version=1.1.0&hash=7147fb"
+  resolution: "@librecontrol/fire-tv@patch:@librecontrol/fire-tv@npm%3A1.1.0#~/.yarn/patches/@librecontrol-fire-tv-npm-1.1.0-238e59a7ca.patch::version=1.1.0&hash=e4e46c"
   bin:
     librecontrol-fire-tv: dist/cli/repl.js
-  checksum: 10c0/c8b7556da71343b73940909f9952a1ee70236204efb3bc874893fa951eac818d646b08c75b81383ab4f40ef80d772667954bcffe768b823228997bbd1f76da2f
+  checksum: 10c0/aaf93ce7aa82095563b819b69b0a1bba16d816c537f3a57a2bf885d7c33422c3c04100df1f7d0decf83504629897ab8a53090dee8d0a281e3576c9cd675b0336
   languageName: node
   linkType: hard
 

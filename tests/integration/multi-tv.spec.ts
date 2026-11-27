@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
+import { createSocket } from 'node:dgram';
 import { once } from 'node:events';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { createServer as createHttpServer } from 'node:http';
@@ -14,7 +15,8 @@ import { test, expect, repository } from './app-harness';
  * Independent receiver model for @librecontrol/fire-tv 1.1.0's published native
  * HTTP protocol (dist/FireTvDevice.js and dist/transport/http.js). No app or
  * library methods are replaced. This is not a claim of physical Fire OS parity:
- * SSDP/mDNS discovery, TLS trust provisioning and voice are outside this model.
+ * Native discovery uses independently encoded loopback DNS replies. TLS trust
+ * provisioning and voice are outside this model.
  */
 const DIAL_SERVICE = 'urn:dial-multiscreen-org:service:dial:1';
 
@@ -247,6 +249,165 @@ class FireReceiver {
     reply(400, {});
   }
 }
+
+interface DiscoveryReceiver {
+  port: number;
+  errors: string[];
+  stop(): Promise<void>;
+}
+
+// Independent DNS wire records answering the real library's unicast queries.
+// All discovery traffic stays on loopback; no resolver or renderer state is stubbed.
+async function advertiseReceiver(
+  port: number,
+  name: string,
+  platform: 'fire-tv' | 'apple-tv' = 'fire-tv',
+  identifier = name
+): Promise<DiscoveryReceiver> {
+  const service = platform === 'fire-tv' ? '_amzn-fireTv._tcp.local' : '_companion-link._tcp.local';
+  const instance = `${name}.${service}`;
+  const hostname = `fixture-${randomUUID()}.local`;
+  function dnsName(value: string) {
+    return Buffer.concat([
+      ...value.split('.').map((label) => {
+        const bytes = Buffer.from(label);
+        return Buffer.concat([Buffer.from([bytes.length]), bytes]);
+      }),
+      Buffer.from([0]),
+    ]);
+  }
+  function record(owner: string, type: number, data: Buffer) {
+    const header = Buffer.alloc(10);
+    header.writeUInt16BE(type, 0);
+    header.writeUInt16BE(1, 2);
+    header.writeUInt32BE(30, 4);
+    header.writeUInt16BE(data.length, 8);
+    return Buffer.concat([dnsName(owner), header, data]);
+  }
+  const header = Buffer.alloc(12);
+  header.writeUInt16BE(0x8400, 2);
+  header.writeUInt16BE(platform === 'fire-tv' ? 4 : 7, 6);
+  const srv = Buffer.alloc(6);
+  srv.writeUInt16BE(port, 4);
+  const txt = Buffer.from(
+    platform === 'fire-tv' ? `friendlyName=${name}` : `deviceid=${identifier}`
+  );
+  const model = Buffer.from('model=AppleTV6,2');
+  const response = Buffer.concat([
+    header,
+    record(service, 12, dnsName(instance)),
+    record(instance, 33, Buffer.concat([srv, dnsName(hostname)])),
+    record(instance, 16, Buffer.concat([Buffer.from([txt.length]), txt])),
+    record(hostname, 1, Buffer.from([127, 0, 0, 1])),
+    ...(platform === 'apple-tv'
+      ? [
+          record(`${name}._airplay._tcp.local`, 33, Buffer.concat([srv, dnsName(hostname)])),
+          record(
+            `${name}._airplay._tcp.local`,
+            16,
+            Buffer.concat([Buffer.from([model.length]), model])
+          ),
+          record('_airplay._tcp.local', 12, dnsName(`${name}._airplay._tcp.local`)),
+        ]
+      : []),
+  ]);
+  const errors: string[] = [];
+  const socket = createSocket({ type: 'udp4', reuseAddr: true });
+  socket.on('error', (error) => errors.push(error.message));
+  socket.on('message', (query, source) => {
+    if (query.length < 12 || query.readUInt16BE(2) & 0x8000) return;
+    if (!query.includes(dnsName(service)) && !query.includes(dnsName('_airplay._tcp.local')))
+      return;
+    socket.send(response, source.port, source.address, (error) => {
+      if (error) errors.push(error.message);
+    });
+  });
+  const listening = once(socket, 'listening');
+  socket.bind(0, '127.0.0.1');
+  await listening;
+  const address = socket.address();
+  if (typeof address === 'string') throw new Error('Discovery receiver did not bind UDP');
+  return {
+    errors,
+    port: address.port,
+    async stop() {
+      const closed = once(socket, 'close');
+      socket.close();
+      await closed;
+    },
+  };
+}
+
+test('MULTI-TV-FIRE-UI: discovered card, numeric PIN, rejection and disabled native controls', async ({
+  harness: h,
+}) => {
+  const receiver = new FireReceiver();
+  await receiver.start('https');
+  const name = `Fire UI ${randomUUID().slice(0, 8)}`;
+  let advertisement: DiscoveryReceiver | undefined;
+  try {
+    advertisement = await advertiseReceiver(receiver.port, name);
+    const config = JSON.parse(await readFile(h.configPath, 'utf8'));
+    config.discoveryPlatforms = ['fire-tv'];
+    config.nativeDiscovery = { mdnsPort: advertisement.port, ssdpPort: advertisement.port };
+    await writeFile(h.configPath, JSON.stringify(config));
+    await h.restart();
+    await h.page.getByRole('button', { name: "Don't see your device?", exact: true }).click();
+    const card = h.page.locator('.ui-found-row').filter({ hasText: name });
+    await expect(card).toBeVisible();
+    await card.locator('.ui-found-main').click();
+    const input = h.page.getByRole('textbox', { name: 'Pairing code', exact: true });
+    const submit = h.page.getByRole('button', { name: 'Continue', exact: true });
+    await expect(input).toHaveAttribute('maxlength', '4');
+    await expect(input).toHaveAttribute('inputmode', 'numeric');
+    await expect(h.page.locator('.ui-code-slot')).toHaveCount(4);
+    await expect(submit).toBeDisabled();
+    await input.fill('A12B');
+    await expect(input).toHaveValue('12');
+    await expect(submit).toBeDisabled();
+    expect(receiver.phase).toBe('pin-displayed');
+    await input.fill('0000');
+    await submit.click();
+    await expect(h.page.locator('.ui-alert')).toContainText('Fire TV pairing failed');
+    expect(receiver.rejectedPins).toBe(1);
+    expect(
+      (await h.api('bootstrap')).devices.find((device) => device.name === name)?.isPaired
+    ).not.toBe(true);
+    // A rejected token exchange requires a new real display/session, not a
+    // fabricated successful authentication or renderer-only state transition.
+    await expect(card).toBeVisible();
+    await card.locator('.ui-found-add').click();
+    await expect(input).toHaveValue('');
+    await input.fill(receiver.pin);
+    await submit.click();
+    await expect(h.page.getByRole('button', { name: 'Select', exact: true })).toBeEnabled();
+    expect(receiver.phase).toBe('paired');
+    expect(receiver.displays).toBe(2);
+    await expect(h.page.locator('.ui-media-button-block').first()).toBeDisabled();
+    await expect(h.page.locator('.ui-media-button-block').last()).toBeDisabled();
+    await expect(h.page.locator('.ui-media-subgrid > button').first()).toBeDisabled();
+    await expect(h.page.locator('.ui-media-danger')).toBeEnabled();
+    await expect(h.page.getByRole('button', { name: 'Home', exact: true })).toHaveAttribute(
+      'title',
+      'Home (H)'
+    );
+    // Unsupported keyboard aliases must also be inert; the supported key is a
+    // protocol-observed barrier proving the renderer processed the input queue.
+    await h.page.keyboard.press('+');
+    await h.page.keyboard.press('-');
+    await h.page.keyboard.press('ArrowUp');
+    await expect.poll(() => receiver.keys).toEqual(['dpad_up']);
+    await h.page.getByRole('button', { name: 'Text', exact: true }).click();
+    await h.page.getByPlaceholder('Type text to send to the TV').fill('UI 世界 🎬');
+    await h.page.getByRole('button', { name: 'Send Text', exact: true }).click();
+    await expect.poll(() => receiver.text).toBe('UI 世界 🎬');
+    expect(receiver.errors).toEqual([]);
+    expect(advertisement.errors).toEqual([]);
+  } finally {
+    await advertisement?.stop();
+    await receiver.stop();
+  }
+});
 
 for (const { protocol, serviceName, label } of [
   { protocol: 'http', serviceName: undefined, label: 'http' },
@@ -505,6 +666,7 @@ class ApplePinReceiver {
   readonly requests: string[] = [];
   readonly errors: string[] = [];
   phase: 'idle' | 'pin-requested' | 'awaiting-pin' | 'rejected' = 'idle';
+  port = 0;
   private server?: Server;
 
   async start() {
@@ -516,10 +678,12 @@ class ApplePinReceiver {
       });
     });
     const listening = once(this.server, 'listening');
-    // The published native bridge resolves an undiscovered loopback device to
-    // AirPlay's default 7000; providerData does not override this library path.
-    this.server.listen(7000, '127.0.0.1');
+    this.server.listen(0, '127.0.0.1');
     await listening;
+    const address = this.server.address();
+    if (!address || typeof address === 'string')
+      throw new Error('AirPlay receiver did not bind TCP');
+    this.port = address.port;
   }
 
   async stop() {
@@ -619,12 +783,25 @@ test('MULTI-TV-APPLE-PIN: native PIN start ignores stale encrypted credentials a
 }, info) => {
   const receiver = new ApplePinReceiver();
   await receiver.start();
+  const identifier = `apple-fixture-${randomUUID()}`;
+  const advertisement = await advertiseReceiver(
+    receiver.port,
+    'Loopback Apple PIN receiver',
+    'apple-tv',
+    identifier
+  );
   try {
+    const config = JSON.parse(await readFile(h.configPath, 'utf8'));
+    config.discoveryPlatforms = [];
+    config.nativeDiscovery = { mdnsPort: advertisement.port, ssdpPort: advertisement.port };
+    await writeFile(h.configPath, JSON.stringify(config));
+    await h.restart();
     const devices = await h.api('saveDevice', {
       name: 'Loopback Apple PIN receiver',
       host: '127.0.0.1',
       adbPort: 5555,
       platform: 'apple-tv',
+      providerData: { identifier },
     });
     const device = devices.find((entry) => entry.platform === 'apple-tv');
     if (!device) throw new Error('Apple TV was not saved');
@@ -670,6 +847,7 @@ test('MULTI-TV-APPLE-PIN: native PIN start ignores stale encrypted credentials a
     expect(receiver.requests).toHaveLength(7);
     await h.api('disconnect');
     expect(receiver.errors).toEqual([]);
+    expect(advertisement.errors).toEqual([]);
   } finally {
     await info.attach('apple-pin-start-wire-state', {
       body: JSON.stringify({
@@ -681,6 +859,7 @@ test('MULTI-TV-APPLE-PIN: native PIN start ignores stale encrypted credentials a
       }),
       contentType: 'application/json',
     });
+    await advertisement.stop();
     await receiver.stop();
   }
 });

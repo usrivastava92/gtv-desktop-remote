@@ -92,6 +92,30 @@ describe('TvAdapter provider boundary', () => {
     expect((await adapter.getBootstrapState()).deviceState.activeDeviceId).toBe('apple');
   });
 
+  it('rejects out-of-session submissions with recovery feedback without touching a connection', async () => {
+    const google = provider('google-tv');
+    const adapter = new TvAdapter([google]);
+    const before = (await adapter.getBootstrapState()).deviceState;
+    await expect(
+      adapter.pair({ deviceId: 'google', host: '192.0.2.1', code: 'ABCDEF' })
+    ).rejects.toThrow('Start pairing and request a new code');
+    expect((await adapter.getBootstrapState()).deviceState).toEqual(before);
+    expect(google.pair).not.toHaveBeenCalled();
+    expect(google.disconnect).not.toHaveBeenCalled();
+    expect(store.devices[0]?.isPaired).not.toBe(true);
+
+    await adapter.startPairing('google');
+    await adapter.pair({ deviceId: 'google', host: '192.0.2.1', code: 'ABCDEF' });
+    await adapter.connect('google');
+    const connected = (await adapter.getBootstrapState()).deviceState;
+    await expect(
+      adapter.pair({ deviceId: 'google', host: '192.0.2.1', code: 'ABCDEF' })
+    ).rejects.toThrow('No pending device pairing session');
+    expect((await adapter.getBootstrapState()).deviceState).toEqual(connected);
+    expect(google.pair).toHaveBeenCalledOnce();
+    expect(google.disconnect).not.toHaveBeenCalled();
+  });
+
   it('binds PIN submission to saved identity and preserves two-step pairing', async () => {
     const google = provider('google-tv');
     const apple = provider('apple-tv');

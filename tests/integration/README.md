@@ -10,7 +10,7 @@ yarn build
 yarn test:integration
 ```
 
-On Linux, use `xvfb-run -a yarn test:integration`. CI installs Xvfb/Xauth, ZIP/unzip and Electron GTK/NSS/GBM/audio dependencies. The `integration` job has no job-level skip condition; the final build depends on it. GitHub's workflow-level skip directives and repository branch-protection settings remain platform controls. `yarn typecheck:integration` checks all runner, fixture and independent emulator TypeScript. The runner pins Playwright 1.64.0, uses Electron from the repository, one worker, no retries and `forbidOnly`. All nested emulator `.spec.ts` files run in this same command.
+On Linux, install Xvfb/Xauth, ZIP/unzip, Electron GTK/NSS/GBM/audio dependencies, `dbus-x11`, `gnome-keyring` and `libsecret-1-0`. Run Xvfb inside a D-Bus session with an unlocked Secret Service; `.github/workflows/ci.yml` creates an isolated runtime/data directory and unlocks a real temporary keyring. The harness selects `gnome-libsecret`; native successful pairing must save genuinely encrypted credentials. No plaintext, mock encryption or success-case skip is permitted. The `integration` job has no job-level skip condition; the final build depends on it. GitHub's workflow-level skip directives and repository branch-protection settings remain platform controls. `yarn typecheck:integration` checks all runner, fixture and independent emulator TypeScript. The runner pins Playwright 1.64.1, uses Electron from the repository, one worker, no retries and `forbidOnly`. All nested emulator `.spec.ts` files run in this same command.
 
 After upgrading Playwright, rerun `yarn playwright install ffmpeg`: the runner selects its own encoder revision (1013 in 1.64.0), independently of the repository's Electron version. Electron video capture still uses the real application window and the encoder selected by Playwright; no bundled Playwright browser replaces Electron.
 
@@ -23,6 +23,8 @@ After upgrading Playwright, rerun `yarn playwright install ffmpeg`: the runner s
 Every case owns a `mkdtemp` profile below `os.tmpdir()`. `--user-data-dir` and `GTV_INTEGRATION_CONFIG` select that profile before production stores initialize. Config schemaVersion 1 includes pairingPort, remotePort, discoveryCommand, discoveryStatePath, systemStatePath and dialogStatePath. Runtime rejects packaged use, non-temporary profiles, paths outside the profile, non-loopback endpoints and foreign renderer IPC. Fixture executables may reside in this repository.
 
 Integration configuration optionally accepts `discoveryPlatforms: string[]`. Entries must name registered providers. Omission preserves the Google regression suite's `['google-tv']` discovery scope; an empty list disables discovery, while explicit lists select real provider discovery implementations. This setting does not remove providers or replace pairing, connection, or command transports: saved Apple/Fire devices remain usable in isolated wire tests. Production scans all registered providers. Google fixture discovery tests do not establish Apple/Fire native discovery correctness or physical-device interoperability.
+
+Native Apple/Fire wire fixtures additionally supply `nativeDiscovery: {mdnsPort, ssdpPort}`. Only integer ports in `1–65535` are accepted; destinations and interfaces cannot be configured. Both libraries receive the same validated boundary: query/bind addresses are always `127.0.0.1`. Missing native endpoints fail closed rather than selecting production multicast. Independent UDP responders advertise real DNS records, including the exact Apple identifier and service ports; neither resolver nor discovery is stubbed. The Fire UI case explicitly enables `['fire-tv']` discovery. Production retains ordinary native discovery and Apple's exact-identifier, ambiguity-rejecting target selection.
 
 `STARTUP-SINGLETON` launches a real second Electron child with the first main process's application arguments, working directory, isolated profile and integration environment. Playwright strips inherited `NODE_OPTIONS` from its first launch, so the raw child must strip it too; Playwright's debugger/loader arguments are not application arguments and are not replayed. Success requires the original window to be currently visible **and focused**, with exactly one window, plus a normal child exit code of zero. Startup focus/show observations cannot satisfy this assertion after the explicit hide. A `singleton-launch-diagnostics` attachment records allowlisted launch arguments, first-process lock ownership, singleton symlink paths/targets, child exit/signal/error and bounded sanitized stdout/stderr; it never reads credential files or dumps the environment. Environment parity is a driver invariant, not proof of the cause of a native singleton failure.
 
@@ -107,7 +109,7 @@ Physical native dialog appearance/post-dismiss focus recovery, Login Items servi
 
 The adopted [LibreControl 1.0.2](https://github.com/LibreControl/google-tv/releases/tag/1.0.2) retains the immediate text-readiness and connection-lifecycle fixes from 1.0.1 and corrects odd-length RSA modulus encoding without weakening certificate-bound checksum validation. Upstream real-TLS regressions independently derive expected hashes from unsigned JWK integers and separately exercise genuine 2049-bit client and TV certificates; both failed before the fix and passed afterward. Its 31-test suite also covers delayed/nonzero and zero IME metadata, pending-text closure/reconnect and unsupported IME behavior. This desktop suite still uses an ordered transport setup barrier for the restored-capability scenario and exercises the published dependency through the actual Electron application; it does not claim that scenario independently proves the upstream immediate-readiness contract. The reported Streamer hash failure has no same-session certificate/code vector, so this demonstrated RSA defect is not an established diagnosis or resolution of that hardware report.
 
-## Multi-TV spike
+## Multi-TV providers
 
 `multi-tv.spec.ts` runs the real Fire TV provider and locally patched library
 through Electron IPC against an independent loopback HTTP/HTTPS receiver and
@@ -120,18 +122,40 @@ records, wrong-PIN recovery, cancellation, credential restoration after restart,
 Unicode text, unsupported volume/microphone rejection, same-host platform
 identities and switching away from an active Fire session.
 
-The receiver is not Fire OS. It does not establish SSDP/mDNS discovery, physical
+The receiver is not Fire OS. The rendered Fire case exercises the real native
+mDNS parser over loopback UDP, but not physical multicast/SSDP discovery,
 DIAL interoperability, certificate trust provisioning, voice or hardware coverage.
-An independent Apple AirPlay receiver additionally exercises `/pair-pin-start`
-and initial pair-setup M1/M2 through the real provider/library. An existing corrupt
-encrypted credential must not block this fresh PIN request. Cancellation closes
-the stage and rejects a late submission without another wire request. This does
-not emulate SRP proof, encrypted AirPlay/Companion authentication or completed
-pairing; unit tests separately cover two-step pairing presentation.
+An independent Apple AirPlay receiver advertises its exact target identity and
+ports over loopback DNS, then exercises `/pair-pin-start` and pair-setup M1/M2
+through the real resolver/provider/library. An existing corrupt encrypted
+credential must not block this fresh PIN request. Cancellation closes the stage
+and rejects a late submission without another wire request. A subsequent M3 is
+explicitly rejected with an independently encoded M4 authentication error.
+This does not verify SRP proof, encrypted AirPlay/Companion authentication or
+completed pairing; unit tests separately cover two-step pairing presentation.
 Production packaged-app discovery was separately observed against
 physical Apple TV and Fire TV devices. These fixtures do not perform physical
-PIN pairing. Separately, a paired physical Apple TV was reconnected through the
-packaged app, and renderer H/mouse Home taps, holds and blur cancellation were
-exercised using its native transport. TV-screen state was not captured. This
-does not certify the complete hardware feature matrix. Keychain-unavailable
-credential behavior is not exercised by the wire fixture.
+PIN pairing. Separately, physical Apple pairing and authenticated reconnect were
+historically exercised through the packaged app, with renderer H/mouse Home taps,
+holds and blur cancellation using native transport. The operator confirmed Home
+hold opened Control Center; TV-screen state was not captured. Physical Fire
+service activation and its four-digit PIN request were observed, but Fire PIN
+validation, token reconnect and authenticated controls remain unverified on
+hardware. Keychain-unavailable credential behavior is not exercised by the wire
+fixture. None of these observations certifies the complete hardware feature matrix.
+
+### Release evidence boundary
+
+The intended product release is v3.0.0, not a published release or a claim of
+completed acceptance. Physical verification is explicitly deferred to the
+[release acceptance checklist](../../DEVELOPMENT.md#v3-release-acceptance-checklist).
+Keep its hardware, installed-package upgrade, Intel/arm64 native smoke and current
+screenshots gates open until the operator records candidate-specific results.
+
+In particular, fixture token restoration is not physical Fire reconnect evidence;
+Apple initial M1/M2 traffic is not complete two-stage pairing coverage; successful
+loopback HTTPS does not authenticate a physical Fire receiver's identity. Fire's
+default self-signed/unpinned TLS is a trusted-LAN limitation. Electron OS-encrypted
+Apple/Fire credential persistence does not imply the historical Google PEM private
+keys are encrypted. Preserve those Google credentials during real package upgrades
+and test reconnect without reset or re-pairing.

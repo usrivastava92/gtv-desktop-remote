@@ -43,14 +43,22 @@ function releaseAssetUrl(repository, version, artifactName) {
 
 function renderSharedBody(repository) {
   return `  name "GTV Remote"
-  desc "Desktop remote for Google TV and Android TV"
+  desc "A desktop remote for Google TV, Apple TV, and Fire TV"
   homepage "https://github.com/${repository}"
 
   app "${APP_NAME}"
 
-  postflight_steps do
-    run "/usr/bin/xattr",
-        args: ["-dr", "com.apple.quarantine", "{{appdir}}/${APP_NAME}"]
+  # Homebrew 6.0.1 has postflight_steps, but its step DSL cannot run commands.
+  if defined?(Homebrew::InstallSteps::DSL) && Homebrew::InstallSteps::DSL.method_defined?(:run)
+    postflight_steps do
+      run "/usr/bin/xattr",
+          args: ["-dr", "com.apple.quarantine", "{{appdir}}/${APP_NAME}"]
+    end
+  else
+    postflight do
+      system_command "/usr/bin/xattr",
+                     args: ["-dr", "com.apple.quarantine", "#{appdir}/${APP_NAME}"]
+    end
   end
 
   caveats do

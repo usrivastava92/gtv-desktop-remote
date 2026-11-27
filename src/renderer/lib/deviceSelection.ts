@@ -1,3 +1,4 @@
+import { fireTvIdentityMatches } from '../../shared/fireTvIdentity';
 import type { DiscoveredDevice, SavedDevice } from '../../shared/types';
 
 /** A paired saved device augmented with its currently-discovered counterpart, if any. */
@@ -56,6 +57,9 @@ export function findDiscoveredForSaved(
   discoveredDevices = discoveredDevices.filter(
     (device) => (device.platform ?? 'google-tv') === (savedDevice.platform ?? 'google-tv')
   );
+  if (savedDevice.platform === 'fire-tv') {
+    return discoveredDevices.find((device) => fireTvIdentityMatches(savedDevice, device));
+  }
   const identifier = savedDevice.providerData?.identifier;
   if (identifier !== undefined) {
     const byIdentifier = discoveredDevices.find(

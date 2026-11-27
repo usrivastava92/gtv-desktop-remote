@@ -163,6 +163,41 @@ describe('isolated integration OS boundaries', () => {
       ).toThrow('discovery platforms');
     }
   });
+  it('permits only loopback native wire ports, never configurable destinations or interfaces', async () => {
+    const environment = await import('../../../src/main/integrationEnvironment.js');
+    const nativeDiscovery = { mdnsPort: 45678, ssdpPort: 45679 };
+    expect(
+      environment.validateIntegrationConfig({ ...config, nativeDiscovery }, root).nativeDiscovery
+    ).toEqual(nativeDiscovery);
+    for (const endpoints of [
+      {},
+      { mdnsPort: 0, ssdpPort: 1900 },
+      { mdnsPort: 5353, ssdpPort: 65536 },
+      { mdnsPort: 5353.5, ssdpPort: 1900 },
+      { mdnsPort: '5353', ssdpPort: 1900 },
+      { ...nativeDiscovery, mdnsAddress: '192.168.1.1' },
+      { ...nativeDiscovery, ssdpAddress: '239.255.255.250' },
+      { ...nativeDiscovery, networkInterfaces: ['192.168.1.2'] },
+    ]) {
+      expect(() =>
+        environment.validateIntegrationConfig({ ...config, nativeDiscovery: endpoints }, root)
+      ).toThrow('native discovery');
+    }
+  });
+  it('fails closed without native endpoints and derives both transports from validated ports', async () => {
+    const missing = await loadFixture();
+    expect(() => missing.integrationDiscoveryOptions()).toThrow('isolated loopback endpoints');
+    vi.resetModules();
+    Object.assign(config, { nativeDiscovery: { mdnsPort: 45678, ssdpPort: 45679 } });
+    const environment = await loadFixture();
+    expect(environment.integrationDiscoveryOptions()).toEqual({
+      mdnsPort: 45678,
+      ssdpPort: 45679,
+      mdnsAddress: '127.0.0.1',
+      ssdpAddress: '127.0.0.1',
+      networkInterfaces: ['127.0.0.1'],
+    });
+  });
   it('rejects symlink escapes even when the state file does not yet exist', async () => {
     const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'gtv-outside-'));
     try {

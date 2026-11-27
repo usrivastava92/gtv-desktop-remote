@@ -305,3 +305,82 @@ describe('resolveSelectedDevice', () => {
     expect(sel?.kind).toBe('saved');
   });
 });
+
+describe('Fire TV paired picker aliases', () => {
+  const mdnsId = 'den._amzn-firetv._tcp.local';
+  const uuid = 'uuid:12345678-1234-1234-1234-123456789abc';
+
+  it.each(['mdns-to-ssdp', 'ssdp-to-mdns'])(
+    'keeps one paired card through %s rediscovery',
+    (direction) => {
+      const s = saved({
+        platform: 'fire-tv',
+        providerData:
+          direction === 'mdns-to-ssdp'
+            ? { identifier: mdnsId }
+            : { identifier: uuid, mdnsIdentifier: mdnsId },
+      });
+      const d = discovered({
+        platform: 'fire-tv',
+        providerData:
+          direction === 'mdns-to-ssdp'
+            ? { identifier: uuid, mdnsIdentifier: mdnsId }
+            : { identifier: mdnsId },
+      });
+      const paired = derivePairedNetworkDevices([s], [d]);
+      const unpaired = deriveUnpairedNetworkDevices([s], [d]);
+      expect(paired[0]?.discoveredDevice).toBe(d);
+      expect(unpaired).toEqual([]);
+      expect(resolveSelectedDevice(`saved:${s.id}`, paired, unpaired)).toMatchObject({
+        kind: 'saved',
+        savedDevice: s,
+        discoveredDevice: d,
+      });
+    }
+  );
+
+  it.each(['mdns-to-ssdp', 'ssdp-to-mdns'])(
+    'keeps cross-host %s aliases unpaired without matching UUIDs',
+    (direction) => {
+      const s = saved({
+        platform: 'fire-tv',
+        providerData:
+          direction === 'mdns-to-ssdp'
+            ? { identifier: mdnsId }
+            : { identifier: uuid, mdnsIdentifier: mdnsId },
+      });
+      const d = discovered({
+        platform: 'fire-tv',
+        host: '192.168.1.99',
+        providerData:
+          direction === 'mdns-to-ssdp'
+            ? { identifier: uuid, mdnsIdentifier: mdnsId }
+            : { identifier: mdnsId },
+      });
+      expect(findDiscoveredForSaved(s, [d])).toBeUndefined();
+      expect(deriveUnpairedNetworkDevices([s], [d])).toEqual([d]);
+      const paired = derivePairedNetworkDevices([s], [d]);
+      expect(paired[0]?.discoveredDevice).toBeUndefined();
+      expect(resolveSelectedDevice(`saved:${s.id}`, paired, [d])).toMatchObject({
+        kind: 'saved',
+        savedDevice: s,
+      });
+    }
+  );
+
+  it('leaves a different receiver unpaired despite the same host, name and mDNS alias', () => {
+    const s = saved({
+      platform: 'fire-tv',
+      providerData: { identifier: uuid, mdnsIdentifier: mdnsId },
+    });
+    const other = discovered({
+      platform: 'fire-tv',
+      providerData: {
+        identifier: 'uuid:87654321-1234-1234-1234-123456789abc',
+        mdnsIdentifier: mdnsId,
+      },
+    });
+    expect(findDiscoveredForSaved(s, [other])).toBeUndefined();
+    expect(deriveUnpairedNetworkDevices([s], [other])).toEqual([other]);
+  });
+});

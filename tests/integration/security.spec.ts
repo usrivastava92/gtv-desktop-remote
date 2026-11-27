@@ -14,7 +14,7 @@ test('PAIR-CHECKSUM: rendered checksum failure requests a fresh code and valid r
   const traceStart = h.tv.traces.length;
   const sessionsBeforeRetry = h.tv.snapshot().pairingSessions;
   await input.fill(invalid);
-  await h.page.getByRole('button', { name: 'Connect', exact: true }).click();
+  await h.page.getByRole('button', { name: 'Continue', exact: true }).click();
   await expect(h.page.locator('.ui-alert')).toContainText('certificate hash validation');
   await expect(
     h.page.getByRole('heading', { name: 'New Devices Found', exact: true })
@@ -39,9 +39,9 @@ test('PAIR-CHECKSUM: rendered checksum failure requests a fresh code and valid r
   await h.openPairing();
   expect(h.tv.snapshot().pairingSessions).toBe(sessionsBeforeRetry + 1);
   await expect(input).toHaveValue('');
-  await expect(h.page.getByRole('button', { name: 'Connect', exact: true })).toBeDisabled();
+  await expect(h.page.getByRole('button', { name: 'Continue', exact: true })).toBeDisabled();
   await input.fill(h.tv.pairingCode);
-  await h.page.getByRole('button', { name: 'Connect', exact: true }).click();
+  await h.page.getByRole('button', { name: 'Continue', exact: true }).click();
   await h.tv.waitFor((state) => state.ready && state.pairedClients === 1);
   expect((await h.api('bootstrap')).deviceState.status).toBe('connected');
   await h.page.getByRole('button', { name: 'Select', exact: true }).click();
@@ -81,8 +81,8 @@ test('PAIR-UI-NONHEX: malformed user input cannot submit a six-hex exchange', as
   const input = h.page.locator('input[autocomplete="one-time-code"]');
   await input.fill('OO00FF');
   await expect(input).toHaveValue('00FF');
-  await expect(h.page.getByRole('button', { name: 'Connect', exact: true })).toBeDisabled();
+  await expect(h.page.getByRole('button', { name: 'Continue', exact: true })).toBeDisabled();
   await input.fill(h.tv.pairingCode);
-  await h.page.getByRole('button', { name: 'Connect', exact: true }).click();
+  await h.page.getByRole('button', { name: 'Continue', exact: true }).click();
   await h.tv.waitFor((state) => state.ready);
 });

@@ -70,3 +70,95 @@ index adc4a09222904753c2ced8ae415cd3fcffe31119..3bad0a5901c5b0b4a26e04fe29311b96
  }
  const prefixes = {
      ed25519: { private: "302e020100300506032b657004220420", public: "302a300506032b6570032100" },
+diff --git a/dist/discovery/native.js b/dist/discovery/native.js
+--- a/dist/discovery/native.js
++++ b/dist/discovery/native.js
+@@ -146,1 +146,1 @@
+-export async function discoverDevices(timeoutMs = 5000) {
++export async function discoverDevices(timeoutMs = 5000, transport = {}) {
+@@ -153,8 +153,8 @@
+     const interfaces = [
+-        ...new Set(Object.values(networkInterfaces()).flatMap((entries) => entries
++        ...new Set(transport.networkInterfaces ?? Object.values(networkInterfaces()).flatMap((entries) => entries
+             ?.filter((entry) => entry.family === "IPv4" && !entry.internal)
+             .map((entry) => entry.address) ?? [])),
+     ];
+     const closeSocket = (socket) => {
+         try {
+             socket.close();
+@@ -168,1 +168,1 @@
+-            socket.send(packet, 5353, MulticastAddress, () => { });
++            socket.send(packet, transport.mdnsPort ?? 5353, transport.mdnsAddress ?? MulticastAddress, () => { });
+@@ -249,3 +249,5 @@
+-                    if (address)
+-                        socket.setMulticastInterface(address);
+-                    socket.setMulticastTTL(255);
++                    if (!transport.mdnsAddress || transport.mdnsAddress === MulticastAddress) {
++                        if (address)
++                            socket.setMulticastInterface(address);
++                        socket.setMulticastTTL(255);
++                    }
+@@ -336,19 +338,24 @@
+-export async function resolveDevice(options) {
++export async function resolveDevice(options, transport) {
+-    const devices = await discoverDevices(3000);
++    return resolveDiscoveredDevice(await discoverDevices(3000, transport), options);
++}
++export function resolveDiscoveredDevice(devices, options) {
+     const requestedAddress = normalizedAddress(options.host);
+-    const found = devices.find((device) => device.addresses.some((address) => normalizedAddress(address) === requestedAddress) ||
+-        normalizedAddress(device.address) === requestedAddress ||
+-        (options.identifier && device.identifier === options.identifier) ||
+-        (options.name && device.name === options.name));
+-    return (found ?? {
+-        name: options.name ?? `Apple TV ${options.host}`,
+-        address: options.host,
+-        port: 49152,
+-        airplayPort: 7000,
+-        identifier: options.identifier ?? options.host,
+-        model: "",
+-        properties: {},
+-        addresses: [options.host],
+-    });
++    // A saved identifier survives DHCP changes; never let a stale address or a
++    // shared display name select a different receiver before that exact match.
++    let found;
++    for (const device of devices) {
++        const matches = options.identifier
++            ? device.identifier === options.identifier
++            : device.addresses.some((address) => normalizedAddress(address) === requestedAddress) ||
++                normalizedAddress(device.address) === requestedAddress;
++        if (!matches)
++            continue;
++        if (found)
++            throw new Error("Apple TV target is ambiguous; scan again before pairing or connecting");
++        found = device;
++    }
++    if (!found)
++        throw new Error("Apple TV target was not discovered; scan again before pairing or connecting");
++    return found;
+ }
+ //# sourceMappingURL=native.js.map
+diff --git a/dist/bridge/NativeAppleTvBridge.js b/dist/bridge/NativeAppleTvBridge.js
+--- a/dist/bridge/NativeAppleTvBridge.js
++++ b/dist/bridge/NativeAppleTvBridge.js
+@@ -32,3 +32,6 @@
+ export class NativeAppleTvBridge {
++    constructor(discoveryTransport) {
++        this.discoveryTransport = discoveryTransport;
++    }
+     async discover(options = {}) {
+-        return (await discoverDevices(options.timeoutMs)).map((device) => ({
++        return (await discoverDevices(options.timeoutMs, this.discoveryTransport)).map((device) => ({
+@@ -55,1 +58,1 @@
+-                device ??= await resolveDevice(options);
++                device ??= await resolveDevice(options, this.discoveryTransport);
+@@ -136,1 +139,1 @@
+-        const device = await resolveDevice(options);
++        const device = await resolveDevice(options, this.discoveryTransport);
+diff --git a/dist/bridge/NativeAppleTvBridge.d.ts b/dist/bridge/NativeAppleTvBridge.d.ts
+--- a/dist/bridge/NativeAppleTvBridge.d.ts
++++ b/dist/bridge/NativeAppleTvBridge.d.ts
+@@ -2,1 +2,2 @@
+ export declare class NativeAppleTvBridge implements AppleTvBridge {
++    constructor(discoveryTransport?: { mdnsAddress?: string; mdnsPort?: number; networkInterfaces?: string[] });

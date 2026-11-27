@@ -3,8 +3,8 @@
 
   <h1>GTV Desktop Remote</h1>
 
-  <p><strong>A macOS desktop remote for Google TV and Android TV devices.</strong><br/>
-  Discover, pair once, and control your TV from your Mac — with keyboard support.</p>
+  <p><strong>A desktop remote for Google TV, Apple TV, and Fire TV.</strong><br/>
+  Discover, pair, and control compatible TVs from your Mac — with keyboard support.</p>
 
   <p>
     <a href="https://github.com/usrivastava92/gtv-desktop-remote/actions/workflows/ci.yml">
@@ -31,50 +31,62 @@
 
 ## Overview
 
-GTV Desktop Remote lets you control any Google TV or Android TV device from your Mac. It runs as a menubar app — always one keystroke away — and uses the same encrypted pairing protocol as the official Android TV Remote app.
+GTV Desktop Remote is a macOS menubar app for compatible Google TV/Android TV, Apple TV, and Fire TV devices on your local network. This branch prepares the intended **v3.0.0** release; it does not mean v3 has been published. The latest-release download may still be an earlier Google-only version.
 
-- **Network scan** — discovers compatible devices on your local network automatically
-- **One-time pairing** — enter a 6-digit code once; credentials are saved securely
-- **Full remote control** — navigation, select, home, back, play/pause, volume, power
+- **Network scan** — discovers supported platforms and labels each device
+- **Saved pairing** — platform-specific pairing with reconnect credentials retained across launches
+- **Remote control** — navigation, select, home, back, playback and supported power/volume controls
 - **Keyboard control** — drive your TV from the keyboard without touching the mouse
-- **Text input** — send text directly to apps that support Android TV text entry
-- **IP-change resilient** — device identity is tracked by MAC address, not IP, so re-pairing is never needed when your TV's IP changes
+- **Text input** — send text to compatible focused TV input fields
+- **Stable device identity** — supported discovery identifiers can retain pairing after an IP change; reconnect is explicit, and identity availability depends on the TV
 - **Global shortcut** — customizable show/hide shortcut (default `CmdOrCtrl+Shift+G`)
 - **Launch at login** — optional macOS Login Item, off by default
 
-### Local multi-TV spike
+### Platform support
 
-This branch adds Apple TV and Fire TV alongside the existing Google TV/Android TV
-provider without renaming the application or replacing its remote layout.
-Discovery labels each platform and routes pairing and controls through the
-app-owned `TvProvider` contract.
+| Capability                                 | Google TV / Android TV                            | Apple TV                                                | Fire TV            |
+| ------------------------------------------ | ------------------------------------------------- | ------------------------------------------------------- | ------------------ |
+| Pairing                                    | One six-character hexadecimal code (`0–9`, `A–F`) | Two successive four-digit PINs: AirPlay, then Companion | One four-digit PIN |
+| Navigation, select, Home, back, play/pause | Supported                                         | Supported                                               | Supported          |
+| Power toggle                               | Supported                                         | Supported                                               | Supported          |
+| Volume up/down                             | Supported                                         | Supported                                               | **Unsupported**    |
+| Text entry in compatible focused fields    | Supported                                         | Supported                                               | Supported          |
+| Microphone / assistant voice               | Supported                                         | **Unsupported**                                         | **Unsupported**    |
+| Home hold for Control Center               | Unsupported                                       | Supported                                               | Unsupported        |
 
-- Google TV retains its six-character pairing flow and microphone support.
-- Apple TV requests two successive four-digit PINs: AirPlay, then Companion.
-- Fire TV requests one four-digit PIN. For DIAL-discovered devices, Pair and Connect
-  explicitly launch the remote service and wait for its native port before HTTPS.
-  Scanning never activates the service. Volume and microphone controls are disabled;
-  navigation, playback toggle, power toggle, and text entry use its native library.
-- Apple TV microphone controls are disabled in this spike. Text entry on every
-  platform requires a compatible focused TV input field.
-- Apple/Fire credentials are encrypted with Electron `safeStorage`, kept outside
-  device metadata, and require an available OS keychain. Fire TV uses HTTPS by
-  default with self-signed receiver certificates accepted; use only a trusted LAN.
-- Apple TV uses a pinned local library patch with portable ChaCha20-Poly1305,
-  because Electron's Node crypto backend does not expose that cipher. Pairing
-  and Companion frames retain their authentication checks; no cipher downgrade
-  or external Node installation is used.
+“Supported” describes implemented provider capabilities, not a guarantee for every
+TV model, app or firmware. Unsupported controls are disabled. See the
+[hardware and release acceptance checklist](DEVELOPMENT.md#v3-release-acceptance-checklist)
+for remaining verification.
 
-Physical Apple TV and Fire TV discovery was observed in the packaged app.
-Fire TV protocol regressions use an independent local HTTP/HTTPS receiver, not
-Fire OS. Physical Fire service activation and the native four-digit PIN request
-were also exercised successfully; PIN verification, saved-token reconnection and
-authenticated Fire controls remain unverified on hardware. Apple pairing,
-authenticated reconnection and native Home tap/hold dispatch were exercised
-against a physical Apple TV. The operator confirmed that holding H or Home opens
-Control Center. No TV-screen capture was taken; full hardware coverage is pending.
-See [the provider extension contract](DEVELOPMENT.md#multi-tv-provider-contract)
-and [test fidelity limits](tests/integration/README.md#multi-tv-spike).
+For DIAL-discovered Fire TVs, explicit Pair and Connect launch the remote service
+and wait for its native TCP port before HTTPS. Scanning never activates it.
+**Use Fire TV only on a trusted LAN:** HTTPS accepts self-signed receiver
+certificates by default, without certificate-chain verification or certificate
+pinning. Encryption alone does not authenticate the receiver; there is no
+automatic fallback to unencrypted HTTP.
+
+Apple TV and Fire TV reconnect credentials are encrypted with Electron
+`safeStorage` using the OS keychain, outside device metadata; there is no plaintext
+fallback. After both Apple PIN stages, macOS may request Keychain permission to
+save credentials. This is not a request for your Apple account password.
+Google TV retains its existing PEM certificate/private-key store; these PEM files
+are **not** encrypted by `safeStorage`.
+
+Upgrading keeps the **GTV Remote** app name, bundle identity, repository, installer
+names and `~/Library/Application Support/GTV Remote` data location. Existing
+Google-only saved records remain Google TV records and keep their credentials;
+do not reset or remove devices as part of a normal upgrade.
+
+Physical Apple TV and Fire TV discovery was historically observed in the packaged
+app. Apple pairing, authenticated reconnection and native Home tap/hold dispatch
+were exercised against a physical Apple TV; the operator confirmed that holding H
+or Home opened Control Center. No TV-screen capture was taken. Physical Fire
+service activation and the four-digit PIN request were observed, but **Fire PIN
+validation, saved-token reconnection and authenticated controls remain unverified
+on hardware**. Local protocol tests are not firmware validation. See the
+[provider contract](DEVELOPMENT.md#multi-tv-provider-contract) and
+[test fidelity limits](tests/integration/README.md#multi-tv-providers).
 
 ---
 
@@ -97,6 +109,12 @@ and [test fidelity limits](tests/integration/README.md#multi-tv-spike).
   </table>
 </div>
 
+These existing images are not evidence of v3 hardware acceptance. Before release,
+capture current multi-platform discovery, each pairing stage, and the connected
+remote with unsupported controls disabled; record app version and platform, and
+redact PINs, addresses and credentials. TV-screen evidence of Apple Control Center
+and Fire authenticated controls is still needed.
+
 ---
 
 ## Installation
@@ -118,7 +136,7 @@ brew install --cask usrivastava92/tap/gtv-desktop-remote
 
 The Homebrew cask removes the quarantine flag automatically during install and prints fallback steps if macOS still blocks launch.
 
-> **Requirement:** macOS. Your TV must have Android TV Remote Service enabled and be on the same local network as your Mac.
+> **Requirement:** macOS and a compatible TV on the same trusted local network. Google TV/Android TV requires Android TV Remote Service; Apple TV and Fire TV require their supported local-network remote services. Discovery can be blocked by guest-network isolation or multicast restrictions.
 
 ---
 
@@ -127,10 +145,12 @@ The Homebrew cask removes the quarantine flag automatically during install and p
 1. Launch the app — it appears in your menu bar.
 2. The app scans your network for compatible devices.
 3. Select your TV from the device list.
-4. If not yet paired, click **Start Pairing** and enter the 6-character code shown on your TV.
-5. Once paired, click **Connect** — you're ready to use the remote.
+4. If not yet paired, click **Start Pairing**. Google TV uses six hexadecimal characters; Apple TV asks for an AirPlay four-digit PIN followed by a **new** Companion four-digit PIN; Fire TV asks for one four-digit PIN. Always enter the code currently displayed for that stage.
+5. Click **Continue** after entering each pairing code. After the final stage, the app connects automatically so you can use the remote.
 
-The app remembers paired devices, so future connections are instant.
+The app remembers paired devices for future connections. Reconnect can still fail
+if a TV revokes pairing, its service is unavailable, or macOS denies credential
+access. Do not enter an Apple account password into a TV PIN field.
 
 ### Remote appearance
 
@@ -142,7 +162,7 @@ On first launch, a dismissible **Welcome to GTV Remote** hint explains where the
 
 - Look for the GTV Remote icon in the **menu bar** at the top of your screen. The app does not stay in the Dock.
 - Click the menu-bar icon to show or hide the remote, or use the global shortcut shown in the welcome hint.
-- In this multi-TV spike, the remote stays visible when you click away or switch apps. Hide it explicitly with the menu-bar icon or global shortcut.
+- The remote stays visible when you click away or switch apps. Hide it explicitly with the menu-bar icon or global shortcut.
 - Right-click the menu-bar icon for **Show Remote**, **Hide Remote**, and **Quit**. Choose **Quit** to exit completely, rather than just hide the window.
 
 ---
@@ -186,15 +206,16 @@ Click or focus the show/hide shortcut control, then press and release the actual
 **TV not appearing in the scan?**
 
 - Confirm the TV and Mac are on the same Wi-Fi network.
-- Confirm Android TV Remote Service is enabled on the TV.
+- For Google TV/Android TV, confirm Android TV Remote Service is enabled. For Apple/Fire, confirm the TV is awake and its local-network services are available.
 - Try re-running the network scan.
 
 **Pairing not completing?**
 
 - Start a fresh pairing session and enter the latest code shown on the TV screen.
-- Pairing codes contain six hexadecimal characters (`0–9`, `A–F`); `O` is not a valid character.
-- After a certificate-hash validation error, select the device again to request a fresh code. If the error persists with the exact new code, report the app version and TV model/firmware.
-- If the device was previously saved, remove it and pair again.
+- Google TV codes contain six hexadecimal characters (`0–9`, `A–F`); `O` is not valid. Apple and Fire PINs contain four decimal digits; Apple requires two separate stages.
+- After a Google certificate-hash validation error, select the device again to request a fresh code. If it persists with the exact new code, report the app version and TV model/firmware.
+- For Apple/Fire credential-save errors, check macOS Keychain access. Credentials are not saved in plaintext as a fallback.
+- Removing a saved device deletes its local credentials and requires pairing again; use this only when deliberately replacing a revoked or unusable pairing, not as a routine upgrade step.
 
 **App not opening or only showing the menubar icon?**
 

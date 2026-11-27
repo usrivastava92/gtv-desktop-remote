@@ -14,6 +14,7 @@ import type {
   RemoteCommand,
   SavedDevice,
 } from '../../shared/types';
+import { integrationDiscoveryOptions } from '../integrationEnvironment';
 import { commandMetricsStore } from '../metrics';
 
 import { providerCredentials } from './providerCredentials';
@@ -75,27 +76,29 @@ export class AppleTvProvider implements TvProvider {
   >();
 
   async discover(): Promise<DiscoveredDevice[]> {
-    const { discoverAppleTv } = await loadAppleLibrary();
-    return (await discoverAppleTv()).map((device) => ({
-      id: `${this.id}:${device.identifier ?? device.id}`,
-      platform: this.id,
-      source: 'apple-tv',
-      name: device.name,
-      host: device.host,
-      model: device.model,
-      remotePort: device.port,
-      providerData: {
-        identifier: device.identifier ?? device.id,
-        ...(device.port !== undefined ? { port: device.port } : {}),
-      },
-    }));
+    const { discoverAppleTv, NativeAppleTvBridge } = await loadAppleLibrary();
+    return (await discoverAppleTv({}, new NativeAppleTvBridge(integrationDiscoveryOptions()))).map(
+      (device) => ({
+        id: `${this.id}:${device.identifier ?? device.id}`,
+        platform: this.id,
+        source: 'apple-tv',
+        name: device.name,
+        host: device.host,
+        model: device.model,
+        remotePort: device.port,
+        providerData: {
+          identifier: device.identifier ?? device.id,
+          ...(device.port !== undefined ? { port: device.port } : {}),
+        },
+      })
+    );
   }
 
   private async createClient(
     device: SavedDevice,
     credentials?: AppleTvCredentials
   ): Promise<AppleClient> {
-    const { createAppleTv } = await loadAppleLibrary();
+    const { createAppleTv, NativeAppleTvBridge } = await loadAppleLibrary();
     return createAppleTv({
       id: device.id,
       name: device.name,
@@ -105,6 +108,7 @@ export class AppleTvProvider implements TvProvider {
           ? device.providerData.identifier
           : undefined,
       credentials,
+      bridge: new NativeAppleTvBridge(integrationDiscoveryOptions()),
     });
   }
 

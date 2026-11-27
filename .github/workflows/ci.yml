@@ -7,6 +7,7 @@ on:
       - master
       - develop
       - 'feature/**'
+      - 'release/**'
       - 'renovate/**'
   pull_request:
   workflow_dispatch:
@@ -122,15 +123,27 @@ jobs:
           cache: yarn
       - run: corepack enable
       - run: yarn install --immutable
+      - name: Install Electron runtime before timed functional fixtures
+        run: node node_modules/electron/install.js
       - run: yarn playwright install ffmpeg
       - name: Install Electron display and media prerequisites
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb xauth zip unzip libnss3 libatk1.0-0 libatk-bridge2.0-0 libgtk-3-0 libgbm1 libasound2t64 libxss1 libxtst6
+          sudo apt-get install -y xvfb xauth zip unzip dbus-x11 gnome-keyring libsecret-1-0 libnss3 libatk1.0-0 libatk-bridge2.0-0 libgtk-3-0 libgbm1 libasound2t64 libxss1 libxtst6
       - run: yarn build
       - run: yarn typecheck:integration
       - name: Real Electron functional guardrail
-        run: xvfb-run -a --server-args="-screen 0 1280x1024x24" yarn test:integration
+        run: |
+          dbus-run-session -- bash -euc '
+            sandbox=$(mktemp -d)
+            trap '\''rm -rf "$sandbox"'\'' EXIT
+            export XDG_RUNTIME_DIR="$sandbox/runtime"
+            export XDG_DATA_HOME="$sandbox/data"
+            mkdir -m 700 -p "$XDG_RUNTIME_DIR" "$XDG_DATA_HOME"
+            # A real, unlocked Secret Service; provider tokens still use safeStorage.
+            eval "$(printf "%s" "isolated-ci-keyring" | gnome-keyring-daemon --unlock --components=secrets)"
+            xvfb-run -a --server-args="-screen 0 1280x1024x24" yarn test:integration
+          '
       - name: Upload sanitized functional diagnostics
         if: always()
         uses: actions/upload-artifact@v7
@@ -141,8 +154,24 @@ jobs:
             playwright-report/
           retention-days: 7
 
+  homebrew:
+    needs: setup
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - name: Verify generated casks with the actual Homebrew DSL
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: '1'
+          HOMEBREW_NO_ANALYTICS: '1'
+        run: |
+          brew --version
+          node --test tests/release/homebrew-cask.test.mjs
+
   build:
-    needs: [format, lint, typecheck, test, integration, release-preview]
+    needs: [format, lint, typecheck, test, integration, release-preview, homebrew]
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
     steps:
