@@ -129,20 +129,38 @@ jobs:
       - name: Install Electron display and media prerequisites
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb xauth zip unzip dbus-x11 gnome-keyring libsecret-1-0 libnss3 libatk1.0-0 libatk-bridge2.0-0 libgtk-3-0 libgbm1 libasound2t64 libxss1 libxtst6
+          sudo apt-get install -y xvfb xauth zip unzip dbus-x11 gnome-keyring libsecret-1-0 libsecret-tools libnss3 libatk1.0-0 libatk-bridge2.0-0 libgtk-3-0 libgbm1 libasound2t64 libxss1 libxtst6
       - run: yarn build
       - run: yarn typecheck:integration
       - name: Real Electron functional guardrail
         run: |
-          dbus-run-session -- bash -euc '
+          xvfb-run -a --server-args="-screen 0 1280x1024x24" dbus-run-session -- bash -euo pipefail -c '
             sandbox=$(mktemp -d)
             trap '\''rm -rf "$sandbox"'\'' EXIT
             export XDG_RUNTIME_DIR="$sandbox/runtime"
             export XDG_DATA_HOME="$sandbox/data"
+            export XDG_CURRENT_DESKTOP=GNOME
             mkdir -m 700 -p "$XDG_RUNTIME_DIR" "$XDG_DATA_HOME"
-            # A real, unlocked Secret Service; provider tokens still use safeStorage.
-            eval "$(printf "%s" "isolated-ci-keyring" | gnome-keyring-daemon --unlock --components=secrets)"
-            xvfb-run -a --server-args="-screen 0 1280x1024x24" yarn test:integration
+            # Unlock/create the encrypted login keyring, then complete session initialization.
+            # Start under the same display and D-Bus session as every Electron process.
+            keyring_environment=$(printf "%s" "isolated-ci-keyring" | gnome-keyring-daemon --unlock --components=secrets)
+            eval "$keyring_environment"
+            export GNOME_KEYRING_CONTROL
+            keyring_environment=$(gnome-keyring-daemon --start --components=secrets)
+            eval "$keyring_environment"
+            export GNOME_KEYRING_CONTROL
+            # A bounded real Secret Service write/read must succeed without an unlock prompt.
+            if ! printf "%s" "ci-storage-probe" | timeout 20s secret-tool store --label="CI storage prerequisite" application gtv-ci-prerequisite; then
+              echo "::error::Secret Service prerequisite failed: cannot store in the unlocked default collection"
+              exit 1
+            fi
+            if [ "$(timeout 20s secret-tool lookup application gtv-ci-prerequisite)" != "ci-storage-probe" ]; then
+              echo "::error::Secret Service prerequisite failed: stored probe did not round-trip"
+              exit 1
+            fi
+            timeout 20s secret-tool clear application gtv-ci-prerequisite
+            timeout 30s yarn electron tests/integration/platform-fixtures/safe-storage.cjs --no-sandbox --password-store=gnome-libsecret
+            yarn test:integration
           '
       - name: Upload sanitized functional diagnostics
         if: always()

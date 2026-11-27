@@ -19,22 +19,26 @@ function generate(args) {
   });
 }
 
-// Use Homebrew itself rather than a permissive imitation of its Ruby DSL. Only
-// evaluate the hook with a recording SystemCommand: no installer or xattr runs.
+// Use Homebrew's actual DSL and artifact runner, including subprocess runners.
+// Only the postflight artifact executes, against quarantined temporary fixtures.
 const parseCask = String.raw`
 require "json"
 require "cask/cask_loader"
 require "simulate_system"
 require "stringio"
+require "fileutils"
+require "open3"
 
-class << SystemCommand
-  attr_accessor :recorded_calls
-
-  def run!(executable, **options)
-    recorded_calls << [executable, options]
-    nil
-  end
+def xattr(*args)
+  stdout, stderr, status = Open3.capture3("/usr/bin/xattr", *args)
+  raise "xattr #{args.inspect} failed: #{stderr}" unless status.success?
+  stdout
 end
+
+quarantine = "com.apple.quarantine"
+quarantine_value = "0081;00000000;GTVReleaseTest;"
+unrelated = "com.gtv.release-test"
+unrelated_value = "preserve this attribute"
 
 source = File.read(ARGV.fetch(0))
 appdir = ARGV.fetch(1)
@@ -44,6 +48,37 @@ raise "Expected #{expected_mode} Homebrew API" unless modern == (expected_mode =
 hook_class = modern ? Cask::Artifact::PostflightSteps : Cask::Artifact::PostflightBlock
 results = [:arm, :intel].map do |arch|
   Homebrew::SimulateSystem.with(os: :macos, arch: arch) do
+    # Each architecture starts with a quarantined, real app tree. No installation,
+    # live tap changes, or writes outside this test's temporary directory occur.
+    app = File.join(appdir, "GTV Remote.app")
+    nested_dir = File.join(app, "Contents", "Resources")
+    payload = File.join(nested_dir, "fixture.txt")
+    other_app = File.join(appdir, "Unrelated.app")
+    other_payload = File.join(other_app, "fixture.txt")
+    FileUtils.mkdir_p([nested_dir, other_app])
+    File.write(payload, "target payload")
+    File.write(other_payload, "unrelated payload")
+    target_paths = [app, File.join(app, "Contents"), nested_dir, payload]
+    other_paths = [appdir, other_app, other_payload]
+    (target_paths + other_paths).each do |path|
+      xattr("-w", quarantine, quarantine_value, path)
+      xattr("-w", unrelated, unrelated_value, path)
+    end
+
+    verify_fixture = lambda do |target_quarantined|
+      (target_paths + other_paths).each do |path|
+        expected_quarantine = other_paths.include?(path) || target_quarantined
+        attributes = xattr(path).lines.map(&:chomp)
+        raise "Incorrect quarantine state on #{path}" unless attributes.include?(quarantine) == expected_quarantine
+        if expected_quarantine
+          raise "Quarantine changed on #{path}" unless xattr("-p", quarantine, path).strip == quarantine_value
+        end
+        raise "Unrelated attribute changed on #{path}" unless xattr("-p", unrelated, path).strip == unrelated_value
+      end
+      raise "Target payload changed" unless File.read(payload) == "target payload"
+      raise "Unrelated payload changed" unless File.read(other_payload) == "unrelated payload"
+    end
+    verify_fixture.call(true)
     config = Cask::Config.new(explicit: { appdir: appdir })
     warnings = StringIO.new
     previous_stderr = $stderr
@@ -61,8 +96,20 @@ results = [:arm, :intel].map do |arch|
     end
     raise "Expected exactly one #{hook_class} artifact" unless hooks.length == 1 && hooks.first.is_a?(hook_class)
 
-    SystemCommand.recorded_calls = []
-    hooks.first.install_phase
+    hook = hooks.first
+    hook.install_phase
+    verify_fixture.call(false)
+
+    # A replacement app on upgrade/reinstall must be unquarantined again.
+    target_paths.each { |path| xattr("-w", quarantine, quarantine_value, path) }
+    verify_fixture.call(true)
+    hook.install_phase
+    verify_fixture.call(false)
+
+    # Postflight must not run while uninstalling.
+    target_paths.each { |path| xattr("-w", quarantine, quarantine_value, path) }
+    hook.uninstall_phase
+    verify_fixture.call(true)
     {
       arch: arch,
       token: cask.token,
@@ -72,7 +119,7 @@ results = [:arm, :intel].map do |arch|
       name: cask.name,
       desc: cask.desc,
       modern: modern,
-      commands: SystemCommand.recorded_calls,
+      lifecycle: ["install", "reinstall", "uninstall"],
     }
   end
 end
@@ -97,23 +144,7 @@ function parseWithHomebrew(t, source, brew = 'brew', mode = 'modern') {
   for (const result of results) {
     assert.equal(result.token, 'gtv-desktop-remote');
     assert.equal(result.version, version);
-    assert.deepEqual(result.commands, [
-      [
-        '/usr/bin/xattr',
-        {
-          args: ['-dr', 'com.apple.quarantine', join(appdir, 'GTV Remote.app')],
-          ...(result.modern ? {
-            sudo: false,
-            env: {},
-            input: [],
-            print_stdout: false,
-            print_stderr: true,
-            reset_uid: true,
-            chdir: null,
-          } : {}),
-        },
-      ],
-    ]);
+    assert.deepEqual(result.lifecycle, ['install', 'reinstall', 'uninstall']);
   }
   return results;
 }

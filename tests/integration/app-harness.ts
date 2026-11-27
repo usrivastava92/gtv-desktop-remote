@@ -152,6 +152,27 @@ export class AppHarness {
     // Playwright disposes its process channel on native quit; retain the real child handle.
     this.appProcess = this.app.process();
     this.page = await this.app.firstWindow();
+    if (process.platform === 'linux') {
+      const storage = await this.app.evaluate(({ safeStorage }) => {
+        const backend = safeStorage.getSelectedStorageBackend();
+        const available = safeStorage.isEncryptionAvailable();
+        if (backend !== 'gnome_libsecret' || !available)
+          return { backend, available, roundTrip: false };
+        const probe = 'non-secret integration storage probe';
+        const encrypted = safeStorage.encryptString(probe);
+        return {
+          backend,
+          available,
+          roundTrip:
+            !encrypted.includes(Buffer.from(probe)) &&
+            safeStorage.decryptString(encrypted) === probe,
+        };
+      });
+      expect(
+        storage,
+        'Linux native safeStorage prerequisite failed: start and unlock Secret Service in the Electron display/D-Bus session; basic_text is forbidden'
+      ).toEqual({ backend: 'gnome_libsecret', available: true, roundTrip: true });
+    }
     await this.app.evaluate(({ app, BrowserWindow, globalShortcut }) => {
       const fixture = globalThis as typeof globalThis & NativeObservations;
       const events: NativeWindowObservation[] = [];
