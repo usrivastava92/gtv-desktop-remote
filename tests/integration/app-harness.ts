@@ -131,6 +131,13 @@ export class AppHarness {
   async launch(options: AppLaunchOptions = {}) {
     this.app = await _electron.launch({
       args: [
+        // Playwright prepends its own Node loader; run our switch-only preload after it.
+        ...(process.platform === 'linux'
+          ? [
+              '--require',
+              path.join(repository, 'tests/integration/platform-fixtures/linux-password-store.cjs'),
+            ]
+          : []),
         repository,
         `--user-data-dir=${this.profile}`,
         ...(options.fakeMediaUi === false ? [] : ['--use-fake-ui-for-media-stream']),
