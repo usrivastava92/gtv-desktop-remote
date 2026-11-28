@@ -208,7 +208,7 @@ test('RESET: cancel preserves identity, confirm deletes saved and legacy credent
   await reset.click();
   // Await reset completion in Settings, then verify the cleared picker.
   await expect(reset).toBeEnabled();
-  await h.page.getByRole('button', { name: 'Done', exact: true }).click();
+  await h.page.getByRole('button', { name: 'Back', exact: true }).click();
   await expect(h.page.locator('.ui-devices-content .ui-card')).toHaveCount(0);
   expect((await h.api('bootstrap')).devices).toEqual([]);
   const certificateFiles = await readdir(path.join(h.profile, 'androidtvremote')).catch(

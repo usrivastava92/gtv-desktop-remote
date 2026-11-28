@@ -206,7 +206,7 @@ Home behavior. Keyboard auto-repeat does not generate extra Apple Home presses.
 
 ### Settings
 
-Settings replaces the remote or device list while open. Click **Done** or press **Escape** to return; longer settings and error messages scroll inside the app window.
+Settings replaces the remote or device list while open. Click the circular **Back** arrow or press **Escape** to return; longer settings and error messages scroll inside the app window.
 
 Click the gear at the far right of the device, pairing, or remote header to open **Settings**. Enable or disable **Launch at login** in the installed macOS app; development Electron is never added to Login Items. It is off by default, and macOS **System Settings → General → Login Items** remains authoritative. Opening Settings refreshes the current macOS state, including external changes made while the app is running, without re-enabling a disabled item. If macOS readback fails, the toggle shows an unknown state and an error; reopen Settings to retry.
 
@@ -219,6 +219,7 @@ Click or focus the show/hide shortcut control, then press and release the actual
 **TV not appearing in the scan?**
 
 - Confirm the TV and Mac are on the same Wi-Fi network.
+- In macOS **System Settings → Privacy & Security → Local Network**, allow **GTV Remote**, then scan again.
 - For Google TV/Android TV, confirm Android TV Remote Service is enabled. For Apple/Fire, confirm the TV is awake and its local-network services are available.
 - Try re-running the network scan.
 

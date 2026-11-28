@@ -208,10 +208,8 @@ p {
   padding: 1rem 1.5rem;
 }
 
-.ui-settings-header .ui-settings-button {
-  min-height: 2rem;
-  padding: 0.25rem;
-  background: transparent;
+.ui-settings-header .ui-icon-button {
+  background: var(--surface-high);
 }
 
 .ui-settings-heading {

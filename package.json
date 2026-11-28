@@ -78,7 +78,18 @@
       "category": "public.app-category.utilities",
       "icon": "taskbar-icon.icns",
       "extendInfo": {
-        "LSUIElement": true
+        "LSUIElement": true,
+        "NSLocalNetworkUsageDescription": "GTV Remote uses your local network to discover, pair with, and control your Google TV, Apple TV, and Fire TV devices.",
+        "NSBonjourServices": [
+          "_androidtvremote2._tcp",
+          "_googlecast._tcp",
+          "_adb-tls-connect._tcp",
+          "_adb-tls-pairing._tcp",
+          "_companion-link._tcp",
+          "_airplay._tcp",
+          "_device-info._tcp",
+          "_amzn-fireTv._tcp"
+        ]
       }
     },
     "dmg": {

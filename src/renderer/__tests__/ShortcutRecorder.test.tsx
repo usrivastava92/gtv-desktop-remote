@@ -111,7 +111,7 @@ describe('accessible shortcut recording', () => {
 
   it.each([
     { shiftKey: false, destination: 'Save shortcut' },
-    { shiftKey: true, destination: 'Done' },
+    { shiftKey: true, destination: 'Back' },
   ])(
     'restores before moving Tab focus to $destination without restarting capture',
     async ({ shiftKey, destination }) => {
@@ -130,7 +130,7 @@ describe('accessible shortcut recording', () => {
         const [recording, setRecording] = useState(false);
         return (
           <section>
-            <button disabled={recording}>Done</button>
+            <button disabled={recording}>Back</button>
             <ShortcutRecorder
               shortcut={preferences.shortcut}
               disabled={false}

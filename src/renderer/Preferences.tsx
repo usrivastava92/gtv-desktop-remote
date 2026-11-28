@@ -70,11 +70,24 @@ export function Preferences({ onClose, children }: { onClose: () => void; childr
         </h2>
         <button
           type="button"
-          className="ui-settings-button ui-dragless"
+          className="ui-icon-button ui-dragless"
+          aria-label="Back"
+          title="Back"
           onClick={onClose}
           disabled={busy || recording}
         >
-          Done
+          <svg
+            className="h-5 w-5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M19 12H5m7 7-7-7 7-7" />
+          </svg>
         </button>
       </header>
       <div className="ui-settings-content">

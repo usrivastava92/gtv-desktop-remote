@@ -200,7 +200,7 @@ test('PREF-DEFAULT-ALIASES-LABELS: default chord, equivalent aliases and native-
   await expect(h.page.locator('#global-shortcut')).toHaveText(
     `${platform === 'darwin' ? 'Cmd' : 'Ctrl'}+Shift+G`
   );
-  await h.page.getByRole('button', { name: 'Done', exact: true }).click();
+  await h.page.getByRole('button', { name: 'Back', exact: true }).click();
   const alias = await h.api('changePreference', { shortcut: 'ctrl+option+F9' });
   expect(alias.error).toBeNull();
   expect(alias.preferences.shortcut).toBe('Control+Alt+F9');
