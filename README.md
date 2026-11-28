@@ -100,10 +100,10 @@ do not reset or remove devices as part of a normal upgrade.
 Physical Apple TV and Fire TV discovery was historically observed in the packaged
 app. Apple pairing, authenticated reconnection and native Home tap/hold dispatch
 were exercised against a physical Apple TV; the operator confirmed that holding H
-or Home opened Control Center. No TV-screen capture was taken. Physical Fire
-service activation and the four-digit PIN request were observed, but **Fire PIN
-validation, saved-token reconnection and authenticated controls remain unverified
-on hardware**. Local protocol tests are not firmware validation. See the
+or Home opened Control Center. No TV-screen capture was taken. The operator also
+confirmed physical Fire TV pairing, connection and remote use in the packaged app.
+Fire saved-token reconnection after app restart and the complete control/text
+matrix remain unverified. Local protocol tests are not firmware validation. See the
 [provider contract](DEVELOPMENT.md#multi-tv-provider-contract) and
 [test fidelity limits](tests/integration/README.md#multi-tv-providers).
 

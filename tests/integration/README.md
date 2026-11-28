@@ -142,11 +142,12 @@ physical Apple TV and Fire TV devices. These fixtures do not perform physical
 PIN pairing. Separately, physical Apple pairing and authenticated reconnect were
 historically exercised through the packaged app, with renderer H/mouse Home taps,
 holds and blur cancellation using native transport. The operator confirmed Home
-hold opened Control Center; TV-screen state was not captured. Physical Fire
-service activation and its four-digit PIN request were observed, but Fire PIN
-validation, token reconnect and authenticated controls remain unverified on
-hardware. Keychain-unavailable credential behavior is not exercised by the wire
-fixture. None of these observations certifies the complete hardware feature matrix.
+hold opened Control Center; TV-screen state was not captured. Physical Fire TV
+pairing, connection and remote use were also confirmed by the operator in the
+packaged app. Fire saved-token reconnect after app restart and the complete
+control/text matrix remain unverified. Keychain-unavailable credential behavior
+is not exercised by the wire fixture. None of these observations certifies the
+complete hardware feature matrix.
 
 ### Release evidence boundary
 

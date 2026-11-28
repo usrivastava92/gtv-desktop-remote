@@ -439,11 +439,13 @@ Current local preparation evidence (not CI or physical-TV acceptance):
       reconnect, changed-address discovery and every advertised control/text action.
       Confirm microphone stays disabled. Recheck short Home and held H/mouse Home
       opening Control Center, including blur cancellation without an extra tap.
-- [ ] On physical Fire TV, discover a cold DIAL service without scan activation;
-      request pairing and verify its four-digit PIN, wrong-PIN/cancel recovery,
-      saved-token reconnect after app restart and every authenticated control/text
-      action. Confirm volume and microphone stay disabled, and switching providers
-      closes the old session. Check native service timeout/recovery on the trusted LAN.
+- [x] On physical Fire TV, discover, complete pairing, connect and use the remote.
+      The operator confirmed these flows in the local packaged app.
+- [ ] On physical Fire TV, verify cold DIAL discovery without scan activation,
+      wrong-PIN/cancel recovery, saved-token reconnect after app restart and every
+      advertised control/text action. Confirm volume and microphone stay disabled,
+      and switching providers closes the old session. Check native service
+      timeout/recovery on the trusted LAN.
 - [ ] Check mixed-platform discovery, repeated scans, same-address identity
       separation, address changes, credential ownership and forget/reset behavior;
       confirm Keychain failure never writes plaintext Apple/Fire credentials.
@@ -468,9 +470,10 @@ Current local preparation evidence (not CI or physical-TV acceptance):
 Historical packaged-app evidence: physical Apple/Fire discovery was observed.
 Apple pairing, authenticated reconnect and Home tap/hold dispatch were exercised;
 the operator reported Control Center opened on hold, but no TV-screen capture
-was taken. Fire service activation and PIN request were observed, **not** Fire PIN
-validation, token reconnect or authenticated controls. These Fire checks and
-full installed-package/architecture acceptance remain outstanding.
+was taken. The operator also confirmed physical Fire TV pairing, connection and
+remote use in the local packaged app. Fire wrong-PIN/cancel recovery, saved-token
+reconnect after app restart and the complete control/text matrix remain open,
+along with full installed-package/architecture acceptance.
 
 ### What CI does on each push
 
