@@ -455,10 +455,11 @@ Current local preparation evidence (not CI or physical-TV acceptance):
 - [ ] Review Fire's unpinned/self-signed TLS trusted-LAN limitation in release
       notes, unsupported features, unresolved issues and evidence gaps. Keep public
       claims narrower than the verified device/firmware matrix.
-- [ ] Sponsorship is explicitly deferred by the user until GitHub Sponsors is
-      activated and its public funding destination works. Funding integration is
-      not complete; do not add a dead link, funding configuration, placeholder or
-      no-op control before activation.
+- [x] The public [GitHub Sponsors page](https://github.com/sponsors/usrivastava92)
+      is live; `.github/FUNDING.yml` adds the Sponsor button, and the README links
+      to it with a local coffee badge and explains voluntary support.
+- [ ] Verify payout readiness separately; it has not been verified. Public page
+      availability does not establish payout readiness.
 - [ ] Preview the intended v3 version and release notes without dispatching a
       release. Before separately authorized publication, review both architecture
       assets/checksums, updater selection, Homebrew cask generation/tap access and

@@ -231,3 +231,15 @@ Click or focus the show/hide shortcut control, then press and release the actual
 Development setup, packaging, debug telemetry, and local build workflows are documented in [DEVELOPMENT.md](DEVELOPMENT.md).
 
 After dependency setup and `yarn build`, `yarn test:integration` runs the real Electron functional regression guardrail without a live TV. It uses isolated temporary profiles, genuine certificate-bound TLS pairing, an independent TV protocol/model emulator, production fake-device microphone capture and sandbox updater install/rollback operations. See [integration setup, the feature-to-scenario matrix and narrow hardware/native fidelity limits](tests/integration/README.md). The mandatory CI functional job runs under Linux Xvfb; this guardrail is not a firmware-interoperability or native macOS signing/permissions guarantee.
+
+---
+
+## Support development
+
+[![Buy me a coffee via GitHub Sponsors](assets/icons/support-development.svg)](https://github.com/sponsors/usrivastava92)
+
+GTV Desktop Remote remains free and open source. If it makes your day a little easier,
+voluntary support through **GitHub Sponsors** helps with maintenance, device testing,
+and Apple Developer Program costs toward Developer ID-signed and notarized macOS packages.
+We're also exploring Mac App Store distribution, subject to technical feasibility and
+Apple review—not a promised release. Thanks for helping keep the remote going!
