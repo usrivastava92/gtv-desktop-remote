@@ -24,7 +24,18 @@
     <a href="https://scorecard.dev/status/github.com/usrivastava92/gtv-desktop-remote">
       <img src="https://api.scorecard.dev/projects/github.com/usrivastava92/gtv-desktop-remote/badge" alt="OpenSSF Scorecard" />
     </a>
+    <a href="https://github.com/sponsors/usrivastava92">
+      <img src="https://img.shields.io/badge/GitHub%20Sponsors-Sponsor-ea4aaa?logo=githubsponsors&amp;logoColor=white" alt="GitHub Sponsors" />
+    </a>
   </p>
+
+  <p>
+    <a href="https://github.com/sponsors/usrivastava92">
+      <img src="assets/icons/support-development.svg" alt="Buy me a coffee via GitHub Sponsors" />
+    </a>
+  </p>
+  <p>Free and open source. Voluntary support helps fund maintenance, device testing, and Apple Developer Program costs toward signed and notarized macOS packages.<br/>
+  <a href="#support-development">More about supporting development</a></p>
 </div>
 
 ---
@@ -41,6 +52,16 @@ GTV Desktop Remote is a macOS menubar app for compatible Google TV/Android TV, A
 - **Stable device identity** - supported discovery identifiers can retain pairing after an IP change; reconnect is explicit, and identity availability depends on the TV
 - **Global shortcut** - customizable show/hide shortcut (default `CmdOrCtrl+Shift+G`)
 - **Launch at login** - optional macOS Login Item, off by default
+
+The device picker reserves three row slots each for known and new devices.
+Both lists scroll independently; shorter windows can also scroll the picker
+content without shrinking either list. Settings contains manual update checks
+and **Clear app data** with a **Clear** button. Shortcut instructions expand on demand to keep Settings compact.
+Automatic update detection shows an update pill below discovery help only when
+an installable update is available.
+
+The remote header shows the device name in a green pill when connected or a red
+pill when not yet connected, with the textual connection status available in its tooltip.
 
 ### Platform support
 
@@ -146,7 +167,7 @@ access. Do not enter an Apple account password into a TV PIN field.
 
 ### Remote appearance
 
-Click the sun in the device-list or remote header to switch to light theme, or the moon to return to dark theme. Dark is the default; your choice is remembered across launches and also applies to Settings. The remote header uses a centered, subtly green **Connected** pill for an active connection and a neutral pill while connecting; the device-list header has no connection pill.
+Click the sun in the device-list or remote header to switch to light theme, or the moon to return to dark theme. Dark is the default; your choice is remembered across launches and also applies to Settings. The remote header shows the device name in a green pill when connected or a red pill when not yet connected. Hover over the pill for the device name and textual connection status; the device-list header has no connection pill.
 
 ### Finding, hiding, and quitting the remote
 
@@ -189,7 +210,7 @@ Settings replaces the remote or device list while open. Click **Done** or press 
 
 Click the gear at the far right of the device, pairing, or remote header to open **Settings**. Enable or disable **Launch at login** in the installed macOS app; development Electron is never added to Login Items. It is off by default, and macOS **System Settings → General → Login Items** remains authoritative. Opening Settings refreshes the current macOS state, including external changes made while the app is running, without re-enabling a disabled item. If macOS readback fails, the toggle shows an unknown state and an error; reopen Settings to retry.
 
-Click or focus the show/hide shortcut control, then press and release the actual keys and click **Save shortcut**. For example, hold Control and Option and press G on Mac to record **Ctrl+Opt+G** (**Ctrl+Alt+G** on Windows), then release G to finish recording. Meta is displayed as **Cmd** on Mac and **Win** on Windows. Use modifiers plus a letter, digit, or F1–F24; at least one modifier must be other than Shift. Modifier presses preview the combination; unsupported keys explain what is supported. After a supported chord is pressed, the control previews it and asks you to release the keys; recording finishes only when that chord's letter, digit, or function key is released. **Escape** cancels recording without closing Settings; **Tab**, leaving the control, or closing the view also cancels, including while a captured key is still held. While recording, this app temporarily releases its global shortcut so recording that same chord cannot hide the window, then restores it after the captured key is released or recording is cancelled. If another app takes the binding during recording, Settings reports that it could not be restored rather than claiming it is active; the menu bar remains usable. Recorded shortcuts are stored internally in Electron accelerator format, not display labels, and saved across restarts. A failed replacement keeps the previous working shortcut. If the saved shortcut is occupied on startup, Settings shows the problem; the menu bar still opens the remote.
+Click or focus the show/hide shortcut control, then press and release the actual keys and click **Save**. For example, hold Control and Option and press G on Mac to record **Ctrl+Opt+G** (**Ctrl+Alt+G** on Windows), then release G to finish recording. Meta is displayed as **Cmd** on Mac and **Win** on Windows. Use modifiers plus a letter, digit, or F1–F24; at least one modifier must be other than Shift. Modifier presses preview the combination; unsupported keys explain what is supported. After a supported chord is pressed, the control previews it and asks you to release the keys; recording finishes only when that chord's letter, digit, or function key is released. **Escape** cancels recording without closing Settings; **Tab**, leaving the control, or closing the view also cancels, including while a captured key is still held. While recording, this app temporarily releases its global shortcut so recording that same chord cannot hide the window, then restores it after the captured key is released or recording is cancelled. If another app takes the binding during recording, Settings reports that it could not be restored rather than claiming it is active; the menu bar remains usable. Recorded shortcuts are stored internally in Electron accelerator format, not display labels, and saved across restarts. A failed replacement keeps the previous working shortcut. If the saved shortcut is occupied on startup, Settings shows the problem; the menu bar still opens the remote.
 
 ---
 
@@ -227,8 +248,6 @@ After dependency setup and `yarn build`, `yarn test:integration` runs the real E
 ---
 
 ## Support development
-
-[![Buy me a coffee via GitHub Sponsors](assets/icons/support-development.svg)](https://github.com/sponsors/usrivastava92)
 
 GTV Desktop Remote remains free and open source. If it makes your day a little easier,
 voluntary support through **GitHub Sponsors** helps with maintenance, device testing,

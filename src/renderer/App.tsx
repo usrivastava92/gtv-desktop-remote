@@ -453,6 +453,10 @@ function App() {
         (isConnected || bootstrap.deviceState.status === 'connecting')
       ? 'remote'
       : 'devices';
+  const remoteStatusLabel =
+    currentView === 'remote'
+      ? `${currentRemoteDeviceName ?? 'Choose Device'}, ${isConnected ? 'Connected' : bootstrap.deviceState.status}`
+      : undefined;
   const bridgeDisabled = busy || !bridgeReady;
   const remoteDisabled = bridgeDisabled || !isConnected;
   const pairingStep = bootstrap.deviceState.pairing ?? DEFAULT_PAIRING_STEP;
@@ -1436,19 +1440,39 @@ function App() {
     return 'Offline';
   }
 
-  function renderUpdaterPanel() {
+  function renderUpdaterPanel(inSettings = false) {
     const isDismissed =
-      updaterStatus.updateInstallable &&
+      !inSettings &&
       updaterStatus.latestVersion &&
       dismissedUpdateVersion === updaterStatus.latestVersion;
 
     if (updaterStatus.updateInstallable && !isDismissed) {
-      return (
-        <section className="ui-update-panel mt-4">
-          <div className="ui-update-head">
-            <span className="ui-card-title ui-update-title-centered">Update Available</span>
+      if (!inSettings) {
+        return (
+          <div className="ui-update-offer">
+            <button
+              className="ui-update-check"
+              disabled={bridgeDisabled || updaterStatus.inProgress}
+              onClick={() => {
+                void handleInstallUpdate();
+              }}
+            >
+              {updaterStatus.inProgress ? (
+                <>
+                  Updating
+                  {updaterStatus.progressPercent !== undefined
+                    ? ` ${String(updaterStatus.progressPercent)}%`
+                    : '…'}
+                </>
+              ) : (
+                <>
+                  Update {updaterStatus.currentVersion} → {updaterStatus.latestVersion}
+                </>
+              )}
+            </button>
             <button
               className="ui-update-close"
+              disabled={updaterStatus.inProgress}
               onClick={() => {
                 setDismissedUpdateVersion(updaterStatus.latestVersion ?? null);
               }}
@@ -1457,9 +1481,21 @@ function App() {
               ✕
             </button>
           </div>
-          <p className="ui-copy ui-update-copy">
-            {updaterStatus.currentVersion} → {updaterStatus.latestVersion}
-          </p>
+        );
+      }
+
+      return (
+        <section className="ui-settings-update-available">
+          <p className="ui-settings-copy">{updaterStatus.latestVersion} available</p>
+          <button
+            className="ui-settings-button"
+            disabled={bridgeDisabled || updaterStatus.inProgress}
+            onClick={() => {
+              void handleInstallUpdate();
+            }}
+          >
+            {updaterStatus.inProgress ? 'Updating…' : 'Update'}
+          </button>
           {updaterStatus.inProgress ? (
             <div className="mt-2 w-full">
               <div className="ui-update-progress-track">
@@ -1478,22 +1514,21 @@ function App() {
               </p>
             </div>
           ) : null}
-          <button
-            className="ui-update-action"
-            disabled={bridgeDisabled || updaterStatus.inProgress}
-            onClick={() => {
-              void handleInstallUpdate();
-            }}
-          >
-            {updaterStatus.inProgress ? 'Updating…' : 'Update'}
-          </button>
         </section>
       );
     }
 
+    if (!inSettings) return null;
+
     if (updaterStatus.inProgress || updaterStatus.stage === 'checking') {
-      return <div className="ui-update-check mt-4">{updaterStatus.message}</div>;
+      return <div className="ui-update-check">{updaterStatus.message}</div>;
     }
+
+    return null;
+  }
+
+  function renderRollbackPanel() {
+    if (updaterStatus.inProgress || updaterStatus.stage === 'checking') return null;
 
     const rollbackVersion = updaterStatus.rollbackVersion ?? null;
     const isRollbackDismissed =
@@ -1503,7 +1538,7 @@ function App() {
 
     if (updaterStatus.rollbackAvailable && rollbackVersion && !isRollbackDismissed) {
       return (
-        <section className="ui-update-panel mt-4">
+        <section className="ui-update-panel">
           <div className="ui-update-head">
             <span className="ui-card-title ui-update-title-centered">Rollback Available</span>
             <button
@@ -1548,11 +1583,16 @@ function App() {
       );
     }
 
+    return null;
+  }
+
+  function renderUpdateCheck() {
     return (
       <>
         <button
-          className="ui-update-check mt-4"
-          disabled={bridgeDisabled}
+          className="ui-settings-button"
+          aria-label="Check for Updates"
+          disabled={bridgeDisabled || updaterStatus.inProgress}
           onClick={() => {
             void getDesktopApi()
               .checkForUpdates()
@@ -1582,7 +1622,7 @@ function App() {
               });
           }}
         >
-          Check for Updates
+          Check now
         </button>
         {updaterToast ? <div className="ui-update-toast">{updaterToast}</div> : null}
       </>
@@ -1602,7 +1642,46 @@ function App() {
                 settingsButtonRef.current?.focus();
               });
             }}
-          />
+          >
+            <section className="ui-settings-group" aria-labelledby="updates-heading">
+              <h3 id="updates-heading" className="ui-settings-section-label">
+                Software updates
+              </h3>
+              <div className="ui-settings-card">
+                <div className="ui-settings-action-row">
+                  <p className="ui-settings-copy">Version {updaterStatus.currentVersion}</p>
+                  {renderUpdateCheck()}
+                </div>
+                {renderUpdaterPanel(true)}
+                {renderRollbackPanel()}
+              </div>
+            </section>
+            <section className="ui-settings-group" aria-labelledby="reset-heading">
+              <h3 id="reset-heading" className="ui-settings-section-label">
+                Device data
+              </h3>
+              <div className="ui-settings-card">
+                <div className="ui-settings-action-row">
+                  <p className="ui-settings-copy">Clear app data.</p>
+                  <button
+                    className="ui-settings-button ui-settings-button-danger"
+                    aria-label="Clear app state"
+                    disabled={bridgeDisabled}
+                    onClick={() => {
+                      void handleResetState();
+                    }}
+                  >
+                    Clear
+                  </button>
+                </div>
+                {bootstrap.deviceState.status === 'error' ? (
+                  <p role="alert" className="ui-settings-message ui-settings-error">
+                    {bootstrap.deviceState.message}
+                  </p>
+                ) : null}
+              </div>
+            </section>
+          </Preferences>
         ) : (
           <>
             <header className={frameHeaderClassName}>
@@ -1633,12 +1712,14 @@ function App() {
                       <div
                         className={classes(
                           'ui-status-pill',
-                          isConnected && 'ui-status-pill-connected',
-                          bootstrap.deviceState.status === 'error' && 'ui-status-pill-error'
+                          isConnected ? 'ui-status-pill-connected' : 'ui-status-pill-error'
                         )}
+                        role="status"
+                        aria-label={remoteStatusLabel}
+                        title={remoteStatusLabel}
                       >
                         <span className="ui-pill-text">
-                          {isConnected ? 'Connected' : bootstrap.deviceState.status}
+                          {currentRemoteDeviceName ?? 'Choose Device'}
                         </span>
                       </div>
                     ) : null}
@@ -1660,14 +1741,13 @@ function App() {
             </header>
 
             {currentView === 'devices' ? (
-              <div className="ui-screen-scroll">
+              <div className="ui-device-picker">
                 <div className="ui-devices-content">
                   <section className="ui-section">
                     <div className="ui-section-row">
                       <h2 className="ui-section-heading">Known Devices</h2>
-                      <span className="ui-live-dot" />
                     </div>
-                    <div className="ui-list">
+                    <div className="ui-list ui-device-list ui-known-list">
                       {pairedNetworkDevices.length === 0 ? (
                         <div className="ui-empty">No paired devices yet.</div>
                       ) : (
@@ -1694,7 +1774,13 @@ function App() {
                                 <div
                                   className={classes('ui-avatar', isActive && 'ui-avatar-active')}
                                 >
-                                  <Icon name="tv" className="h-[1.2rem] w-[1.2rem]" />
+                                  <Icon
+                                    name={resolveProviderIcon(
+                                      option.savedDevice.platform,
+                                      bootstrap.providers
+                                    )}
+                                    className="h-6 w-7"
+                                  />
                                 </div>
                                 <div className="ui-card-copy">
                                   <span className="ui-card-title" title={displayName}>
@@ -1737,7 +1823,7 @@ function App() {
                         />{' '}
                       </button>
                     </div>
-                    <div className="ui-list">
+                    <div className="ui-list ui-device-list ui-discovered-list">
                       {unpairedNetworkDevices.length === 0 ? (
                         <div className="ui-empty ui-empty-recessed">
                           No new devices detected right now.
@@ -1756,8 +1842,8 @@ function App() {
                               <div className="ui-found-main">
                                 <div className="ui-found-icon">
                                   <Icon
-                                    name={device.source === 'googlecast' ? 'cast' : 'devices'}
-                                    className="h-[1.2rem] w-[1.2rem]"
+                                    name={resolveProviderIcon(device.platform, bootstrap.providers)}
+                                    className="h-6 w-7"
                                   />
                                 </div>
                                 <div className="ui-card-copy">
@@ -1781,7 +1867,9 @@ function App() {
                       )}
                     </div>
                   </section>
+                </div>
 
+                <div className="ui-devices-footer">
                   <div className="ui-help">
                     <button
                       className="ui-help-chip"
@@ -1792,19 +1880,9 @@ function App() {
                     >
                       Don&apos;t see your device?
                     </button>
-                    <button
-                      className="ui-help-chip ui-help-chip-danger"
-                      disabled={bridgeDisabled}
-                      onClick={() => {
-                        void handleResetState();
-                      }}
-                    >
-                      Reset App State
-                    </button>
                   </div>
+                  {updaterPanel}
                 </div>
-
-                <div className="ui-devices-footer">{updaterPanel}</div>
 
                 {bootstrap.deviceState.status === 'error' ||
                 bootstrap.deviceState.status === 'connecting' ||
@@ -1899,12 +1977,6 @@ function App() {
 
             {currentView === 'remote' ? (
               <div className="ui-remote-screen">
-                <section className="ui-remote-summary">
-                  <div className="ui-status-pill">
-                    <span>{currentRemoteDeviceName ?? 'Choose Device'}</span>
-                  </div>
-                </section>
-
                 {bootstrap.deviceState.status === 'error' ? (
                   <div className="ui-alert mx-6 mb-3 mt-0">{bootstrap.deviceState.message}</div>
                 ) : null}
@@ -1959,16 +2031,82 @@ function App() {
                   </div>
                 </section>
 
-                {assistantStatus === 'active' ? (
-                  <div className="ui-assistant-wave" aria-label="Assistant listening">
-                    <span className="ui-assistant-dot ui-assistant-dot-blue" />
-                    <span className="ui-assistant-dot ui-assistant-dot-red" />
-                    <span className="ui-assistant-dot ui-assistant-dot-yellow" />
-                    <span className="ui-assistant-dot ui-assistant-dot-green" />
-                  </div>
-                ) : null}
-
                 <section className="ui-nav-well">
+                  {assistantStatus === 'active' ? (
+                    <div
+                      className="ui-assistant-curve"
+                      role="status"
+                      aria-label="Assistant listening"
+                    >
+                      <span className="sr-only">Assistant listening</span>
+                      <svg viewBox="0 0 360 104" preserveAspectRatio="none" aria-hidden="true">
+                        <defs>
+                          <linearGradient id="assistant-curve-tone">
+                            <stop offset="0%" stopColor="#4285f4" />
+                            <stop offset="25%" stopColor="#ea4335" />
+                            <stop offset="50%" stopColor="#fbbc05" />
+                            <stop offset="75%" stopColor="#34a853" />
+                            <stop offset="100%" stopColor="#4285f4" />
+                          </linearGradient>
+                          <linearGradient id="assistant-curve-fade" x2="0%" y2="100%">
+                            <stop offset="0%" stopColor="white" stopOpacity="0" />
+                            <stop offset="70%" stopColor="white" stopOpacity=".65" />
+                            <stop offset="100%" stopColor="white" />
+                          </linearGradient>
+                          <mask
+                            id="assistant-curve-fade-mask"
+                            maskUnits="userSpaceOnUse"
+                            x="0"
+                            y="0"
+                            width="360"
+                            height="104"
+                          >
+                            <rect width="360" height="104" fill="url(#assistant-curve-fade)" />
+                          </mask>
+                          <clipPath id="assistant-curve-above">
+                            <path d="M0 0H360V104C360 77.5 338.5 56 312 56H48C21.5 56 0 77.5 0 104Z" />
+                          </clipPath>
+                          <filter
+                            id="assistant-curve-soft"
+                            x="-30%"
+                            y="-100%"
+                            width="160%"
+                            height="300%"
+                          >
+                            <feGaussianBlur stdDeviation="10" />
+                          </filter>
+                        </defs>
+                        <g
+                          className="ui-assistant-glow"
+                          clipPath="url(#assistant-curve-above)"
+                          mask="url(#assistant-curve-fade-mask)"
+                        >
+                          <path
+                            d="M0 104C0 77.5 21.5 56 48 56H312C338.5 56 360 77.5 360 104"
+                            fill="none"
+                            stroke="url(#assistant-curve-tone)"
+                            strokeWidth="36"
+                            filter="url(#assistant-curve-soft)"
+                          />
+                        </g>
+                        <path
+                          d="M0 104C0 77.5 21.5 56 48 56H312C338.5 56 360 77.5 360 104"
+                          fill="none"
+                          stroke="url(#assistant-curve-tone)"
+                          strokeWidth="2"
+                          opacity=".9"
+                        />
+                        <path
+                          className="ui-assistant-highlight"
+                          pathLength="1000"
+                          d="M0 104C0 77.5 21.5 56 48 56H312C338.5 56 360 77.5 360 104"
+                          fill="none"
+                          stroke="url(#assistant-curve-tone)"
+                          strokeWidth="3"
+                        />
+                      </svg>
+                    </div>
+                  ) : null}
                   <div className="ui-nav-grid">
                     <button
                       className="ui-nav-item"
@@ -2094,6 +2232,11 @@ function App() {
                             assistantStatus === 'active' && 'ui-media-button-assistant-active'
                           )}
                           disabled={voiceDisabled}
+                          aria-label={
+                            supportsAssistantVoice(capabilities)
+                              ? 'Voice assistant'
+                              : 'Voice assistant unavailable on this device'
+                          }
                           onClick={() => {
                             if (assistantActiveRef.current || assistantStartingRef.current) {
                               void stopAssistantSession();
@@ -2102,7 +2245,13 @@ function App() {
                             }
                           }}
                         >
-                          <Icon name="assistant" className="h-10 w-10" />
+                          <Icon
+                            name={resolveProviderIcon(
+                              currentRemoteDevice?.platform,
+                              bootstrap.providers
+                            )}
+                            className="h-10 w-10"
+                          />
                         </button>
                         <button
                           className="ui-media-button ui-media-danger"

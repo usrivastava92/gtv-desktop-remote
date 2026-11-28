@@ -187,8 +187,9 @@ test('RESET: cancel preserves identity, confirm deletes saved and legacy credent
   const devices = (await h.api('bootstrap')).devices;
   expect(devices).toHaveLength(1);
   const certificate = await h.certificate();
-  const reset = h.page.getByRole('button', { name: 'Reset App State', exact: true });
+  const reset = h.page.getByRole('button', { name: 'Clear app state', exact: true });
   await h.page.getByRole('button', { name: 'Devices', exact: true }).click();
+  await h.page.getByRole('button', { name: 'Settings', exact: true }).click();
   // Fixture only the OS confirmation decision; clicks, reset IPC and storage stay real.
   // CDP dismissal does not reliably restore Electron's native window focus.
   await h.page.evaluate(() => {
@@ -205,9 +206,10 @@ test('RESET: cancel preserves identity, confirm deletes saved and legacy credent
     window.confirm = () => true;
   });
   await reset.click();
-  // Bootstrap storage empties before legacy cleanup; wait for the awaited renderer operation.
-  await expect(h.page.locator('.ui-devices-content .ui-card')).toHaveCount(0);
+  // Await reset completion in Settings, then verify the cleared picker.
   await expect(reset).toBeEnabled();
+  await h.page.getByRole('button', { name: 'Done', exact: true }).click();
+  await expect(h.page.locator('.ui-devices-content .ui-card')).toHaveCount(0);
   expect((await h.api('bootstrap')).devices).toEqual([]);
   const certificateFiles = await readdir(path.join(h.profile, 'androidtvremote')).catch(
     (error: NodeJS.ErrnoException) => {

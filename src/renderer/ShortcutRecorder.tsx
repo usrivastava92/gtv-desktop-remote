@@ -119,9 +119,7 @@ export function ShortcutRecorder(props: ShortcutRecorderProps) {
       callbacks.current.onError(result.error);
       if (shortcut && !result.error) callbacks.current.onChange(shortcut);
       setFeedback(
-        shortcut && !result.error
-          ? 'Shortcut recorded. Click Save shortcut to apply.'
-          : 'Recording cancelled.'
+        shortcut && !result.error ? 'Shortcut recorded. Save to apply.' : 'Recording cancelled.'
       );
     } catch (reason) {
       if (mounted.current) {
@@ -216,7 +214,7 @@ export function ShortcutRecorder(props: ShortcutRecorderProps) {
         {recording ? preview || 'Press shortcut…' : shortcutLabel(props.shortcut)}
       </button>
       <p id="shortcut-recording-status" role="status" className="ui-settings-copy">
-        {feedback || 'Focus or click the shortcut to record keys.'}
+        {feedback}
       </p>
     </>
   );
