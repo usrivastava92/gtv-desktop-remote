@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# bin/release — Manually trigger the Release GitHub Actions workflow.
+# bin/release - Manually trigger the Release GitHub Actions workflow.
 #
 # The repo uses semantic-release with Conventional Commits. Previously the
 # workflow ran on every push to `main`, which produced a new release per commit.
@@ -108,7 +108,7 @@ if [ "$ALLOW_DIRTY" = "false" ]; then
 fi
 
 info "Fetching latest refs from origin..."
-git fetch --tags --prune origin >/dev/null 2>&1 || warn "git fetch failed — continuing with local state."
+git fetch --tags --prune origin >/dev/null 2>&1 || warn "git fetch failed - continuing with local state."
 
 if [ "$ALLOW_BEHIND" = "false" ] && git rev-parse --verify "origin/$REF" >/dev/null 2>&1; then
   LOCAL_SHA=$(git rev-parse "$REF" 2>/dev/null || echo "")
@@ -145,7 +145,7 @@ NEXT_VERSION=$(printf '%s\n' "$RELEASE_INFO" | node -e "const fs = require('fs')
 if [ -n "$NEXT_VERSION" ]; then
   ok "Next version will be: $C_BOLD$NEXT_VERSION$C_RESET"
 else
-  warn "No releasable commits detected since last tag — triggering the workflow will produce no new release."
+  warn "No releasable commits detected since last tag - triggering the workflow will produce no new release."
 fi
 
 if [ "$DRY_RUN_ONLY" = "true" ]; then

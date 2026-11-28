@@ -34,7 +34,7 @@ export function useUpdaterStatus(
   dismissedRollbackVersion: string | null,
   onDismissedRollbackVersionChanged: (version: string | null) => void
 ) {
-  // Return type is inferred by TS — avoids importing React.Dispatch explicitly.
+  // Return type is inferred by TS - avoids importing React.Dispatch explicitly.
   const [updaterStatus, setUpdaterStatus] = useState<UpdaterStatus>(INITIAL_UPDATER_STATUS);
 
   const refreshRef = useRef<(() => Promise<void>) | undefined>(undefined);

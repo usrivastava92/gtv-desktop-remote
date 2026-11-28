@@ -320,7 +320,7 @@ handled by `electron-builder`.
 
 ### Manual, batched releases
 
-The workflow is **manually triggered** — it no longer fires on every push to
+The workflow is **manually triggered** - it no longer fires on every push to
 `main`. This lets you batch several commits into a single release instead of
 producing a new GitHub Release per commit.
 
@@ -515,7 +515,7 @@ After this setup, the flow for a release is:
 1. Someone (you) runs `yarn release` or "Run workflow" in the Actions UI.
 2. `authorize` job runs in seconds and either fails (unauthorized) or
    succeeds.
-3. The run pauses with a "Review required" banner — GitHub emails the
+3. The run pauses with a "Review required" banner - GitHub emails the
    reviewer(s).
 4. You click **Approve and run** → `build-macos` and `release` proceed and
    publish exactly one GitHub Release for the batched commits.

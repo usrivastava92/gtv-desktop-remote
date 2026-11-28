@@ -13,7 +13,7 @@
  *
  *   2. The EVENT half: `onXxx(listener): () => void` subscription methods,
  *      one per `EVENT_CHANNELS` entry. These are not covered by `ClientApi`
- *      because they are not request/response — they are push-only.
+ *      because they are not request/response - they are push-only.
  *
  * Defining the type here (in `shared/`) instead of in `main/preload.ts`
  * removes the cross-layer import from the renderer (`vite-env.d.ts`

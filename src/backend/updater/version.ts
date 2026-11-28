@@ -84,7 +84,7 @@ export function formatMinutesUntil(
   return `in about ${String(hours)} hour${hours > 1 ? 's' : ''}`;
 }
 
-/** True iff the asset ends in `.dmg` (case-sensitive — matches release naming). */
+/** True iff the asset ends in `.dmg` (case-sensitive - matches release naming). */
 export function isDmgAsset(asset: ReleaseAssetInfo): boolean {
   return asset.name.endsWith('.dmg');
 }

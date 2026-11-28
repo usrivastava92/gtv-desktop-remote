@@ -3,7 +3,7 @@ import { RuleConfigSeverity } from '@commitlint/types';
 const config = {
   extends: ['@commitlint/config-conventional'],
   rules: {
-    // Types allowed — conventional set plus a few project additions
+    // Types allowed - conventional set plus a few project additions
     'type-enum': [
       RuleConfigSeverity.Error,
       'always',

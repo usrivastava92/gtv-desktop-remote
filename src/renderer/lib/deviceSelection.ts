@@ -114,7 +114,7 @@ export function derivePairedNetworkDevices(
  * Derive the list of "unpaired network devices" shown in the picker's
  * lower section: every discovered device that does NOT match any saved
  * device that is already paired (by host OR by MAC). Important: an
- * existing pairing wins over a fresh discovery entry — otherwise the
+ * existing pairing wins over a fresh discovery entry - otherwise the
  * same TV would appear twice in the UI.
  */
 export function deriveUnpairedNetworkDevices(

@@ -12,7 +12,7 @@ export function platformOf(device: { platform?: string }): string {
  *
  * **Google TV non-regression gate #2** (after the cert store). These functions
  * decide whether a freshly-discovered device on the network is "the same" as
- * one the user already paired with — getting this wrong loses the pairing
+ * one the user already paired with - getting this wrong loses the pairing
  * credential when an IP changes. The priority order is preserved exactly from
  * the original code:
  *
@@ -131,7 +131,7 @@ export function identityChanged(previous: SavedDevice, updated: SavedDevice): bo
  * the saved list (so the asymmetry is reversed). Used by "save device" flows
  * to deduplicate.
  *
- * Returns `undefined` if no existing device matches — the caller should
+ * Returns `undefined` if no existing device matches - the caller should
  * create a fresh one.
  */
 export function findExistingForDraft(

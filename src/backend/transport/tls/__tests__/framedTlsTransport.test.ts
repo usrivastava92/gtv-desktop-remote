@@ -149,7 +149,7 @@ function makeFakeSocket(): FakeSocket & {
   };
 }
 
-describe('IFramedTlsTransport — production binding over socket', () => {
+describe('IFramedTlsTransport - production binding over socket', () => {
   it('send() forwards the buffer to socket.write and returns its result', () => {
     const socket = makeFakeSocket();
     const transport = createFramedTlsTransportOverSocket(socket as never);
@@ -290,7 +290,7 @@ describe('IFramedTlsTransport — production binding over socket', () => {
   });
 });
 
-describe('IFramedTlsTransport — createFakeFramedTlsTransport', () => {
+describe('IFramedTlsTransport - createFakeFramedTlsTransport', () => {
   it('writes are captured in call order', () => {
     const t = createFakeFramedTlsTransport();
     t.send(Buffer.from([1]));

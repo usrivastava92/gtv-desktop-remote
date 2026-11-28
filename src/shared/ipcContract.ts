@@ -3,15 +3,15 @@
  * the main process. introduces this contract so that:
  *
  *   1. `src/main/preload.ts` and `src/main/main.ts` can never drift in
- *      channel names — both import the same constants.
+ *      channel names - both import the same constants.
  * 2. New code paths ( services, future device drivers, Apple TV) plug
  *      into a typed map instead of inventing free-form strings.
  *   3. A trivial parity test (`__tests__/ipcContract.test.ts`) asserts that
  *      every channel declared here is shaped correctly.
  *
  * Two kinds of channels:
- *   - INVOKE channels — request/response over `ipcMain.handle` / `ipcRenderer.invoke`.
- *   - EVENT channels  — push-only, main → renderer via `webContents.send` / `ipcRenderer.on`.
+ *   - INVOKE channels - request/response over `ipcMain.handle` / `ipcRenderer.invoke`.
+ *   - EVENT channels  - push-only, main → renderer via `webContents.send` / `ipcRenderer.on`.
  *
  * Note: This module is intentionally **type-only at runtime** except for the
  * two frozen constant maps. The contract types reference shapes from

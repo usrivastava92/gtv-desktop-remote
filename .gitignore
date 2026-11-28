@@ -5,7 +5,7 @@ node_modules
 !.yarn/patches/
 dist
 dist-electron
-# electron-builder output directory — anchored & trailing slash so it only
+# electron-builder output directory - anchored & trailing slash so it only
 # matches the top-level build output, not files named "release" elsewhere
 # in the tree (e.g. bin/release).
 /release/

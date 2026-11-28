@@ -208,7 +208,7 @@ describe('VoiceSessionService.hasPending', () => {
   });
 });
 
-describe('VoiceSessionService — multiple concurrent sessions', () => {
+describe('VoiceSessionService - multiple concurrent sessions', () => {
   it('tracks stats per-sessionId independently', async () => {
     const fakes = makeFakes();
     const transport = fakes.transport;

@@ -24,7 +24,7 @@ export interface IRuntimeConfig {
 }
 
 /** Build a config that reads from `process.env`. Used by production wiring
- * (see `src/main/main.ts`). Tests SHOULD NOT use this — they should pass a
+ * (see `src/main/main.ts`). Tests SHOULD NOT use this - they should pass a
  * literal object to `setRuntimeConfig(...)` instead. */
 export function createNodeRuntimeConfig(env: NodeJS.ProcessEnv = process.env): IRuntimeConfig {
   return {
@@ -34,7 +34,7 @@ export function createNodeRuntimeConfig(env: NodeJS.ProcessEnv = process.env): I
 }
 
 /**
- * Build a runtime config from a partial — every missing field defaults to
+ * Build a runtime config from a partial - every missing field defaults to
  * its "production-safe disabled" value. Useful in tests that only care about
  * one flag. */
 export function createRuntimeConfig(partial: Partial<IRuntimeConfig> = {}): IRuntimeConfig {

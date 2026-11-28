@@ -8,7 +8,7 @@
  *
  * The interface mirrors the public surface of `CommandMetricsStore` and
  * `NoopCommandMetricsStore` in `src/main/metrics.ts` exactly. The existing
- * concrete classes already satisfy this shape — this file adds an explicit
+ * concrete classes already satisfy this shape - this file adds an explicit
  * `implements IMetricsRecorder` annotation in metrics.ts so a future drift
  * fails the build instead of silently breaking.
  *
@@ -108,7 +108,7 @@ export interface IMetricsRecorder {
  * empty snapshot that production's `NoopCommandMetricsStore` returns.
  *
  * Production code SHOULD prefer the singleton in `src/main/metrics.ts` or
- * `createCommandMetricsStore()` factory — this is for tests only.
+ * `createCommandMetricsStore()` factory - this is for tests only.
  */
 /* eslint-disable @typescript-eslint/no-empty-function -- deliberate no-ops */
 export function createSilentMetricsRecorder(): IMetricsRecorder {

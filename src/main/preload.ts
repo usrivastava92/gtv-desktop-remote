@@ -66,7 +66,7 @@ const api = {
    * Subscribe to push-style updater status updates. The main process emits
    * `EVENT_CHANNELS.updaterStatusChanged` whenever the underlying state
    * changes; this replaces the prior 1.5s polling loop in the renderer
-   * (QW-2). Returns an unsubscribe function — callers MUST call it on
+   * (QW-2). Returns an unsubscribe function - callers MUST call it on
    * unmount.
    */
   onUpdaterStatus: (listener: (status: UpdaterStatus) => void): (() => void) => {

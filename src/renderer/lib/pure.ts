@@ -3,7 +3,7 @@ import type { DeviceCapabilities, PairingStep, RemoteCommand } from '../../share
 /**
  * pure renderer helpers extracted from
  * `App.tsx`. These are the easiest 4 functions to lift because they have
- * no React, no DOM mutation, no Electron, and no closure state — just
+ * no React, no DOM mutation, no Electron, and no closure state - just
  * inputs → outputs (with `isEditableTarget` reading DOM properties on a
  * passed-in node, which jsdom synthesizes fine in tests).
  *

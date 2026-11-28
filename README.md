@@ -4,7 +4,7 @@
   <h1>GTV Desktop Remote</h1>
 
   <p><strong>A desktop remote for Google TV, Apple TV, and Fire TV.</strong><br/>
-  Discover, pair, and control compatible TVs from your Mac — with keyboard support.</p>
+  Discover, pair, and control compatible TVs from your Mac - with keyboard support.</p>
 
   <p>
     <a href="https://github.com/usrivastava92/gtv-desktop-remote/actions/workflows/ci.yml">
@@ -31,16 +31,16 @@
 
 ## Overview
 
-GTV Desktop Remote is a macOS menubar app for compatible Google TV/Android TV, Apple TV, and Fire TV devices on your local network. This branch prepares the intended **v3.0.0** release; it does not mean v3 has been published. The latest-release download may still be an earlier Google-only version.
+GTV Desktop Remote is a macOS menubar app for compatible Google TV/Android TV, Apple TV, and Fire TV devices on your local network.
 
-- **Network scan** — discovers supported platforms and labels each device
-- **Saved pairing** — platform-specific pairing with reconnect credentials retained across launches
-- **Remote control** — navigation, select, home, back, playback and supported power/volume controls
-- **Keyboard control** — drive your TV from the keyboard without touching the mouse
-- **Text input** — send text to compatible focused TV input fields
-- **Stable device identity** — supported discovery identifiers can retain pairing after an IP change; reconnect is explicit, and identity availability depends on the TV
-- **Global shortcut** — customizable show/hide shortcut (default `CmdOrCtrl+Shift+G`)
-- **Launch at login** — optional macOS Login Item, off by default
+- **Network scan** - discovers supported platforms and labels each device
+- **Saved pairing** - platform-specific pairing with reconnect credentials retained across launches
+- **Remote control** - navigation, select, home, back, playback and supported power/volume controls
+- **Keyboard control** - drive your TV from the keyboard without touching the mouse
+- **Text input** - send text to compatible focused TV input fields
+- **Stable device identity** - supported discovery identifiers can retain pairing after an IP change; reconnect is explicit, and identity availability depends on the TV
+- **Global shortcut** - customizable show/hide shortcut (default `CmdOrCtrl+Shift+G`)
+- **Launch at login** - optional macOS Login Item, off by default
 
 ### Platform support
 
@@ -55,9 +55,7 @@ GTV Desktop Remote is a macOS menubar app for compatible Google TV/Android TV, A
 | Home hold for Control Center               | Unsupported                                       | Supported                                               | Unsupported        |
 
 “Supported” describes implemented provider capabilities, not a guarantee for every
-TV model, app or firmware. Unsupported controls are disabled. See the
-[hardware and release acceptance checklist](DEVELOPMENT.md#v3-release-acceptance-checklist)
-for remaining verification.
+TV model, app or firmware. Unsupported controls are disabled.
 
 For DIAL-discovered Fire TVs, explicit Pair and Connect launch the remote service
 and wait for its native TCP port before HTTPS. Scanning never activates it.
@@ -109,12 +107,6 @@ on hardware**. Local protocol tests are not firmware validation. See the
   </table>
 </div>
 
-These existing images are not evidence of v3 hardware acceptance. Before release,
-capture current multi-platform discovery, each pairing stage, and the connected
-remote with unsupported controls disabled; record app version and platform, and
-redact PINs, addresses and credentials. TV-screen evidence of Apple Control Center
-and Fire authenticated controls is still needed.
-
 ---
 
 ## Installation
@@ -142,7 +134,7 @@ The Homebrew cask removes the quarantine flag automatically during install and p
 
 ## Getting Started
 
-1. Launch the app — it appears in your menu bar.
+1. Launch the app - it appears in your menu bar.
 2. The app scans your network for compatible devices.
 3. Select your TV from the device list.
 4. If not yet paired, click **Start Pairing**. Google TV uses six hexadecimal characters; Apple TV asks for an AirPlay four-digit PIN followed by a **new** Companion four-digit PIN; Fire TV asks for one four-digit PIN. Always enter the code currently displayed for that stage.
@@ -189,7 +181,7 @@ Home behavior. Keyboard auto-repeat does not generate extra Apple Home presses.
 
 > `Cmd`, `Ctrl`, and `Option` combinations are ignored so they don't interfere with normal macOS shortcuts.
 
-**Global shortcut:** `CmdOrCtrl+Shift+G` by default — show or hide the remote from any app.
+**Global shortcut:** `CmdOrCtrl+Shift+G` by default - show or hide the remote from any app.
 
 ### Settings
 
@@ -242,4 +234,4 @@ GTV Desktop Remote remains free and open source. If it makes your day a little e
 voluntary support through **GitHub Sponsors** helps with maintenance, device testing,
 and Apple Developer Program costs toward Developer ID-signed and notarized macOS packages.
 We're also exploring Mac App Store distribution, subject to technical feasibility and
-Apple review—not a promised release. Thanks for helping keep the remote going!
+Apple review, not a promised release. Thanks for helping keep the remote going!

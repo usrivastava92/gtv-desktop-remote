@@ -16,7 +16,7 @@
 #   manual-dispatch + production-environment gates that lock down releases.
 #   Forcing @usrivastava92's review here closes that loophole.
 
-# Default fallback — any file not matched below still requires the repo owner.
+# Default fallback - any file not matched below still requires the repo owner.
 *                                @usrivastava92
 
 # ── Release & CI plumbing ────────────────────────────────────────────────────

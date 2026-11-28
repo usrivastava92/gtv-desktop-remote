@@ -34,7 +34,7 @@ permissions:
   contents: read
 
 # Comma-separated GitHub usernames that are allowed to trigger this workflow.
-# This is a fast-fail "first line" check — the real, GitHub-enforced gate is
+# This is a fast-fail "first line" check - the real, GitHub-enforced gate is
 # the `environment: production` on each job, which requires an approver
 # configured in repo Settings → Environments → production.
 env:
@@ -82,7 +82,7 @@ jobs:
     steps:
       - name: Record trigger reason
         if: ${{ inputs.reason != '' }}
-        run: echo "Manual release reason — ${{ inputs.reason }}" >> "$GITHUB_STEP_SUMMARY"
+        run: echo "Manual release reason - ${{ inputs.reason }}" >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/checkout@v7
         with:
@@ -125,7 +125,7 @@ jobs:
             echo "will_release=true"  >> "$GITHUB_OUTPUT"
           else
             echo "will_release=false" >> "$GITHUB_OUTPUT"
-            echo "No releasable commits — skipping macOS artifact build"
+            echo "No releasable commits - skipping macOS artifact build"
           fi
 
       - name: Patch package.json to next version

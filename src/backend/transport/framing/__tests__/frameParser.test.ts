@@ -30,7 +30,7 @@ function expectBuffer(actual: Buffer | undefined, expected: Buffer): void {
   expect(Buffer.compare(actual, expected)).toBe(0);
 }
 
-describe('parseFramedBuffer — empty / trivial cases', () => {
+describe('parseFramedBuffer - empty / trivial cases', () => {
   it('empty buffer → no frames, empty remaining', () => {
     const result = parseFramedBuffer(Buffer.alloc(0));
     expect(result.frames).toEqual([]);
@@ -46,7 +46,7 @@ describe('parseFramedBuffer — empty / trivial cases', () => {
     expect(result.remaining.length).toBe(0);
   });
 
-  it('single complete medium frame (body 100 bytes — single-byte varint)', () => {
+  it('single complete medium frame (body 100 bytes - single-byte varint)', () => {
     const body = Buffer.alloc(100, 0xab);
     const f = frame(body);
     const result = parseFramedBuffer(f);
@@ -55,7 +55,7 @@ describe('parseFramedBuffer — empty / trivial cases', () => {
     expect(result.remaining.length).toBe(0);
   });
 
-  it('single complete large frame (body 200 bytes — two-byte varint)', () => {
+  it('single complete large frame (body 200 bytes - two-byte varint)', () => {
     const body = Buffer.alloc(200, 0x55);
     const f = frame(body);
     const firstByte = f[0];
@@ -70,7 +70,7 @@ describe('parseFramedBuffer — empty / trivial cases', () => {
   });
 });
 
-describe('parseFramedBuffer — multi-frame buffers', () => {
+describe('parseFramedBuffer - multi-frame buffers', () => {
   it('two back-to-back frames decode independently', () => {
     const a = frame(Buffer.from([0x01, 0x02]));
     const b = frame(Buffer.from([0x03, 0x04, 0x05]));
@@ -93,7 +93,7 @@ describe('parseFramedBuffer — multi-frame buffers', () => {
   });
 });
 
-describe('parseFramedBuffer — partial reads (the realistic case)', () => {
+describe('parseFramedBuffer - partial reads (the realistic case)', () => {
   it('header complete but body partial → 0 frames + full buffer remaining', () => {
     const body = Buffer.from([0x10, 0x20, 0x30, 0x40]);
     const f = frame(body); // [0x04, 0x10, 0x20, 0x30, 0x40]
@@ -136,7 +136,7 @@ describe('parseFramedBuffer — partial reads (the realistic case)', () => {
   });
 });
 
-describe('parseFramedBuffer — malformed input', () => {
+describe('parseFramedBuffer - malformed input', () => {
   it('varint with too many continuation bits → error + remaining cleared', () => {
     const evil = Buffer.from([0x80, 0x80, 0x80, 0x80, 0x80, 0x80]);
     const result = parseFramedBuffer(evil);
@@ -157,7 +157,7 @@ describe('parseFramedBuffer — malformed input', () => {
   });
 });
 
-describe('parseFramedBuffer — purity / determinism', () => {
+describe('parseFramedBuffer - purity / determinism', () => {
   it('does not mutate the input buffer', () => {
     const a = frame(Buffer.from([0x10, 0x20]));
     const b = frame(Buffer.from([0x30, 0x40, 0x50]));
@@ -182,7 +182,7 @@ describe('parseFramedBuffer — purity / determinism', () => {
   });
 });
 
-describe('parseFramedBuffer — caller usage simulation', () => {
+describe('parseFramedBuffer - caller usage simulation', () => {
   it('streaming reads of arbitrary chunk sizes recover all frames', () => {
     const frames = [
       frame(Buffer.from([0x01, 0x02])),

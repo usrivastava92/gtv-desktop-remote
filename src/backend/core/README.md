@@ -1,4 +1,4 @@
-# `core/` — ports for the outside world
+# `core/` - ports for the outside world
 
 Tiny interfaces every other backend module depends on instead of reaching
 for Node globals or Electron. Each interface has a production impl (wired

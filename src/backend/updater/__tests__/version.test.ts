@@ -131,7 +131,7 @@ describe('isDmgAsset', () => {
   });
 });
 
-describe('findBestMacAsset — preference matrix', () => {
+describe('findBestMacAsset - preference matrix', () => {
   const assets = [
     { name: 'gtv-desktop-remote-mac-arm64.zip' },
     { name: 'gtv-desktop-remote-mac-x64.zip' },

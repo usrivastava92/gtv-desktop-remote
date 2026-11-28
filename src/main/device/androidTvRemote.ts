@@ -638,5 +638,5 @@ export function createAndroidTvRemoteBridge(): AndroidTvRemoteBridge {
   return new AndroidTvRemoteBridge();
 }
 
-// Existing process-wide singleton — preserved for backward compatibility.
+// Existing process-wide singleton - preserved for backward compatibility.
 export const androidTvRemoteBridge = createAndroidTvRemoteBridge();

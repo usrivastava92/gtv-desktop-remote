@@ -39,7 +39,7 @@ function draft(overrides: Partial<DeviceDraft> = {}): DeviceDraft {
   };
 }
 
-describe('matchSavedToDiscovered — Google TV non-regression gate', () => {
+describe('matchSavedToDiscovered - Google TV non-regression gate', () => {
   describe('priority order: MAC > castDeviceId > networkHostName > fingerprint > host', () => {
     it('matches by MAC when both sides have one (ignores host change)', () => {
       const s = saved({ host: 'OLD', macAddress: 'AA:BB:CC' });

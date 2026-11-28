@@ -152,7 +152,7 @@ export function Preferences({ onClose }: { onClose: () => void }) {
                     ? 'Paused while recording'
                     : preferences.activeShortcut
                       ? shortcutLabel(preferences.activeShortcut)
-                      : 'Unavailable — use the menu bar'}
+                      : 'Unavailable - use the menu bar'}
                 </span>
               </p>
               <button

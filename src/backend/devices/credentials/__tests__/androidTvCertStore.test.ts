@@ -8,7 +8,7 @@ import { AndroidTvCertStore } from '../androidTvCertStore';
 
 /**
  * In-memory IFileSystem for tests. Files are stored as a Map<absPath, content>.
- * Directories are implicit — `mkdir` is a no-op (Map keys are flat).
+ * Directories are implicit - `mkdir` is a no-op (Map keys are flat).
  */
 function makeFakeFs(
   seed?: Record<string, string>
@@ -65,7 +65,7 @@ const FAKE_PEM: { cert: string; key: string } = {
   key: '-----BEGIN RSA PRIVATE KEY-----\nFAKE\n-----END RSA PRIVATE KEY-----\n',
 };
 
-describe('AndroidTvCertStore — Google TV non-regression gate', () => {
+describe('AndroidTvCertStore - Google TV non-regression gate', () => {
   let fs: ReturnType<typeof makeFakeFs>;
   let logger: {
     info: Mock<ILogger['info']>;
@@ -93,7 +93,7 @@ describe('AndroidTvCertStore — Google TV non-regression gate', () => {
       expect(keyPath).toBe(`${STATE_DIR}/AA_BB_CC_DD_EE_FF.key.pem`);
     });
 
-    it('sanitises both colons and slashes — same key gives same path', () => {
+    it('sanitises both colons and slashes - same key gives same path', () => {
       const a = store.getFilesForCertKey('AA:BB:CC');
       const b = store.getFilesForCertKey('AA_BB_CC');
       expect(a.certPath).toBe(b.certPath);
@@ -146,7 +146,7 @@ describe('AndroidTvCertStore — Google TV non-regression gate', () => {
     });
   });
 
-  describe('migrate — the IP-change scenario that historically breaks pairing', () => {
+  describe('migrate - the IP-change scenario that historically breaks pairing', () => {
     it('is a no-op when oldKey === newKey', async () => {
       await store.migrate('192.168.1.5', '192.168.1.5');
       expect(fs.dump()).toEqual({});
@@ -186,7 +186,7 @@ describe('AndroidTvCertStore — Google TV non-regression gate', () => {
       expect(dump[`${STATE_DIR}/AA_BB_CC_DD_EE_FF.key.pem`]).toBe('NEW_K');
       expect(dump[`${STATE_DIR}/192.168.1.5.cert.pem`]).toBeUndefined();
       expect(dump[`${STATE_DIR}/192.168.1.5.key.pem`]).toBeUndefined();
-      // No "Migrated" log line — the new pair already existed.
+      // No "Migrated" log line - the new pair already existed.
       expect(logger.info.mock.calls).toHaveLength(0);
     });
 

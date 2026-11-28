@@ -26,7 +26,7 @@ import type { UpdaterStatus } from '../../shared/types';
 /**
  * Build the initial updater status (corresponds to the inline literal in
  * `src/main/updater.ts:51`). `currentVersion` is required because there is
- * no sensible default — production passes `app.getVersion()`.
+ * no sensible default - production passes `app.getVersion()`.
  */
 export function createInitialUpdaterStatus(currentVersion: string): UpdaterStatus {
   return {
@@ -48,7 +48,7 @@ export function createInitialUpdaterStatus(currentVersion: string): UpdaterStatu
  * Behavior parity with `setUpdaterStatus` in `src/main/updater.ts`:
  *   - All scalar fields in `next` overwrite the corresponding field on `prev`.
  *   - Optional fields explicitly set to `undefined` in `next` are *cleared*
- *     on the result (this is critical — call sites use
+ *     on the result (this is critical - call sites use
  *     `setUpdaterStatus({ etaSeconds: undefined })` to clear, and the merged
  *     object must reflect that). Plain `Object.assign` already preserves
  *     this semantic, so this helper does too.

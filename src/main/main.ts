@@ -428,7 +428,7 @@ async function bootstrapApp() {
   }
   const micGranted = await microphoneGranted();
   if (!micGranted) {
-    await logInfo('main', 'Microphone access not granted — voice assistant will be unavailable');
+    await logInfo('main', 'Microphone access not granted - voice assistant will be unavailable');
   }
   windowRef = await createWindow();
   tray = new Tray(createTrayImage());

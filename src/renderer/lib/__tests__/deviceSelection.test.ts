@@ -201,7 +201,7 @@ describe('deriveUnpairedNetworkDevices', () => {
         }),
       ],
       [
-        // Same MAC, different IP — should still be filtered out:
+        // Same MAC, different IP - should still be filtered out:
         discovered({ id: 'd1', host: '192.168.1.42', macAddress: 'aa:bb:cc:dd:ee:ff' }),
       ]
     );
