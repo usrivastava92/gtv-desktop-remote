@@ -10,7 +10,12 @@ test('STARTUP-BOOTSTRAP: built renderer, preload capability/status and acknowled
   const bootstrap = await h.api('bootstrap');
   expect(bootstrap.devices).toEqual([]);
   expect(bootstrap.deviceState.status).toBe('idle');
-  expect(await h.api('capabilities')).toEqual({ textInput: true, powerToggle: true });
+  expect(await h.api('capabilities')).toEqual({
+    textInput: false,
+    powerToggle: false,
+    supportedCommands: [],
+    assistantVoice: false,
+  });
   const state = JSON.parse(await readFile(path.join(h.profile, 'onboarding.json'), 'utf8'));
   expect(state.acknowledged).toBe(true);
   const dialogs = JSON.parse(await readFile(path.join(h.profile, 'dialogs.json'), 'utf8'));

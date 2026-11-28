@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Fixture extractor — converts a captures/capture-*.ndjson session log into
+ * Fixture extractor - converts a captures/capture-*.ndjson session log into
  * golden fixture files under src/backend/**\/__fixtures__/.
  *
  * Usage:
@@ -90,7 +90,7 @@ function writeBin(filePath, hexString) {
 
 // ── extract by layer ──────────────────────────────────────────────────────────
 
-// IPC session — all call/return pairs
+// IPC session - all call/return pairs
 const ipcRecords = records.filter(
   (r) =>
     r.layer === 'ipc' && r.event !== 'capture-session-start' && r.event !== 'capture-session-end'
@@ -119,7 +119,7 @@ if (ipcPairs.length) {
   });
 }
 
-// Transport — inbound raw frames (hex) concatenated into a single binary fixture
+// Transport - inbound raw frames (hex) concatenated into a single binary fixture
 const inboundFrames = records.filter(
   (r) => r.layer === 'transport' && r.direction === 'rx' && r.hex
 );
@@ -141,7 +141,7 @@ if (inboundFrames.length) {
   });
 }
 
-// Voice — full voice session
+// Voice - full voice session
 const voiceRecords = records.filter((r) => r.layer === 'voice');
 if (voiceRecords.length) {
   const voiceChunks = voiceRecords.filter((r) => r.event === 'voiceChunk');

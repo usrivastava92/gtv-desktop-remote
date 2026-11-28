@@ -29,7 +29,7 @@ function git(cwd, ...args) {
   return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 }
 
-function fixture(t, historical = false) {
+function fixture(t) {
   const directory = mkdtempSync(join(tmpdir(), 'gtv-release-policy-'));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   const cwd = join(directory, 'repository');
@@ -38,21 +38,7 @@ function fixture(t, historical = false) {
   git(directory, 'init', '--bare', '--initial-branch=main', remote);
   git(cwd, 'config', 'user.name', 'Release policy fixture');
   git(cwd, 'config', 'user.email', 'fixture@example.invalid');
-  if (historical) {
-    // Keep the real pre-major history reproducible after future production releases.
-    const historicalHead = '794b3c7e6af08b20ede57585d748fa9f7a1e6b4b';
-    git(
-      cwd,
-      'fetch',
-      '--no-tags',
-      pathToFileURL(root).href,
-      historicalHead,
-      'refs/tags/v1.6.4:refs/tags/v1.6.4'
-    );
-    git(cwd, 'checkout', '-B', 'main', historicalHead);
-  } else {
-    git(cwd, 'commit', '--allow-empty', '-m', 'chore: initial fixture');
-  }
+  git(cwd, 'commit', '--allow-empty', '-m', 'chore: initial fixture');
   git(cwd, 'remote', 'add', 'origin', pathToFileURL(remote).href);
   return { cwd, remote };
 }
@@ -126,45 +112,54 @@ async function preview({ cwd, remote }, expectedVersion, expectedType, expectedB
   );
 }
 
-test('actual repository history since v1.6.4 selects v2.0.0 in both consumers', async (t) => {
-  await preview(fixture(t, true), '2.0.0', 'major', 'v1.6.4');
-});
-
-test('one-time policy expires at v2.0.0 and normal patch/minor rules resume', async (t) => {
+test('obsolete v1 to v2 policy does not override historical conventional releases', async (t) => {
   const repository = fixture(t);
   git(repository.cwd, 'tag', 'v1.6.4');
-  await preview(repository, '1.6.4', null, 'v1.6.4');
-  commit(repository.cwd, 'feat: add remote controls');
-  commit(repository.cwd, 'fix: correct release artifact');
-  await preview(repository, '2.0.0', 'major', 'v1.6.4');
-  git(repository.cwd, 'tag', 'v2.0.0');
-  await preview(repository, '2.0.0', null, 'v2.0.0');
+  commit(repository.cwd, 'fix: preserve existing users');
+  await preview(repository, '1.6.5', 'patch', 'v1.6.4');
+});
+
+for (const [base, message] of [
+  ['2.0.0', 'fix: preserve Google credentials'],
+  ['2.1.0', 'feat: add native TV providers'],
+  ['2.2.0', 'docs: prepare the multi-TV product release'],
+]) {
+  test(`intentional product policy selects v3.0.0 from v${base}`, async (t) => {
+    const repository = fixture(t);
+    git(repository.cwd, 'tag', `v${base}`);
+    await preview(repository, base, null, `v${base}`);
+    commit(repository.cwd, message);
+    await preview(repository, '3.0.0', 'major', `v${base}`);
+  });
+}
+
+test('one-time policy expires at v3.0.0 and normal patch/minor rules resume', async (t) => {
+  const repository = fixture(t);
+  git(repository.cwd, 'tag', 'v3.0.0');
+  await preview(repository, '3.0.0', null, 'v3.0.0');
   commit(repository.cwd, 'fix: correct remote control');
-  await preview(repository, '2.0.1', 'patch', 'v2.0.0');
-  git(repository.cwd, 'tag', 'v2.0.1');
+  await preview(repository, '3.0.1', 'patch', 'v3.0.0');
+  git(repository.cwd, 'tag', 'v3.0.1');
   commit(repository.cwd, 'feat: add control');
-  await preview(repository, '2.1.0', 'minor', 'v2.0.1');
+  await preview(repository, '3.1.0', 'minor', 'v3.0.1');
 });
 
-test('the v1 policy is intentional even for documentation-only commits', async (t) => {
+test('post-product documentation does not release', async (t) => {
   const repository = fixture(t);
-  git(repository.cwd, 'tag', 'v1.6.4');
-  commit(repository.cwd, 'docs: describe the next major');
-  await preview(repository, '2.0.0', 'major', 'v1.6.4');
-  git(repository.cwd, 'tag', 'v2.0.0');
+  git(repository.cwd, 'tag', 'v3.0.0');
   commit(repository.cwd, 'docs: describe controls');
-  await preview(repository, '2.0.0', null, 'v2.0.0');
+  await preview(repository, '3.0.0', null, 'v3.0.0');
 });
 
-test('post-major refactor/perf rules and real breaking changes remain conventional', async (t) => {
+test('post-product refactor/perf rules and real breaking changes remain conventional', async (t) => {
   const repository = fixture(t);
-  git(repository.cwd, 'tag', 'v2.0.0');
+  git(repository.cwd, 'tag', 'v3.0.0');
   commit(repository.cwd, 'refactor: simplify controls');
   commit(repository.cwd, 'perf: reduce command latency');
-  await preview(repository, '2.0.1', 'patch', 'v2.0.0');
-  git(repository.cwd, 'tag', 'v2.0.1');
+  await preview(repository, '3.0.1', 'patch', 'v3.0.0');
+  git(repository.cwd, 'tag', 'v3.0.1');
   commit(repository.cwd, 'feat: replace command API\n\nBREAKING CHANGE: remove the old command API');
-  await preview(repository, '3.0.0', 'major', 'v2.0.1');
+  await preview(repository, '4.0.0', 'major', 'v3.0.1');
 });
 
 test('untagged repositories retain the normal initial version', async (t) => {

@@ -131,6 +131,13 @@ export class AppHarness {
   async launch(options: AppLaunchOptions = {}) {
     this.app = await _electron.launch({
       args: [
+        // Playwright prepends its own Node loader; run our switch-only preload after it.
+        ...(process.platform === 'linux'
+          ? [
+              '--require',
+              path.join(repository, 'tests/integration/platform-fixtures/linux-password-store.cjs'),
+            ]
+          : []),
         repository,
         `--user-data-dir=${this.profile}`,
         ...(options.fakeMediaUi === false ? [] : ['--use-fake-ui-for-media-stream']),
@@ -138,6 +145,7 @@ export class AppHarness {
         `--use-file-for-fake-audio-capture=${path.join(this.profile, 'microphone.wav')}`,
         '--disable-background-networking',
         '--no-sandbox',
+        ...(process.platform === 'linux' ? ['--password-store=gnome-libsecret'] : []),
       ],
       recordVideo: { dir: path.join(this.profile, 'videos'), size: { width: 360, height: 720 } },
       env: {
@@ -151,6 +159,27 @@ export class AppHarness {
     // Playwright disposes its process channel on native quit; retain the real child handle.
     this.appProcess = this.app.process();
     this.page = await this.app.firstWindow();
+    if (process.platform === 'linux') {
+      const storage = await this.app.evaluate(({ safeStorage }) => {
+        const backend = safeStorage.getSelectedStorageBackend();
+        const available = safeStorage.isEncryptionAvailable();
+        if (backend !== 'gnome_libsecret' || !available)
+          return { backend, available, roundTrip: false };
+        const probe = 'non-secret integration storage probe';
+        const encrypted = safeStorage.encryptString(probe);
+        return {
+          backend,
+          available,
+          roundTrip:
+            !encrypted.includes(Buffer.from(probe)) &&
+            safeStorage.decryptString(encrypted) === probe,
+        };
+      });
+      expect(
+        storage,
+        'Linux native safeStorage prerequisite failed: start and unlock Secret Service in the Electron display/D-Bus session; basic_text is forbidden'
+      ).toEqual({ backend: 'gnome_libsecret', available: true, roundTrip: true });
+    }
     await this.app.evaluate(({ app, BrowserWindow, globalShortcut }) => {
       const fixture = globalThis as typeof globalThis & NativeObservations;
       const events: NativeWindowObservation[] = [];
@@ -247,7 +276,7 @@ export class AppHarness {
     const device = await this.preparePairing(control);
     await this.openPairing(control);
     await this.page.locator('input[autocomplete="one-time-code"]').fill(this.tv.pairingCode);
-    await this.page.getByRole('button', { name: 'Connect', exact: true }).click();
+    await this.page.getByRole('button', { name: 'Continue', exact: true }).click();
     await this.tv.waitFor((state) => state.ready);
     await expect(this.page.getByRole('button', { name: 'Select', exact: true })).toBeEnabled();
     return device;

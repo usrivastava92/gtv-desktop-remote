@@ -8,7 +8,7 @@ import { generateCertificate } from '../certificate';
  * The Android TV pairing protocol exchanges client + server certificates and
  * derives a session secret from their key material. If we ever regress the
  * cert shape (CN, key size, signature algo, validity window), pairing breaks
- * silently — and you only find out the next time a user re-pairs a TV. These
+ * silently - and you only find out the next time a user re-pairs a TV. These
  * tests lock down the invariants.
  */
 describe('certificate generator', () => {

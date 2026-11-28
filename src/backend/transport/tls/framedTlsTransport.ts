@@ -1,5 +1,5 @@
 /**
- * IFramedTlsTransport — thin port over the write+drain side of a TLS socket
+ * IFramedTlsTransport - thin port over the write+drain side of a TLS socket
  * carrying Android TV varint-prefixed frames.
  *
  * introduces this port behind the same seam-first pattern
@@ -9,10 +9,10 @@
  * `transport.onDrain(cb)`.
  *
  * What's deliberately NOT in this port (yet):
- *   - Inbound data routing (`onData`) — still owned directly by
+ *   - Inbound data routing (`onData`) - still owned directly by
  *     `NativeRemoteClient.flushBuffer` so this PR has zero risk to the
  *     parseFramedBuffer hot path (gated by 13 golden tests).
- *   - Socket-level event listeners (`once('remote-voice-begin')`) — those
+ *   - Socket-level event listeners (`once('remote-voice-begin')`) - those
  *     are protocol-state plumbing on top of the parsed inbound stream, not
  *     transport. The inbound surface is in `onData`; the lifecycle events
  *     full lifecycle (connect / disconnect / close).
@@ -31,7 +31,7 @@ import type { TLSSocket } from 'node:tls';
  * The transport surface used by `NativeRemoteClient` for outbound writes
  * AND inbound data dispatch.
  *
- * Intentionally minimal — only what the writer and the inbound dispatch
+ * Intentionally minimal - only what the writer and the inbound dispatch
  * loop need. Other socket-level concerns (close / error / timeout /
  * protocol-level events like `remote-voice-begin`) stay on the raw socket
  * until the full lifecycle port is in place.
@@ -42,7 +42,7 @@ export interface IFramedTlsTransport {
    *
    * Returns `true` if the bytes drained to the kernel immediately, `false`
    * if they were buffered in userland (in which case the caller may want to
-   * `onDrain(...)` to know when the buffer empties — the metrics store
+   * `onDrain(...)` to know when the buffer empties - the metrics store
    * uses this to log backpressure events).
    *
    * Throws `Error('Transport is closed')` if the underlying socket was
@@ -77,7 +77,7 @@ export interface IFramedTlsTransport {
   onData(handler: (chunk: Buffer) => void): () => void;
 
   /**
-   * Subscribe to fatal socket errors. Mirrors `socket.on('error', cb)` —
+   * Subscribe to fatal socket errors. Mirrors `socket.on('error', cb)` -
    * fires zero or more times before close. Returns an unsubscribe.
    * completion of the lifecycle side of the transport contract.
    */
@@ -93,7 +93,7 @@ export interface IFramedTlsTransport {
   /**
    * Subscribe to socket timeout events. The underlying socket's idle
    * timeout was configured via `socket.setTimeout(ms)` before this
-   * transport was created — the transport intentionally does NOT own
+   * transport was created - the transport intentionally does NOT own
    * timeout configuration since the value depends on the caller's
    * protocol (e.g. REMOTE_CONNECT_TIMEOUT_MS for the connect handshake).
    * Returns an unsubscribe.
@@ -105,7 +105,7 @@ export interface IFramedTlsTransport {
 }
 
 /**
- * Production binding — wraps a live TLSSocket. The transport doesn't own
+ * Production binding - wraps a live TLSSocket. The transport doesn't own
  * the socket's lifecycle: the caller is still responsible for `destroy()`,
  * `connect`, listener wiring beyond drain, etc. Those are behind
  * those concerns into the transport when they're ready to be tested
@@ -159,7 +159,7 @@ export function createFramedTlsTransportOverSocket(socket: TLSSocket): IFramedTl
 }
 
 /**
- * Test factory — deterministic in-memory transport. Tests inspect `writes`,
+ * Test factory - deterministic in-memory transport. Tests inspect `writes`,
  * call `emitDrain()` to fire pending drain subscribers, and toggle
  * `destroyed` to simulate socket close.
  *

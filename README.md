@@ -3,8 +3,8 @@
 
   <h1>GTV Desktop Remote</h1>
 
-  <p><strong>A macOS desktop remote for Google TV and Android TV devices.</strong><br/>
-  Discover, pair once, and control your TV from your Mac — with keyboard support.</p>
+  <p><strong>A desktop remote for Google TV, Apple TV, and Fire TV.</strong><br/>
+  Discover, pair, and control compatible TVs from your Mac - with keyboard support.</p>
 
   <p>
     <a href="https://github.com/usrivastava92/gtv-desktop-remote/actions/workflows/ci.yml">
@@ -24,23 +24,88 @@
     <a href="https://scorecard.dev/status/github.com/usrivastava92/gtv-desktop-remote">
       <img src="https://api.scorecard.dev/projects/github.com/usrivastava92/gtv-desktop-remote/badge" alt="OpenSSF Scorecard" />
     </a>
+    <a href="https://github.com/sponsors/usrivastava92">
+      <img src="https://img.shields.io/badge/GitHub%20Sponsors-Sponsor-ea4aaa?logo=githubsponsors&amp;logoColor=white" alt="GitHub Sponsors" />
+    </a>
   </p>
+
+  <p>
+    <a href="https://github.com/sponsors/usrivastava92">
+      <img src="assets/icons/support-development.svg" alt="Buy me a coffee via GitHub Sponsors" />
+    </a>
+  </p>
+  <p>Free and open source. Voluntary support helps fund maintenance, device testing, and Apple Developer Program costs toward signed and notarized macOS packages.<br/>
+  <a href="#support-development">More about supporting development</a></p>
 </div>
 
 ---
 
 ## Overview
 
-GTV Desktop Remote lets you control any Google TV or Android TV device from your Mac. It runs as a menubar app — always one keystroke away — and uses the same encrypted pairing protocol as the official Android TV Remote app.
+GTV Desktop Remote is a macOS menubar app for compatible Google TV/Android TV, Apple TV, and Fire TV devices on your local network.
 
-- **Network scan** — discovers compatible devices on your local network automatically
-- **One-time pairing** — enter a 6-digit code once; credentials are saved securely
-- **Full remote control** — navigation, select, home, back, play/pause, volume, power
-- **Keyboard control** — drive your TV from the keyboard without touching the mouse
-- **Text input** — send text directly to apps that support Android TV text entry
-- **IP-change resilient** — device identity is tracked by MAC address, not IP, so re-pairing is never needed when your TV's IP changes
-- **Global shortcut** — customizable show/hide shortcut (default `CmdOrCtrl+Shift+G`)
-- **Launch at login** — optional macOS Login Item, off by default
+- **Network scan** - discovers supported platforms and labels each device
+- **Saved pairing** - platform-specific pairing with reconnect credentials retained across launches
+- **Remote control** - navigation, select, home, back, playback and supported power/volume controls
+- **Keyboard control** - drive your TV from the keyboard without touching the mouse
+- **Text input** - send text to compatible focused TV input fields
+- **Stable device identity** - supported discovery identifiers can retain pairing after an IP change; reconnect is explicit, and identity availability depends on the TV
+- **Global shortcut** - customizable show/hide shortcut (default `CmdOrCtrl+Shift+G`)
+- **Launch at login** - optional macOS Login Item, off by default
+
+The device picker reserves three row slots each for known and new devices.
+Both lists scroll independently; shorter windows can also scroll the picker
+content without shrinking either list. Settings contains manual update checks
+and **Clear app data** with a **Clear** button. Shortcut instructions expand on demand to keep Settings compact.
+Automatic update detection shows an update pill below discovery help only when
+an installable update is available.
+
+The remote header shows the device name in a green pill when connected or a red
+pill when not yet connected, with the textual connection status available in its tooltip.
+
+### Platform support
+
+| Capability                                 | Google TV / Android TV                            | Apple TV                                                | Fire TV            |
+| ------------------------------------------ | ------------------------------------------------- | ------------------------------------------------------- | ------------------ |
+| Pairing                                    | One six-character hexadecimal code (`0–9`, `A–F`) | Two successive four-digit PINs: AirPlay, then Companion | One four-digit PIN |
+| Navigation, select, Home, back, play/pause | Supported                                         | Supported                                               | Supported          |
+| Power toggle                               | Supported                                         | Supported                                               | Supported          |
+| Volume up/down                             | Supported                                         | Supported                                               | **Unsupported**    |
+| Text entry in compatible focused fields    | Supported                                         | Supported                                               | Supported          |
+| Microphone / assistant voice               | Supported                                         | **Unsupported**                                         | **Unsupported**    |
+| Home hold for Control Center               | Unsupported                                       | Supported                                               | Unsupported        |
+
+“Supported” describes implemented provider capabilities, not a guarantee for every
+TV model, app or firmware. Unsupported controls are disabled.
+
+For DIAL-discovered Fire TVs, explicit Pair and Connect launch the remote service
+and wait for its native TCP port before HTTPS. Scanning never activates it.
+**Use Fire TV only on a trusted LAN:** HTTPS accepts self-signed receiver
+certificates by default, without certificate-chain verification or certificate
+pinning. Encryption alone does not authenticate the receiver; there is no
+automatic fallback to unencrypted HTTP.
+
+Apple TV and Fire TV reconnect credentials are encrypted with Electron
+`safeStorage` using the OS keychain, outside device metadata; there is no plaintext
+fallback. After both Apple PIN stages, macOS may request Keychain permission to
+save credentials. This is not a request for your Apple account password.
+Google TV retains its existing PEM certificate/private-key store; these PEM files
+are **not** encrypted by `safeStorage`.
+
+Upgrading keeps the **GTV Remote** app name, bundle identity, repository, installer
+names and `~/Library/Application Support/GTV Remote` data location. Existing
+Google-only saved records remain Google TV records and keep their credentials;
+do not reset or remove devices as part of a normal upgrade.
+
+Physical Apple TV and Fire TV discovery was historically observed in the packaged
+app. Apple pairing, authenticated reconnection and native Home tap/hold dispatch
+were exercised against a physical Apple TV; the operator confirmed that holding H
+or Home opened Control Center. No TV-screen capture was taken. The operator also
+confirmed physical Fire TV pairing, connection and remote use in the packaged app.
+Fire saved-token reconnection after app restart and the complete control/text
+matrix remain unverified. Local protocol tests are not firmware validation. See the
+[provider contract](DEVELOPMENT.md#multi-tv-provider-contract) and
+[test fidelity limits](tests/integration/README.md#multi-tv-providers).
 
 ---
 
@@ -84,23 +149,25 @@ brew install --cask usrivastava92/tap/gtv-desktop-remote
 
 The Homebrew cask removes the quarantine flag automatically during install and prints fallback steps if macOS still blocks launch.
 
-> **Requirement:** macOS. Your TV must have Android TV Remote Service enabled and be on the same local network as your Mac.
+> **Requirement:** macOS and a compatible TV on the same trusted local network. Google TV/Android TV requires Android TV Remote Service; Apple TV and Fire TV require their supported local-network remote services. Discovery can be blocked by guest-network isolation or multicast restrictions.
 
 ---
 
 ## Getting Started
 
-1. Launch the app — it appears in your menu bar.
+1. Launch the app - it appears in your menu bar.
 2. The app scans your network for compatible devices.
 3. Select your TV from the device list.
-4. If not yet paired, click **Start Pairing** and enter the 6-character code shown on your TV.
-5. Once paired, click **Connect** — you're ready to use the remote.
+4. If not yet paired, click **Start Pairing**. Google TV uses six hexadecimal characters; Apple TV asks for an AirPlay four-digit PIN followed by a **new** Companion four-digit PIN; Fire TV asks for one four-digit PIN. Always enter the code currently displayed for that stage.
+5. Click **Continue** after entering each pairing code. After the final stage, the app connects automatically so you can use the remote.
 
-The app remembers paired devices, so future connections are instant.
+The app remembers paired devices for future connections. Reconnect can still fail
+if a TV revokes pairing, its service is unavailable, or macOS denies credential
+access. Do not enter an Apple account password into a TV PIN field.
 
 ### Remote appearance
 
-Click the sun in the device-list or remote header to switch to light theme, or the moon to return to dark theme. Dark is the default; your choice is remembered across launches and also applies to Settings. The remote header uses a centered, subtly green **Connected** pill for an active connection and a neutral pill while connecting; the device-list header has no connection pill.
+Click the sun in the device-list or remote header to switch to light theme, or the moon to return to dark theme. Dark is the default; your choice is remembered across launches and also applies to Settings. The remote header shows the device name in a green pill when connected or a red pill when not yet connected. Hover over the pill for the device name and textual connection status; the device-list header has no connection pill.
 
 ### Finding, hiding, and quitting the remote
 
@@ -108,7 +175,7 @@ On first launch, a dismissible **Welcome to GTV Remote** hint explains where the
 
 - Look for the GTV Remote icon in the **menu bar** at the top of your screen. The app does not stay in the Dock.
 - Click the menu-bar icon to show or hide the remote, or use the global shortcut shown in the welcome hint.
-- The remote automatically hides when you click away or switch apps. It is still running and stays connected; click its menu-bar icon to bring it back.
+- The remote stays visible when you click away or switch apps. Hide it explicitly with the menu-bar icon or global shortcut.
 - Right-click the menu-bar icon for **Show Remote**, **Hide Remote**, and **Quit**. Choose **Quit** to exit completely, rather than just hide the window.
 
 ---
@@ -128,17 +195,22 @@ When the remote is focused and connected, your keyboard controls the TV directly
 | `-` / `_`              | Volume Down  |
 | `P`                    | Power        |
 
+For **Apple TV Control Center**, hold `H` or press and hold the on-screen **Home**
+button for about **1.5 seconds**. A short tap remains Home. Long press is enabled
+only for providers that advertise it; Google TV and Fire TV keep their existing
+Home behavior. Keyboard auto-repeat does not generate extra Apple Home presses.
+
 > `Cmd`, `Ctrl`, and `Option` combinations are ignored so they don't interfere with normal macOS shortcuts.
 
-**Global shortcut:** `CmdOrCtrl+Shift+G` by default — show or hide the remote from any app.
+**Global shortcut:** `CmdOrCtrl+Shift+G` by default - show or hide the remote from any app.
 
 ### Settings
 
-Settings replaces the remote or device list while open. Click **Done** or press **Escape** to return; longer settings and error messages scroll inside the app window.
+Settings replaces the remote or device list while open. Click the circular **Back** arrow or press **Escape** to return; longer settings and error messages scroll inside the app window.
 
 Click the gear at the far right of the device, pairing, or remote header to open **Settings**. Enable or disable **Launch at login** in the installed macOS app; development Electron is never added to Login Items. It is off by default, and macOS **System Settings → General → Login Items** remains authoritative. Opening Settings refreshes the current macOS state, including external changes made while the app is running, without re-enabling a disabled item. If macOS readback fails, the toggle shows an unknown state and an error; reopen Settings to retry.
 
-Click or focus the show/hide shortcut control, then press and release the actual keys and click **Save shortcut**. For example, hold Control and Option and press G on Mac to record **Ctrl+Opt+G** (**Ctrl+Alt+G** on Windows), then release G to finish recording. Meta is displayed as **Cmd** on Mac and **Win** on Windows. Use modifiers plus a letter, digit, or F1–F24; at least one modifier must be other than Shift. Modifier presses preview the combination; unsupported keys explain what is supported. After a supported chord is pressed, the control previews it and asks you to release the keys; recording finishes only when that chord's letter, digit, or function key is released. **Escape** cancels recording without closing Settings; **Tab**, leaving the control, or closing the view also cancels, including while a captured key is still held. While recording, this app temporarily releases its global shortcut so recording that same chord cannot hide the window, then restores it after the captured key is released or recording is cancelled. If another app takes the binding during recording, Settings reports that it could not be restored rather than claiming it is active; the menu bar remains usable. Recorded shortcuts are stored internally in Electron accelerator format, not display labels, and saved across restarts. A failed replacement keeps the previous working shortcut. If the saved shortcut is occupied on startup, Settings shows the problem; the menu bar still opens the remote.
+Click or focus the show/hide shortcut control, then press and release the actual keys and click **Save**. For example, hold Control and Option and press G on Mac to record **Ctrl+Opt+G** (**Ctrl+Alt+G** on Windows), then release G to finish recording. Meta is displayed as **Cmd** on Mac and **Win** on Windows. Use modifiers plus a letter, digit, or F1–F24; at least one modifier must be other than Shift. Modifier presses preview the combination; unsupported keys explain what is supported. After a supported chord is pressed, the control previews it and asks you to release the keys; recording finishes only when that chord's letter, digit, or function key is released. **Escape** cancels recording without closing Settings; **Tab**, leaving the control, or closing the view also cancels, including while a captured key is still held. While recording, this app temporarily releases its global shortcut so recording that same chord cannot hide the window, then restores it after the captured key is released or recording is cancelled. If another app takes the binding during recording, Settings reports that it could not be restored rather than claiming it is active; the menu bar remains usable. Recorded shortcuts are stored internally in Electron accelerator format, not display labels, and saved across restarts. A failed replacement keeps the previous working shortcut. If the saved shortcut is occupied on startup, Settings shows the problem; the menu bar still opens the remote.
 
 ---
 
@@ -147,15 +219,17 @@ Click or focus the show/hide shortcut control, then press and release the actual
 **TV not appearing in the scan?**
 
 - Confirm the TV and Mac are on the same Wi-Fi network.
-- Confirm Android TV Remote Service is enabled on the TV.
+- In macOS **System Settings → Privacy & Security → Local Network**, allow **GTV Remote**, then scan again.
+- For Google TV/Android TV, confirm Android TV Remote Service is enabled. For Apple/Fire, confirm the TV is awake and its local-network services are available.
 - Try re-running the network scan.
 
 **Pairing not completing?**
 
 - Start a fresh pairing session and enter the latest code shown on the TV screen.
-- Pairing codes contain six hexadecimal characters (`0–9`, `A–F`); `O` is not a valid character.
-- After a certificate-hash validation error, select the device again to request a fresh code. If the error persists with the exact new code, report the app version and TV model/firmware.
-- If the device was previously saved, remove it and pair again.
+- Google TV codes contain six hexadecimal characters (`0–9`, `A–F`); `O` is not valid. Apple and Fire PINs contain four decimal digits; Apple requires two separate stages.
+- After a Google certificate-hash validation error, select the device again to request a fresh code. If it persists with the exact new code, report the app version and TV model/firmware.
+- For Apple/Fire credential-save errors, check macOS Keychain access. Credentials are not saved in plaintext as a fallback.
+- Removing a saved device deletes its local credentials and requires pairing again; use this only when deliberately replacing a revoked or unusable pairing, not as a routine upgrade step.
 
 **App not opening or only showing the menubar icon?**
 
@@ -171,3 +245,13 @@ Click or focus the show/hide shortcut control, then press and release the actual
 Development setup, packaging, debug telemetry, and local build workflows are documented in [DEVELOPMENT.md](DEVELOPMENT.md).
 
 After dependency setup and `yarn build`, `yarn test:integration` runs the real Electron functional regression guardrail without a live TV. It uses isolated temporary profiles, genuine certificate-bound TLS pairing, an independent TV protocol/model emulator, production fake-device microphone capture and sandbox updater install/rollback operations. See [integration setup, the feature-to-scenario matrix and narrow hardware/native fidelity limits](tests/integration/README.md). The mandatory CI functional job runs under Linux Xvfb; this guardrail is not a firmware-interoperability or native macOS signing/permissions guarantee.
+
+---
+
+## Support development
+
+GTV Desktop Remote remains free and open source. If it makes your day a little easier,
+voluntary support through **GitHub Sponsors** helps with maintenance, device testing,
+and Apple Developer Program costs toward Developer ID-signed and notarized macOS packages.
+We're also exploring Mac App Store distribution, subject to technical feasibility and
+Apple review, not a promised release. Thanks for helping keep the remote going!

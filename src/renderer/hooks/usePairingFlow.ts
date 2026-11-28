@@ -1,10 +1,13 @@
 import { useRef, useState } from 'react';
 
+import type { DesktopApi } from '../../shared/desktopApi';
+import type { PairingRequest } from '../../shared/types';
+
 /**
  * Manages pairing flow state (code input, device selection, ready flag, and input ref).
  *
  * Returns:
- *   - pairCode: the 6-character code entered by the user
+ *   - pairCode: the provider-specific code entered by the user
  *   - setPairCode: setter for pair code
  *   - pairingDeviceId: the device being paired
  *   - setPairingDeviceId: setter for pairing device ID
@@ -18,6 +21,17 @@ export function usePairingFlow() {
   const [pairingReady, setPairingReady] = useState(false);
   const pairCodeInputRef = useRef<HTMLInputElement>(null);
 
+  async function submitPairCode(
+    api: Pick<DesktopApi, 'pair' | 'bootstrap'>,
+    request: PairingRequest
+  ) {
+    await api.pair(request);
+    const nextBootstrap = await api.bootstrap();
+    setPairCode('');
+    setPairingReady(Boolean(nextBootstrap.deviceState.pairing));
+    return nextBootstrap;
+  }
+
   return {
     pairCode,
     setPairCode,
@@ -26,5 +40,6 @@ export function usePairingFlow() {
     pairingReady,
     setPairingReady,
     pairCodeInputRef,
+    submitPairCode,
   };
 }

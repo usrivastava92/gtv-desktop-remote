@@ -3,7 +3,7 @@
  * touching the real disk. Production code injects `nodeFileSystem` (which
  * proxies to `node:fs/promises`); tests inject an in-memory implementation.
  *
- * Methods are deliberately narrow — only what the cert store and (future)
+ * Methods are deliberately narrow - only what the cert store and (future)
  * device repository need. New methods get added on demand as later services
  * land.
  */

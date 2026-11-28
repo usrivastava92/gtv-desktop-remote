@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { createInMemoryLogger, silentLogger, type ILogger, type LogEntry } from '../logger';
 
-describe('ILogger — silentLogger', () => {
+describe('ILogger - silentLogger', () => {
   it('is a no-op for all three levels (no throw)', () => {
     expect(() => {
       silentLogger.info('s', 'm', { d: 1 });
@@ -23,7 +23,7 @@ describe('ILogger — silentLogger', () => {
   });
 });
 
-describe('ILogger — createInMemoryLogger', () => {
+describe('ILogger - createInMemoryLogger', () => {
   it('captures entries in call order with correct level', () => {
     const logger = createInMemoryLogger();
     logger.info('a', 'one');

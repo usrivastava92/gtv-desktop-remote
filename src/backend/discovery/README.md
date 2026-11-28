@@ -1,4 +1,4 @@
-# `discovery/` — device discovery
+# `discovery/` - device discovery
 
 `DiscoveryService` aggregates one provider per device kind. The Android TV
 provider shells out to `dns-sd`; tests feed recorded stdout fixtures into

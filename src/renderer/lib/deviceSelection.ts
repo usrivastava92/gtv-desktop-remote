@@ -1,3 +1,4 @@
+import { fireTvIdentityMatches } from '../../shared/fireTvIdentity';
 import type { DiscoveredDevice, SavedDevice } from '../../shared/types';
 
 /** A paired saved device augmented with its currently-discovered counterpart, if any. */
@@ -44,6 +45,8 @@ export type DevicePickerSelection =
 export function findDiscoveredForSaved(
   savedDevice: {
     host: string;
+    platform?: string | undefined;
+    providerData?: Record<string, string | number> | undefined;
     macAddress?: string | undefined;
     castDeviceId?: string | undefined;
     networkHostName?: string | undefined;
@@ -51,6 +54,22 @@ export function findDiscoveredForSaved(
   },
   discoveredDevices: readonly DiscoveredDevice[]
 ): DiscoveredDevice | undefined {
+  discoveredDevices = discoveredDevices.filter(
+    (device) => (device.platform ?? 'google-tv') === (savedDevice.platform ?? 'google-tv')
+  );
+  if (savedDevice.platform === 'fire-tv') {
+    return discoveredDevices.find((device) => fireTvIdentityMatches(savedDevice, device));
+  }
+  const identifier = savedDevice.providerData?.identifier;
+  if (identifier !== undefined) {
+    const byIdentifier = discoveredDevices.find(
+      (device) => device.providerData?.identifier === identifier
+    );
+    if (byIdentifier) return byIdentifier;
+    discoveredDevices = discoveredDevices.filter(
+      (device) => device.providerData?.identifier === undefined
+    );
+  }
   if (savedDevice.macAddress) {
     const byMac = discoveredDevices.find((d) => d.macAddress === savedDevice.macAddress);
     if (byMac) return byMac;
@@ -95,7 +114,7 @@ export function derivePairedNetworkDevices(
  * Derive the list of "unpaired network devices" shown in the picker's
  * lower section: every discovered device that does NOT match any saved
  * device that is already paired (by host OR by MAC). Important: an
- * existing pairing wins over a fresh discovery entry — otherwise the
+ * existing pairing wins over a fresh discovery entry - otherwise the
  * same TV would appear twice in the UI.
  */
 export function deriveUnpairedNetworkDevices(

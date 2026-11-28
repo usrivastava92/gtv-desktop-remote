@@ -68,7 +68,7 @@ export function initCapture(repoRoot: string): void {
     data: { captureFile: captureFilePath, pid: process.pid },
   });
 
-  console.log(`[capture] GTV_CAPTURE=1 — writing to ${captureFilePath}`);
+  console.log(`[capture] GTV_CAPTURE=1 - writing to ${captureFilePath}`);
 }
 
 /** Flush and close the capture file. Call at app quit. */

@@ -15,8 +15,8 @@ export function decodeDnsSdValue(value: string): string {
 
 /**
  * Parse one TXT-record line of `dns-sd -L` output into key/value pairs.
- * Values may contain raw (unescaped) whitespace — real TVs publish names like
- * `fn=Televize\ v<NBSP>obývaku` — so entries are split only where a whitespace
+ * Values may contain raw (unescaped) whitespace - real TVs publish names like
+ * `fn=Televize\ v<NBSP>obývaku` - so entries are split only where a whitespace
  * run is followed by the next `key=` token.
  */
 export function parseDnsSdTxtLine(line: string): Record<string, string> {

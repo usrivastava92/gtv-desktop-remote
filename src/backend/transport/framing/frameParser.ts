@@ -31,7 +31,7 @@ export interface FrameParseResult {
    * prepended to the next chunk received from the socket. */
   readonly remaining: Buffer;
   /** Set iff the parser detected a malformed varint header (too many
-   * continuation bits). Caller MUST drop the connection — the stream is
+   * continuation bits). Caller MUST drop the connection - the stream is
    * unrecoverable. The parser also clears `remaining` to empty in this case. */
   readonly error?: Error;
 }

@@ -9,7 +9,7 @@
  * the helpers in `src/shared/` means both halves can import them with zero
  * boundary violation and zero runtime weight.
  *
- * No DOM globals are used here — `btoa` is provided by Node ≥ 16 too, so
+ * No DOM globals are used here - `btoa` is provided by Node ≥ 16 too, so
  * tests run without jsdom.
  */
 
@@ -26,7 +26,7 @@ export const ASSISTANT_VOICE_SAMPLE_RATE = 8_000;
  * silence (0). Output length equals input length.
  *
  * The asymmetric `*0x8000` vs `*0x7fff` mapping below preserves the
- * historical behaviour of `App.tsx` exactly — negative samples have one more
+ * historical behaviour of `App.tsx` exactly - negative samples have one more
  * representable code than positive samples in two's-complement int16, so this
  * matches what Google TV's voice decoder expects.
  */
@@ -45,7 +45,7 @@ export function convertFloat32ToPcm16(source: Float32Array): Int16Array {
  *
  *   - If `inputSampleRate <= 8000`: passthrough (just int16-encode).
  *   - Otherwise: average source samples across each output sample window
- *     (simple decimation-by-averaging — not the highest-quality resampler in
+ *     (simple decimation-by-averaging - not the highest-quality resampler in
  *     the world, but it matches the original code and Google TV doesn't seem
  *     to mind).
  */

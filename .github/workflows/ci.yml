@@ -7,6 +7,7 @@ on:
       - master
       - develop
       - 'feature/**'
+      - 'release/**'
       - 'renovate/**'
   pull_request:
   workflow_dispatch:
@@ -122,15 +123,45 @@ jobs:
           cache: yarn
       - run: corepack enable
       - run: yarn install --immutable
+      - name: Install Electron runtime before timed functional fixtures
+        run: node node_modules/electron/install.js
       - run: yarn playwright install ffmpeg
       - name: Install Electron display and media prerequisites
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb xauth zip unzip libnss3 libatk1.0-0 libatk-bridge2.0-0 libgtk-3-0 libgbm1 libasound2t64 libxss1 libxtst6
+          sudo apt-get install -y xvfb xauth zip unzip dbus-x11 gnome-keyring libsecret-1-0 libsecret-tools libnss3 libatk1.0-0 libatk-bridge2.0-0 libgtk-3-0 libgbm1 libasound2t64 libxss1 libxtst6
       - run: yarn build
       - run: yarn typecheck:integration
       - name: Real Electron functional guardrail
-        run: xvfb-run -a --server-args="-screen 0 1280x1024x24" yarn test:integration
+        run: |
+          xvfb-run -a --server-args="-screen 0 1280x1024x24" dbus-run-session -- bash -euo pipefail -c '
+            sandbox=$(mktemp -d)
+            trap '\''rm -rf "$sandbox"'\'' EXIT
+            export XDG_RUNTIME_DIR="$sandbox/runtime"
+            export XDG_DATA_HOME="$sandbox/data"
+            export XDG_CURRENT_DESKTOP=GNOME
+            mkdir -m 700 -p "$XDG_RUNTIME_DIR" "$XDG_DATA_HOME"
+            # Unlock/create the encrypted login keyring, then complete session initialization.
+            # Start under the same display and D-Bus session as every Electron process.
+            keyring_environment=$(printf "%s" "isolated-ci-keyring" | gnome-keyring-daemon --unlock --components=secrets)
+            eval "$keyring_environment"
+            export GNOME_KEYRING_CONTROL
+            keyring_environment=$(gnome-keyring-daemon --start --components=secrets)
+            eval "$keyring_environment"
+            export GNOME_KEYRING_CONTROL
+            # A bounded real Secret Service write/read must succeed without an unlock prompt.
+            if ! printf "%s" "ci-storage-probe" | timeout 20s secret-tool store --label="CI storage prerequisite" application gtv-ci-prerequisite; then
+              echo "::error::Secret Service prerequisite failed: cannot store in the unlocked default collection"
+              exit 1
+            fi
+            if [ "$(timeout 20s secret-tool lookup application gtv-ci-prerequisite)" != "ci-storage-probe" ]; then
+              echo "::error::Secret Service prerequisite failed: stored probe did not round-trip"
+              exit 1
+            fi
+            timeout 20s secret-tool clear application gtv-ci-prerequisite
+            timeout 30s yarn electron tests/integration/platform-fixtures/safe-storage.cjs --no-sandbox --password-store=gnome-libsecret
+            yarn test:integration
+          '
       - name: Upload sanitized functional diagnostics
         if: always()
         uses: actions/upload-artifact@v7
@@ -141,8 +172,24 @@ jobs:
             playwright-report/
           retention-days: 7
 
+  homebrew:
+    needs: setup
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - name: Verify generated casks with the actual Homebrew DSL
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: '1'
+          HOMEBREW_NO_ANALYTICS: '1'
+        run: |
+          brew --version
+          node --test tests/release/homebrew-cask.test.mjs
+
   build:
-    needs: [format, lint, typecheck, test, integration, release-preview]
+    needs: [format, lint, typecheck, test, integration, release-preview, homebrew]
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
     steps:

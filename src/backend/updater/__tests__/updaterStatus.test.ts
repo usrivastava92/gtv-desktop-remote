@@ -66,7 +66,7 @@ describe('mergeUpdaterStatus', () => {
   });
 });
 
-describe('applyUpdaterEvent — every event transition', () => {
+describe('applyUpdaterEvent - every event transition', () => {
   const initial = createInitialUpdaterStatus(V);
 
   it('check-started → in-progress + checking + "Checking…" message', () => {

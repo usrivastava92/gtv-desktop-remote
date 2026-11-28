@@ -9,9 +9,6 @@ for (const cancel of ['Escape', 'Tab', 'blur'] as const) {
   }) => {
     const before = await h.api('getPreferences');
     await h.page.getByRole('button', { name: 'Settings', exact: true }).click();
-    await expect(h.page.getByRole('button', { name: 'Reset App State', exact: true })).toHaveCount(
-      0
-    );
     await h.focusNativeWindow();
     await h.page.locator('#global-shortcut').click();
     await expect.poll(async () => (await h.api('getPreferences')).activeShortcut).toBeNull();
@@ -203,7 +200,7 @@ test('PREF-DEFAULT-ALIASES-LABELS: default chord, equivalent aliases and native-
   await expect(h.page.locator('#global-shortcut')).toHaveText(
     `${platform === 'darwin' ? 'Cmd' : 'Ctrl'}+Shift+G`
   );
-  await h.page.getByRole('button', { name: 'Done', exact: true }).click();
+  await h.page.getByRole('button', { name: 'Back', exact: true }).click();
   const alias = await h.api('changePreference', { shortcut: 'ctrl+option+F9' });
   expect(alias.error).toBeNull();
   expect(alias.preferences.shortcut).toBe('Control+Alt+F9');

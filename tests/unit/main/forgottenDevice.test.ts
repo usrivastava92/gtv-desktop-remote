@@ -91,4 +91,17 @@ describe('forgotten device authorization', () => {
     mocks.clear.mockRejectedValueOnce(new Error('permission denied'));
     await expect(bridge.forgetDevice('192.0.2.1')).rejects.toThrow('permission denied');
   });
+
+  it('cancels a pending PIN exchange without deleting authorization and allows a fresh pairing', async () => {
+    const bridge = new AndroidTvRemoteBridge();
+    const first = pairingClient();
+    const second = pairingClient();
+    mocks.createPairingClient.mockResolvedValueOnce(first).mockResolvedValueOnce(second);
+    await bridge.startPairing('192.0.2.1', 'device-mac');
+    await bridge.cancelPairing('192.0.2.1');
+    expect(first.close).toHaveBeenCalledOnce();
+    expect(mocks.clear).not.toHaveBeenCalled();
+    await bridge.startPairing('192.0.2.1', 'device-mac');
+    expect(second.start).toHaveBeenCalledOnce();
+  });
 });

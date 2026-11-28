@@ -26,7 +26,7 @@ per-module responsibility table, and the coverage targets.
 | `pairing/`   | `PairingService` + per-kind `IPairingDriver` implementations.                                                  |
 | `remote/`    | `RemoteCommandRouter` + per-kind `IRemoteSessionDriver` implementations.                                       |
 | `voice/`     | `VoiceSessionService` and the PCM encoder (moved out of the renderer).                                         |
-| `metrics/`   | `CommandMetricsService` — pure event-sourced metrics.                                                          |
+| `metrics/`   | `CommandMetricsService` - pure event-sourced metrics.                                                          |
 | `updater/`   | `UpdateChecker` + `MacUpdateInstaller` + `UpdateStateMachine`.                                                 |
-| `app/`       | `AppFacade` — the single composition root used by `src/main/`.                                                 |
+| `app/`       | `AppFacade` - the single composition root used by `src/main/`.                                                 |
 | `__tests__/` | Cross-cutting / contract tests that span multiple folders.                                                     |

@@ -13,7 +13,7 @@ test('PAIR-FAILURE-pairing-reject: received secret is rejected, leaves unauthori
   expect(h.tv.snapshot().pairedClients).toBe(0);
   const traceStart = h.tv.traces.length;
   await h.page.locator('input[autocomplete="one-time-code"]').fill(h.tv.pairingCode);
-  await h.page.getByRole('button', { name: 'Connect', exact: true }).click();
+  await h.page.getByRole('button', { name: 'Continue', exact: true }).click();
   await expect.poll(async () => (await h.api('bootstrap')).deviceState.status).toBe('error');
   expect(
     h.tv.traces
@@ -34,7 +34,7 @@ test('PAIR-FAILURE-pairing-reject: received secret is rejected, leaves unauthori
   await h.tv.setFault('none');
   await h.openPairing();
   await h.page.locator('input[autocomplete="one-time-code"]').fill(h.tv.pairingCode);
-  await h.page.getByRole('button', { name: 'Connect', exact: true }).click();
+  await h.page.getByRole('button', { name: 'Continue', exact: true }).click();
   await h.tv.waitFor((state) => state.ready && state.pairedClients === 1);
   await expect(h.page.getByRole('button', { name: 'Select', exact: true })).toBeEnabled();
 });
@@ -71,7 +71,7 @@ test('PAIR-FAILURE-pairing-silence: missing handshake reply fails before secret,
   await h.tv.setFault('none');
   await h.openPairing();
   await h.page.locator('input[autocomplete="one-time-code"]').fill(h.tv.pairingCode);
-  await h.page.getByRole('button', { name: 'Connect', exact: true }).click();
+  await h.page.getByRole('button', { name: 'Continue', exact: true }).click();
   await h.tv.waitFor((state) => state.ready && state.pairedClients === 1);
   await expect(h.page.getByRole('button', { name: 'Select', exact: true })).toBeEnabled();
 });
@@ -84,14 +84,50 @@ test('PAIR-INVALID: nonhex, bad checksum and missing pairing session reject with
     host: h.tv.host,
     adbPort: 5555,
   });
-  for (const code of ['OO1234', '12345', '1234567']) {
-    await expect(h.api('pair', { deviceId: saved[0].id, host: h.tv.host, code })).rejects.toThrow();
-  }
+  const before = await h.api('bootstrap');
+  const traceStart = h.tv.traces.length;
   await expect(
     h.api('pair', { deviceId: saved[0].id, host: h.tv.host, code: 'ABCDEF' })
-  ).rejects.toThrow();
-  expect((await h.api('bootstrap')).deviceState.status).toBe('error');
+  ).rejects.toThrow('Start pairing and request a new code');
+  // An out-of-session request is a rejected operation, not a failed transport session.
+  expect((await h.api('bootstrap')).deviceState).toEqual(before.deviceState);
+  expect(h.tv.traces.slice(traceStart).some((trace) => trace.service === 'pairing')).toBe(false);
+  expect((await h.api('bootstrap')).devices[0].isPaired).not.toBe(true);
   expect(h.tv.snapshot().pairedClients).toBe(0);
+
+  // As in preparePairing, the fixture starts offline until the real app creates its certificate.
+  await expect(h.api('startPairing', saved[0].id)).rejects.toThrow();
+  expect((await h.api('bootstrap')).deviceState.status).toBe('error');
+  await h.tv.trustClient(await h.certificate());
+  await h.tv.start();
+
+  for (const invalidCode of ['OO1234', '12345', '1234567', 'bad-checksum']) {
+    await h.api('startPairing', saved[0].id);
+    const code =
+      invalidCode === 'bad-checksum'
+        ? `${h.tv.pairingCode[0] === '0' ? '1' : '0'}${h.tv.pairingCode.slice(1)}`
+        : invalidCode;
+    const submissionStart = h.tv.traces.length;
+    await expect(h.api('pair', { deviceId: saved[0].id, host: h.tv.host, code })).rejects.toThrow();
+    const failed = await h.api('bootstrap');
+    expect(failed.deviceState.status).toBe('error');
+    expect(failed.deviceState.message).toBeTruthy();
+    expect(failed.deviceState.pairing).toBeUndefined();
+    expect(failed.devices[0].isPaired).not.toBe(true);
+    expect(h.tv.snapshot().pairedClients).toBe(0);
+    expect(
+      h.tv.traces
+        .slice(submissionStart)
+        .some((trace) => trace.direction === 'rx' && trace.message.includes('pairingSecret'))
+    ).toBe(false);
+  }
+
+  await h.api('startPairing', saved[0].id);
+  await h.api('pair', { deviceId: saved[0].id, host: h.tv.host, code: h.tv.pairingCode });
+  expect((await h.api('bootstrap')).devices[0].isPaired).toBe(true);
+  expect((await h.api('bootstrap')).deviceState.message).toContain('Pairing succeeded');
+  expect((await h.api('connect', saved[0].id)).status).toBe('connected');
+  await h.tv.waitFor((state) => state.ready && state.pairedClients === 1);
 });
 
 for (const fault of [
@@ -151,8 +187,9 @@ test('RESET: cancel preserves identity, confirm deletes saved and legacy credent
   const devices = (await h.api('bootstrap')).devices;
   expect(devices).toHaveLength(1);
   const certificate = await h.certificate();
-  const reset = h.page.getByRole('button', { name: 'Reset App State', exact: true });
+  const reset = h.page.getByRole('button', { name: 'Clear app state', exact: true });
   await h.page.getByRole('button', { name: 'Devices', exact: true }).click();
+  await h.page.getByRole('button', { name: 'Settings', exact: true }).click();
   // Fixture only the OS confirmation decision; clicks, reset IPC and storage stay real.
   // CDP dismissal does not reliably restore Electron's native window focus.
   await h.page.evaluate(() => {
@@ -169,9 +206,10 @@ test('RESET: cancel preserves identity, confirm deletes saved and legacy credent
     window.confirm = () => true;
   });
   await reset.click();
-  // Bootstrap storage empties before legacy cleanup; wait for the awaited renderer operation.
-  await expect(h.page.locator('.ui-devices-content .ui-card')).toHaveCount(0);
+  // Await reset completion in Settings, then verify the cleared picker.
   await expect(reset).toBeEnabled();
+  await h.page.getByRole('button', { name: 'Back', exact: true }).click();
+  await expect(h.page.locator('.ui-devices-content .ui-card')).toHaveCount(0);
   expect((await h.api('bootstrap')).devices).toEqual([]);
   const certificateFiles = await readdir(path.join(h.profile, 'androidtvremote')).catch(
     (error: NodeJS.ErrnoException) => {

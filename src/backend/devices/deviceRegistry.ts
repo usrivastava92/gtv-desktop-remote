@@ -1,12 +1,18 @@
+import { fireTvIdentityMatches, mergeFireTvProviderData } from '../../shared/fireTvIdentity';
 import type { DeviceDraft, DiscoveredDevice, SavedDevice } from '../../shared/types';
+
+/** Records written before provider support belong to Google TV. */
+export function platformOf(device: { platform?: string }): string {
+  return device.platform ?? 'google-tv';
+}
 
 /**
  * Pure identity-matching utilities for devices. Extracted from the inline
- * branches in `GoogleTvAdapter.runDeviceScan` and `GoogleTvAdapter.saveDevice`
+ * branches in `TvAdapter.runDeviceScan` and `TvAdapter.saveDevice`.
  *
  * **Google TV non-regression gate #2** (after the cert store). These functions
  * decide whether a freshly-discovered device on the network is "the same" as
- * one the user already paired with — getting this wrong loses the pairing
+ * one the user already paired with - getting this wrong loses the pairing
  * credential when an IP changes. The priority order is preserved exactly from
  * the original code:
  *
@@ -32,11 +38,18 @@ export function matchSavedToDiscovered(
   saved: SavedDevice,
   discovered: readonly DiscoveredDevice[]
 ): DiscoveredDevice | undefined {
+  discovered = discovered.filter((device) => platformOf(device) === platformOf(saved));
+  if (platformOf(saved) === 'fire-tv') {
+    return discovered.find((device) => fireTvIdentityMatches(saved, device));
+  }
   const fingerprintMatches = saved.deviceFingerprint
     ? discovered.filter((d) => d.deviceFingerprint === saved.deviceFingerprint)
     : undefined;
 
   return discovered.find((d) => {
+    if (saved.providerData?.identifier && d.providerData?.identifier) {
+      return saved.providerData.identifier === d.providerData.identifier;
+    }
     if (saved.macAddress && d.macAddress) {
       return d.macAddress === saved.macAddress;
     }
@@ -68,6 +81,12 @@ export function mergeIdentity(saved: SavedDevice, match: DiscoveredDevice): Save
   if (match.host === saved.host) {
     return {
       ...saved,
+      providerData:
+        platformOf(saved) === 'fire-tv'
+          ? mergeFireTvProviderData(saved.providerData, match.providerData)
+          : match.providerData
+            ? { ...saved.providerData, ...match.providerData }
+            : saved.providerData,
       macAddress: saved.macAddress ?? match.macAddress,
       castDeviceId: saved.castDeviceId ?? match.castDeviceId,
       networkHostName: saved.networkHostName ?? match.networkHostName,
@@ -77,6 +96,12 @@ export function mergeIdentity(saved: SavedDevice, match: DiscoveredDevice): Save
 
   return {
     ...saved,
+    providerData:
+      platformOf(saved) === 'fire-tv'
+        ? mergeFireTvProviderData(saved.providerData, match.providerData)
+        : match.providerData
+          ? { ...saved.providerData, ...match.providerData }
+          : saved.providerData,
     host: match.host,
     macAddress: saved.macAddress ?? match.macAddress,
     castDeviceId: saved.castDeviceId ?? match.castDeviceId,
@@ -95,7 +120,8 @@ export function identityChanged(previous: SavedDevice, updated: SavedDevice): bo
     updated.macAddress !== previous.macAddress ||
     updated.castDeviceId !== previous.castDeviceId ||
     updated.networkHostName !== previous.networkHostName ||
-    updated.deviceFingerprint !== previous.deviceFingerprint
+    updated.deviceFingerprint !== previous.deviceFingerprint ||
+    JSON.stringify(updated.providerData) !== JSON.stringify(previous.providerData)
   );
 }
 
@@ -105,7 +131,7 @@ export function identityChanged(previous: SavedDevice, updated: SavedDevice): bo
  * the saved list (so the asymmetry is reversed). Used by "save device" flows
  * to deduplicate.
  *
- * Returns `undefined` if no existing device matches — the caller should
+ * Returns `undefined` if no existing device matches - the caller should
  * create a fresh one.
  */
 export function findExistingForDraft(
@@ -119,6 +145,13 @@ export function findExistingForDraft(
   const normalizedDeviceFingerprint = draft.deviceFingerprint?.trim();
 
   return savedList.find((device) => {
+    if (platformOf(device) !== platformOf(draft)) return false;
+    if (platformOf(draft) === 'fire-tv') {
+      return fireTvIdentityMatches({ ...draft, host: normalizedHost }, device);
+    }
+    if (draft.providerData?.identifier && device.providerData?.identifier) {
+      return draft.providerData.identifier === device.providerData.identifier;
+    }
     if (normalizedMac && device.macAddress) {
       return device.macAddress === normalizedMac;
     }
@@ -159,6 +192,11 @@ export function normalizeDraft(
 
   return {
     id: existing?.id ?? idGenerator(),
+    platform: platformOf(draft),
+    providerData:
+      platformOf(draft) === 'fire-tv'
+        ? mergeFireTvProviderData(existing?.providerData, draft.providerData)
+        : (draft.providerData ?? existing?.providerData),
     isPaired: existing?.isPaired ?? false,
     name: draft.name.trim() || normalizedHost,
     host: normalizedHost,

@@ -22,7 +22,7 @@ export interface LogEntry {
 /**
  * Synchronous-by-contract on purpose. Every mature TS logger (winston, pino,
  * bunyan, etc.) exposes synchronous methods even when the underlying transport
- * is async — the alternative forces every caller to either `await` or `void`
+ * is async - the alternative forces every caller to either `await` or `void`
  * the call, both of which become unergonomic at hundreds of call sites.
  *
  * Implementations whose underlying transport IS async (e.g. `createNodeLogger`
@@ -36,7 +36,7 @@ export interface ILogger {
   error(scope: string, message: string, details?: unknown): void;
 }
 
-/** A logger that swallows everything — safe default for unit tests. */
+/** A logger that swallows everything - safe default for unit tests. */
 export const silentLogger: ILogger = {
   info() {
     /* no-op */
@@ -52,7 +52,7 @@ export const silentLogger: ILogger = {
 /**
  * Recording logger for unit tests. Returns an `ILogger` that captures every
  * call into `entries` in call order. Tests then assert on the resulting
- * array. Each instance is independent — no shared module state.
+ * array. Each instance is independent - no shared module state.
  *
  * Usage:
  *   const logger = createInMemoryLogger();

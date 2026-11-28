@@ -64,7 +64,13 @@ for (const mode of ['none', 'check-failure', 'no-asset'] as const) {
   }) => {
     await updates(h, async (server) => {
       server.mode = mode;
-      const status = await h.api('checkForUpdates');
+      await expect(
+        h.page.getByRole('button', { name: 'Check for Updates', exact: true })
+      ).toHaveCount(0);
+      await h.page.getByRole('button', { name: 'Settings', exact: true }).click();
+      await h.page.getByRole('button', { name: 'Check for Updates', exact: true }).click();
+      await expect(h.page.locator('.ui-update-toast')).toBeVisible();
+      const status = await h.api('getUpdaterStatus');
       expect(server.requests).toContain('/latest');
       expect(status.inProgress).toBe(false);
       if (mode === 'check-failure') expect(status.stage).toBe('failed');
@@ -209,14 +215,76 @@ test('UPDATE-ROLLBACK-DISMISS-SUPPRESS: renderer offer closes and durable suppre
     await h.dialogs([1]);
     await h.api('checkForUpdates');
     await h.api('installAvailableUpdate');
+    await h.page.getByRole('button', { name: 'Settings', exact: true }).click();
     await expect(h.page.getByRole('button', { name: 'Close rollback panel' })).toBeVisible();
     await h.page.getByRole('button', { name: 'Close rollback panel' }).click();
     await expect(h.page.getByRole('button', { name: 'Close rollback panel' })).toHaveCount(0);
     await h.restart();
+    await h.page.getByRole('button', { name: 'Settings', exact: true }).click();
     await h.page.getByRole('button', { name: /Don.t show again/i }).click();
     await h.restart();
+    await h.page.getByRole('button', { name: 'Settings', exact: true }).click();
     await expect(h.page.getByRole('button', { name: 'Close rollback panel' })).toHaveCount(0);
     expect((await h.api('getUpdaterStatus')).rollbackAvailable).toBe(true);
+  });
+});
+
+test('UPDATE-SETTINGS-ROLLBACK-WITH-UPDATE: newer offer and backup remain independently reachable', async ({
+  harness: h,
+}) => {
+  await updates(h, async (server, bundle) => {
+    const originalFiles = await installedFiles(bundle);
+    await h.dialogs([1]);
+    await h.api('checkForUpdates');
+    expect((await h.api('installAvailableUpdate')).stage).toBe('completed');
+    await expectDialogsConsumed(h, [['Relaunch now', 'Later']]);
+    expect(await rollbackFiles(h)).toEqual(originalFiles);
+    const updatedFiles = await installedFiles(bundle);
+
+    server.version = '1.6.6';
+    const available = await h.api('checkForUpdates');
+    expect(available.latestVersion).toBe('1.6.6');
+    expect(available.updateInstallable).toBe(true);
+    expect(available.rollbackAvailable).toBe(true);
+    await h.page.getByRole('button', { name: 'Close update panel' }).click();
+    await expect(h.page.getByRole('button', { name: 'Close update panel' })).toHaveCount(0);
+    await h.page.getByRole('button', { name: 'Settings', exact: true }).click();
+    const update = h.page.getByRole('button', { name: 'Update', exact: true });
+    const rollback = h.page.getByRole('button', { name: 'Rollback to v1.6.4', exact: true });
+    await expect(update).toBeEnabled();
+    await expect(rollback).toBeEnabled();
+
+    await h.dialogs([1]);
+    await rollback.click();
+    await expectDialogsConsumed(h, [['Rollback now', 'Cancel']]);
+    await expect(update).toBeEnabled();
+    await expect(rollback).toBeEnabled();
+    expect(await installedFiles(bundle)).toEqual(updatedFiles);
+    expect(await rollbackFiles(h)).toEqual(originalFiles);
+
+    await h.page.getByRole('button', { name: 'Close rollback panel' }).click();
+    await expect(rollback).toHaveCount(0);
+    await expect(update).toBeEnabled();
+    expect((await h.api('getUpdaterStatus')).rollbackAvailable).toBe(true);
+
+    await h.restart();
+    await h.api('checkForUpdatesInBackground');
+    await h.page.getByRole('button', { name: 'Settings', exact: true }).click();
+    const restoredRollback = h.page.getByRole('button', {
+      name: 'Rollback to v1.6.4',
+      exact: true,
+    });
+    await expect(h.page.getByRole('button', { name: 'Update', exact: true })).toBeEnabled();
+    await expect(restoredRollback).toBeEnabled();
+    await h.dialogs([0, 1]);
+    await restoredRollback.click();
+    await expectDialogsConsumed(h, [
+      ['Rollback now', 'Cancel'],
+      ['Relaunch now', 'Later'],
+    ]);
+    await expect.poll(async () => (await h.api('getUpdaterStatus')).rollbackAvailable).toBe(false);
+    expect(await installedFiles(bundle)).toEqual(originalFiles);
+    await expect(restoredRollback).toHaveCount(0);
   });
 });
 

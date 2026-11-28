@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { createFakeClock, createSystemClock, type IClock } from '../clock';
 
-describe('IClock — system clock', () => {
+describe('IClock - system clock', () => {
   it('now() is close to Date.now() at call time', () => {
     const clock = createSystemClock();
     const before = Date.now();
@@ -21,7 +21,7 @@ describe('IClock — system clock', () => {
   });
 });
 
-describe('IClock — fake clock', () => {
+describe('IClock - fake clock', () => {
   it('defaults to time 0', () => {
     const clock = createFakeClock();
     expect(clock.now()).toBe(0);

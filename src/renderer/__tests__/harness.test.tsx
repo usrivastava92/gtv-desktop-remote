@@ -4,13 +4,13 @@ import { describe, expect, it } from 'vitest';
 
 /**
  * harness smoke tests. Same role as the backend
- * `src/backend/__tests__/harness.test.ts` — proves the renderer test
+ * `src/backend/__tests__/harness.test.ts` - proves the renderer test
  * environment (jsdom + React 18 + @testing-library/react + jest-dom
  * matchers) is wired up end-to-end so subsequent PRs that extract real
  * hooks and components from `App.tsx` can be tested against this harness.
  *
  * Intentionally exercises an inline counter hook and an inline
- * component — no production renderer code is touched here. Real hook
+ * component - no production renderer code is touched here. Real hook
  * tests land alongside their extractions in later PRs.
  */
 

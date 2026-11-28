@@ -75,12 +75,12 @@ export function getLoggerPath(): string {
  * synchronous `ILogger` contract is satisfied without forcing every backend
  * caller to write `void logger.info(...)` (the noisy ceremony that prompted
  * the post-review revision of this PR). This matches the fire-and-forget
- * behaviour every existing inline `logInfo(...)` call site already has —
- * the codebase already doesn't await most of them — so observability is
+ * behaviour every existing inline `logInfo(...)` call site already has -
+ * the codebase already doesn't await most of them - so observability is
  * net-zero changed. Behavior for `await logInfo(...)` callers is also
  * unchanged because `logInfo` itself remains async-exported.
  *
- * The factory is deliberately stateless — it returns a fresh object each
+ * The factory is deliberately stateless - it returns a fresh object each
  * call so multiple composition roots can each hold their own reference
  * without sharing instance state.
  */

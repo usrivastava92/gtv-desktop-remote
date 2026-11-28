@@ -2,7 +2,7 @@
   "name": "gtv-desktop-remote",
   "productName": "GTV Remote",
   "version": "2.2.0",
-  "description": "macOS-first desktop remote for Google TV and Android TV",
+  "description": "A desktop remote for Google TV, Apple TV, and Fire TV",
   "packageManager": "yarn@4.18.1",
   "main": "dist-electron/main/main.js",
   "repository": {
@@ -78,7 +78,18 @@
       "category": "public.app-category.utilities",
       "icon": "taskbar-icon.icns",
       "extendInfo": {
-        "LSUIElement": true
+        "LSUIElement": true,
+        "NSLocalNetworkUsageDescription": "GTV Remote uses your local network to discover, pair with, and control your Google TV, Apple TV, and Fire TV devices.",
+        "NSBonjourServices": [
+          "_androidtvremote2._tcp",
+          "_googlecast._tcp",
+          "_adb-tls-connect._tcp",
+          "_adb-tls-pairing._tcp",
+          "_companion-link._tcp",
+          "_airplay._tcp",
+          "_device-info._tcp",
+          "_amzn-fireTv._tcp"
+        ]
       }
     },
     "dmg": {
@@ -86,7 +97,10 @@
     }
   },
   "dependencies": {
+    "@librecontrol/apple-tv": "patch:@librecontrol/apple-tv@npm%3A1.0.0#~/.yarn/patches/@librecontrol-apple-tv-npm-1.0.0-2f984c783d.patch",
+    "@librecontrol/fire-tv": "patch:@librecontrol/fire-tv@npm%3A1.1.0#~/.yarn/patches/@librecontrol-fire-tv-npm-1.1.0-238e59a7ca.patch",
     "@librecontrol/google-tv": "^1.0.2",
+    "@noble/ciphers": "2.4.0",
     "node-forge": "^1.3.1",
     "protobufjs": "^8.0.0",
     "react": "^19.1.0",

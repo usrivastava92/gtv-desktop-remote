@@ -1,4 +1,4 @@
-# `transport/` — framed socket transports
+# `transport/` - framed socket transports
 
 Connects protocol codecs to real sockets. Behind an `ITlsConnector` port so
 tests use fake sockets that simulate partial reads, drain backpressure, and

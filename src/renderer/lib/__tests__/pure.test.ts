@@ -1,7 +1,15 @@
 /** @vitest-environment jsdom */
 import { describe, expect, it } from 'vitest';
 
-import { classes, isEditableTarget, sanitizePairCode, shouldRestartPairingFlow } from '../pure';
+import {
+  classes,
+  isEditableTarget,
+  isPairCodeComplete,
+  sanitizePairCode,
+  shouldRestartPairingFlow,
+  supportsAssistantVoice,
+  supportsCommand,
+} from '../pure';
 
 describe('isEditableTarget (jsdom)', () => {
   it('returns false for null', () => {
@@ -65,6 +73,21 @@ describe('sanitizePairCode', () => {
     expect(sanitizePairCode('ADOBDB')).toBe('ADBDB'); // 'O' is not hex
     expect(sanitizePairCode('GHIJKL')).toBe('');
   });
+
+  it('accepts a four-digit provider PIN without hex letters or excess digits', () => {
+    const step = { instructions: 'Enter PIN', codeLength: 4, inputPattern: '[0-9]' };
+    expect(sanitizePairCode('a0 1-23b4', step)).toBe('0123');
+    expect(isPairCodeComplete('0123', step)).toBe(true);
+    expect(isPairCodeComplete('012', step)).toBe(false);
+    expect(isPairCodeComplete('01234', step)).toBe(false);
+    expect(isPairCodeComplete('ABCD', step)).toBe(false);
+  });
+
+  it('uses the next provider alphabet and length rather than a six-slot assumption', () => {
+    const step = { instructions: 'Enter code', codeLength: 8, inputPattern: '[A-Z0-9]' };
+    expect(sanitizePairCode('gh-12-ij-34-zz', step)).toBe('GH12IJ34');
+    expect(isPairCodeComplete('GH12IJ34', step)).toBe(true);
+  });
 });
 
 describe('classes', () => {
@@ -109,4 +132,36 @@ describe('shouldRestartPairingFlow', () => {
       expect(shouldRestartPairingFlow(msg)).toBe(false);
     }
   );
+});
+
+describe('supportsCommand', () => {
+  it('keeps legacy command support but respects powerToggle', () => {
+    expect(supportsCommand({ textInput: false, powerToggle: false }, 'home')).toBe(true);
+    expect(supportsCommand({ textInput: false, powerToggle: false }, 'power')).toBe(false);
+  });
+
+  it('blocks unsupported media and assistant commands for every dispatch source', () => {
+    const fire = {
+      textInput: true,
+      powerToggle: false,
+      assistantVoice: false,
+      supportedCommands: ['up', 'home'] as const,
+    };
+    const capabilities = { ...fire, supportedCommands: [...fire.supportedCommands] };
+    expect(supportsCommand(capabilities, 'home')).toBe(true);
+    expect(supportsCommand(capabilities, 'volume_up')).toBe(false);
+    expect(supportsCommand(capabilities, 'assistant_press')).toBe(false);
+    expect(supportsCommand({ ...capabilities, supportedCommands: [] }, 'home')).toBe(false);
+  });
+
+  it('blocks Fire microphone shortcuts without breaking omitted legacy voice capabilities', () => {
+    expect(
+      supportsAssistantVoice({
+        textInput: true,
+        powerToggle: false,
+        assistantVoice: false,
+      })
+    ).toBe(false);
+    expect(supportsAssistantVoice({ textInput: true, powerToggle: true })).toBe(true);
+  });
 });

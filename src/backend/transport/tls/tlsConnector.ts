@@ -49,7 +49,7 @@ export interface TlsConnectionOptions {
  * fires them (Node delivers them on the next tick after `tls.connect`, so
  * there is a window).
  *
- * Returning the raw `TLSSocket` keeps the abstraction minimal — the lower
+ * Returning the raw `TLSSocket` keeps the abstraction minimal - the lower
  * half of the TLS lifecycle (event wiring, drain accounting, framing
  * dispatch) stays in `NativeRemoteClient.connect` and will be hoisted
  * incrementally via the IFramedTlsTransport port.
@@ -59,7 +59,7 @@ export interface ITlsConnector {
 }
 
 /**
- * Production `ITlsConnector` — thin wrapper over Node's `tls.connect`.
+ * Production `ITlsConnector` - thin wrapper over Node's `tls.connect`.
  * Imported lazily so the backend layer never has a hard dependency on
  * `node:tls` (matters when the backend bundle is later consumed by browser
  * tests or by a recorded-capture replayer).

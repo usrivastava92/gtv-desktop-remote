@@ -32,7 +32,7 @@ export interface VoiceSessionTarget {
 }
 
 /**
- * The "lower half" of the voice session — the four operations performed
+ * The "lower half" of the voice session - the four operations performed
  * against a connected transport. In production this is implemented by
  * `androidTvRemoteBridge`; in tests by an in-memory fake.
  */
@@ -66,7 +66,7 @@ export class VoiceSessionService {
    * session id, which the caller must echo back on chunk / stop. */
   async start(target: VoiceSessionTarget): Promise<number> {
     const sessionId = await this.transport.start(target.host, target.macAddress);
-    // ILogger is synchronous-by-contract — no await.
+    // ILogger is synchronous-by-contract - no await.
     this.logger.info('adapter', 'Assistant voice session started', {
       deviceId: target.deviceId,
       host: target.host,
@@ -82,7 +82,7 @@ export class VoiceSessionService {
    *
    * If a chunk arrives for an unknown session id (because the caller missed
    * the start event or it was already stopped), the chunk is still forwarded
-   * — the transport may have its own queueing — but a warning-grade log line
+   * - the transport may have its own queueing - but a warning-grade log line
    * is emitted so the orphan is visible.
    */
   async sendChunk(

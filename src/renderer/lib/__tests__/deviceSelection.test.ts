@@ -35,6 +35,47 @@ function discovered(overrides: Partial<DiscoveredDevice> = {}): DiscoveredDevice
 }
 
 describe('findDiscoveredForSaved', () => {
+  it('never matches another platform even when all network identities collide', () => {
+    const s = saved({ platform: 'apple-tv', macAddress: 'same', deviceFingerprint: 'same' });
+    const other = discovered({
+      platform: 'fire-tv',
+      macAddress: 'same',
+      deviceFingerprint: 'same',
+    });
+    expect(findDiscoveredForSaved(s, [other])).toBeUndefined();
+    expect(deriveUnpairedNetworkDevices([s], [other])).toEqual([other]);
+  });
+
+  it('treats omitted platforms as Google TV for legacy saved records', () => {
+    const device = discovered({ platform: 'google-tv' });
+    expect(findDiscoveredForSaved(saved(), [device])).toBe(device);
+  });
+
+  it('prefers a stable provider identifier after a host change', () => {
+    const s = saved({ platform: 'apple-tv', providerData: { identifier: 'apple-1' } });
+    const moved = discovered({
+      id: 'moved',
+      platform: 'apple-tv',
+      host: '192.168.1.99',
+      providerData: { identifier: 'apple-1' },
+    });
+    const replacement = discovered({
+      platform: 'apple-tv',
+      providerData: { identifier: 'apple-2' },
+    });
+    expect(findDiscoveredForSaved(s, [replacement, moved])).toBe(moved);
+    expect(findDiscoveredForSaved(s, [replacement])).toBeUndefined();
+  });
+
+  it('scopes stable provider identifiers to their platform', () => {
+    const s = saved({ platform: 'apple-tv', providerData: { identifier: 'shared' } });
+    const device = discovered({
+      platform: 'fire-tv',
+      providerData: { identifier: 'shared' },
+    });
+    expect(findDiscoveredForSaved(s, [device])).toBeUndefined();
+  });
+
   it('matches by MAC first (stable across IP changes)', () => {
     const s = saved({ host: '192.168.1.99', macAddress: 'aa:bb:cc:dd:ee:ff' });
     const pool: DiscoveredDevice[] = [
@@ -160,7 +201,7 @@ describe('deriveUnpairedNetworkDevices', () => {
         }),
       ],
       [
-        // Same MAC, different IP — should still be filtered out:
+        // Same MAC, different IP - should still be filtered out:
         discovered({ id: 'd1', host: '192.168.1.42', macAddress: 'aa:bb:cc:dd:ee:ff' }),
       ]
     );
@@ -262,5 +303,84 @@ describe('resolveSelectedDevice', () => {
     const pairedWithCollidingId = derivePairedNetworkDevices([saved({ id: 's1' })], []);
     const sel = resolveSelectedDevice('saved:s1', pairedWithCollidingId, unpaired);
     expect(sel?.kind).toBe('saved');
+  });
+});
+
+describe('Fire TV paired picker aliases', () => {
+  const mdnsId = 'den._amzn-firetv._tcp.local';
+  const uuid = 'uuid:12345678-1234-1234-1234-123456789abc';
+
+  it.each(['mdns-to-ssdp', 'ssdp-to-mdns'])(
+    'keeps one paired card through %s rediscovery',
+    (direction) => {
+      const s = saved({
+        platform: 'fire-tv',
+        providerData:
+          direction === 'mdns-to-ssdp'
+            ? { identifier: mdnsId }
+            : { identifier: uuid, mdnsIdentifier: mdnsId },
+      });
+      const d = discovered({
+        platform: 'fire-tv',
+        providerData:
+          direction === 'mdns-to-ssdp'
+            ? { identifier: uuid, mdnsIdentifier: mdnsId }
+            : { identifier: mdnsId },
+      });
+      const paired = derivePairedNetworkDevices([s], [d]);
+      const unpaired = deriveUnpairedNetworkDevices([s], [d]);
+      expect(paired[0]?.discoveredDevice).toBe(d);
+      expect(unpaired).toEqual([]);
+      expect(resolveSelectedDevice(`saved:${s.id}`, paired, unpaired)).toMatchObject({
+        kind: 'saved',
+        savedDevice: s,
+        discoveredDevice: d,
+      });
+    }
+  );
+
+  it.each(['mdns-to-ssdp', 'ssdp-to-mdns'])(
+    'keeps cross-host %s aliases unpaired without matching UUIDs',
+    (direction) => {
+      const s = saved({
+        platform: 'fire-tv',
+        providerData:
+          direction === 'mdns-to-ssdp'
+            ? { identifier: mdnsId }
+            : { identifier: uuid, mdnsIdentifier: mdnsId },
+      });
+      const d = discovered({
+        platform: 'fire-tv',
+        host: '192.168.1.99',
+        providerData:
+          direction === 'mdns-to-ssdp'
+            ? { identifier: uuid, mdnsIdentifier: mdnsId }
+            : { identifier: mdnsId },
+      });
+      expect(findDiscoveredForSaved(s, [d])).toBeUndefined();
+      expect(deriveUnpairedNetworkDevices([s], [d])).toEqual([d]);
+      const paired = derivePairedNetworkDevices([s], [d]);
+      expect(paired[0]?.discoveredDevice).toBeUndefined();
+      expect(resolveSelectedDevice(`saved:${s.id}`, paired, [d])).toMatchObject({
+        kind: 'saved',
+        savedDevice: s,
+      });
+    }
+  );
+
+  it('leaves a different receiver unpaired despite the same host, name and mDNS alias', () => {
+    const s = saved({
+      platform: 'fire-tv',
+      providerData: { identifier: uuid, mdnsIdentifier: mdnsId },
+    });
+    const other = discovered({
+      platform: 'fire-tv',
+      providerData: {
+        identifier: 'uuid:87654321-1234-1234-1234-123456789abc',
+        mdnsIdentifier: mdnsId,
+      },
+    });
+    expect(findDiscoveredForSaved(s, [other])).toBeUndefined();
+    expect(deriveUnpairedNetworkDevices([s], [other])).toEqual([other]);
   });
 });

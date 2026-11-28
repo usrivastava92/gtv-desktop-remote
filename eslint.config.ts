@@ -20,6 +20,7 @@ export default tseslint.config(
       'test-results/**',
       'playwright-report/**',
       'node_modules/**',
+      '.yarn/**',
       'build/**',
       'public/**',
     ],
@@ -28,7 +29,7 @@ export default tseslint.config(
   // ── Base JS recommended ───────────────────────────────────────────────────
   js.configs.recommended,
 
-  // ── TypeScript recommended (no type-aware rules yet — applied below) ──────
+  // -- TypeScript recommended (no type-aware rules yet - applied below) ------
   ...tseslint.configs.recommended,
 
   // ── React ─────────────────────────────────────────────────────────────────
@@ -111,7 +112,7 @@ export default tseslint.config(
     },
   },
 
-  // ── Scripts (plain JS/MJS — Node globals, no type-checking) ──────────────
+  // -- Scripts (plain JS/MJS - Node globals, no type-checking) --------------
   {
     files: ['scripts/**/*.{mjs,js,cjs}', 'tests/integration/**/*.cjs', 'tests/release/**/*.mjs'],
     extends: [tseslint.configs.disableTypeChecked],

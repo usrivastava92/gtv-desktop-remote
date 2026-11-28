@@ -1,11 +1,11 @@
 /**
- * IClock port — replaces direct `Date.now()` / `new Date()` calls so the rest
+ * IClock port - replaces direct `Date.now()` / `new Date()` calls so the rest
  * of the backend can be tested with a deterministic clock without resorting to
  * `vi.useFakeTimers()` (which leaks across vitest worker boundaries and has
  * bitten the metrics rate tests in the past).
  *
  * defines the port + the two canonical implementations,
- * and adopts it at the single highest-traffic call site — the metrics
+ * and adopts it at the single highest-traffic call site - the metrics
  * snapshot `generatedAt` field. Future PRs migrate the other ~28 `Date.now()`
  * call sites in `src/main/metrics.ts` and the `lastActivityAt` site in
  * `src/main/device/androidTvRemote.ts` per the now-familiar seam-first pattern
@@ -26,7 +26,7 @@ export interface IClock {
 }
 
 /**
- * Production clock — directly reads the host system clock. Use this in
+ * Production clock - directly reads the host system clock. Use this in
  * every composition root (`AppFacade` once it exists, otherwise the
  * top-level `src/main/` module that constructs the backend service).
  */

@@ -21,7 +21,11 @@ function getResetTargets() {
 
   return appNames.flatMap((appName) => {
     const baseDir = path.join(appDataRoot, appName);
-    return [path.join(baseDir, 'devices.json'), path.join(baseDir, 'androidtvremote')];
+    return [
+      path.join(baseDir, 'devices.json'),
+      path.join(baseDir, 'androidtvremote'),
+      path.join(baseDir, 'provider-credentials'),
+    ];
   });
 }
 

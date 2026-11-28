@@ -87,7 +87,7 @@ export function subscribeUpdaterStatus(listener: UpdaterStatusListener): () => v
 }
 
 /**
- * setUpdaterStatus() has been fully retired — all 16 original call
+ * setUpdaterStatus() has been fully retired - all 16 original call
  * sites have been migrated to dispatchUpdaterEvent() across PRs 6a–6h.
  * The function has been deleted. All status transitions now go through the
  * pure UpdaterEvent reducer in src/backend/updater/updaterStatus.ts.
@@ -264,7 +264,7 @@ async function recoverOrphanedRollbackState(state: UpdateState): Promise<UpdateS
     };
 
     await writeUpdateState(recoveredState).catch(() => {
-      // ignore — we'll still surface the rollback in-memory
+      // ignore - we'll still surface the rollback in-memory
     });
     await logInfo('updater', 'Recovered orphaned rollback backup', {
       bundlePath,
@@ -426,7 +426,7 @@ async function createRollbackBackup(targetBundle: string) {
       await fs.rename(rollbackDir, previousRollbackDir);
       movedExisting = true;
     } catch (error) {
-      // ENOENT just means there was no previous rollback dir — fine to proceed.
+      // ENOENT just means there was no previous rollback dir - fine to proceed.
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
         throw error;
       }
@@ -696,7 +696,7 @@ export async function installAvailableUpdate() {
     return await getUpdaterStatus();
   }
 
-  // Guard against re-entry — the renderer polls and could fire install twice.
+  // Guard against re-entry - the renderer polls and could fire install twice.
   if (updaterStatus.inProgress) {
     return await getUpdaterStatus();
   }

@@ -39,7 +39,7 @@ function draft(overrides: Partial<DeviceDraft> = {}): DeviceDraft {
   };
 }
 
-describe('matchSavedToDiscovered — Google TV non-regression gate', () => {
+describe('matchSavedToDiscovered - Google TV non-regression gate', () => {
   describe('priority order: MAC > castDeviceId > networkHostName > fingerprint > host', () => {
     it('matches by MAC when both sides have one (ignores host change)', () => {
       const s = saved({ host: 'OLD', macAddress: 'AA:BB:CC' });
@@ -267,4 +267,235 @@ describe('normalizeDraft', () => {
     expect(result.macAddress).toBe('OLD');
     expect(result.castDeviceId).toBe('OLD-CAST');
   });
+});
+
+describe('provider-scoped identity', () => {
+  it('does not deduplicate different platforms sharing a host or physical identity', () => {
+    const legacy = saved({ macAddress: 'AA' });
+    const native = discovered({ platform: 'apple-tv', macAddress: 'AA' });
+    expect(matchSavedToDiscovered(legacy, [native])).toBeUndefined();
+    expect(
+      findExistingForDraft(draft({ platform: 'apple-tv', macAddress: 'AA' }), [legacy])
+    ).toBeUndefined();
+  });
+
+  it('matches an explicit Google platform to legacy records', () => {
+    const legacy = saved();
+    expect(matchSavedToDiscovered(legacy, [discovered({ platform: 'google-tv' })])).toBeDefined();
+    expect(findExistingForDraft(draft({ platform: 'google-tv' }), [legacy])).toBe(legacy);
+  });
+
+  it('uses native stable identifiers across address changes without falling back on conflicting hosts', () => {
+    const native = saved({ platform: 'apple-tv', providerData: { identifier: 'apple-1' } });
+    const moved = discovered({
+      platform: 'apple-tv',
+      host: 'NEW',
+      providerData: { identifier: 'apple-1', port: 49153 },
+    });
+    expect(matchSavedToDiscovered(native, [moved])).toBe(moved);
+    expect(mergeIdentity(native, moved).providerData).toEqual({
+      identifier: 'apple-1',
+      port: 49153,
+    });
+    expect(
+      matchSavedToDiscovered(native, [
+        discovered({
+          platform: 'apple-tv',
+          providerData: { identifier: 'apple-2' },
+        }),
+      ])
+    ).toBeUndefined();
+  });
+});
+
+describe('Fire TV discovery protocol aliases', () => {
+  const mdnsId = 'living room._amzn-firetv._tcp.local';
+  const uuid = 'uuid:12345678-1234-1234-1234-123456789abc';
+  const otherUuid = 'uuid:87654321-1234-1234-1234-123456789abc';
+  const dial = 'urn:dial-multiscreen-org:service:dial:1';
+
+  it('migrates legacy mDNS pairing to co-observed SSDP and back without changing credential identity', () => {
+    const paired = saved({
+      platform: 'fire-tv',
+      providerData: { identifier: mdnsId, serviceName: `${mdnsId}.`, protocol: 'https' },
+      lastConnectedAt: '2026-01-01',
+    });
+    const both = discovered({
+      platform: 'fire-tv',
+      providerData: { identifier: uuid, mdnsIdentifier: mdnsId, serviceName: dial, port: 8080 },
+    });
+    expect(matchSavedToDiscovered(paired, [both])).toBe(both);
+    const migrated = mergeIdentity(paired, both);
+    expect(migrated).toMatchObject({
+      id: paired.id,
+      isPaired: true,
+      lastConnectedAt: paired.lastConnectedAt,
+      providerData: {
+        identifier: uuid,
+        mdnsIdentifier: mdnsId,
+        ssdpIdentifier: uuid,
+        protocol: 'https',
+      },
+    });
+    const mdnsOnly = discovered({
+      platform: 'fire-tv',
+      providerData: { identifier: mdnsId, serviceName: `${mdnsId}.`, port: 8080 },
+    });
+    expect(matchSavedToDiscovered(migrated, [mdnsOnly])).toBe(mdnsOnly);
+    const back = mergeIdentity(migrated, mdnsOnly);
+    expect(back.id).toBe(paired.id);
+    expect(back.providerData).toMatchObject({
+      ssdpIdentifier: uuid,
+      mdnsIdentifier: mdnsId,
+      serviceName: dial,
+    });
+    expect(matchSavedToDiscovered(back, [both])).toBe(both);
+    expect(identityChanged(paired, migrated)).toBe(true);
+    expect(identityChanged(back, mergeIdentity(back, mdnsOnly))).toBe(false);
+  });
+
+  it('recognizes matching UUIDs after an address change even when mDNS is primary', () => {
+    const paired = saved({ platform: 'fire-tv', providerData: { identifier: uuid } });
+    const match = discovered({
+      platform: 'fire-tv',
+      host: '192.168.1.99',
+      providerData: { identifier: mdnsId, mdnsIdentifier: mdnsId, ssdpIdentifier: uuid },
+    });
+    expect(matchSavedToDiscovered(paired, [match])).toBe(match);
+    expect(mergeIdentity(paired, match).host).toBe(match.host);
+  });
+
+  it.each(['mdns-to-ssdp', 'ssdp-to-mdns'])(
+    'rejects cross-host %s aliases without matching UUIDs',
+    (direction) => {
+      const paired = saved({
+        platform: 'fire-tv',
+        providerData:
+          direction === 'mdns-to-ssdp'
+            ? { identifier: mdnsId }
+            : { identifier: uuid, mdnsIdentifier: mdnsId },
+      });
+      const candidate = discovered({
+        platform: 'fire-tv',
+        host: '192.168.1.99',
+        providerData:
+          direction === 'mdns-to-ssdp'
+            ? { identifier: uuid, mdnsIdentifier: mdnsId }
+            : { identifier: mdnsId },
+      });
+      expect(matchSavedToDiscovered(paired, [candidate])).toBeUndefined();
+      expect(findExistingForDraft(draft({ ...candidate, name: 'TV' }), [paired])).toBeUndefined();
+    }
+  );
+
+  it('preserves saved identity and readiness when saving the rediscovered card', () => {
+    const paired = saved({
+      platform: 'fire-tv',
+      providerData: { identifier: uuid, mdnsIdentifier: mdnsId, serviceName: dial },
+    });
+    const candidate = draft({
+      platform: 'fire-tv',
+      providerData: { identifier: mdnsId, serviceName: `${mdnsId}.` },
+    });
+    const existing = findExistingForDraft(candidate, [paired]);
+    expect(existing).toBe(paired);
+    expect(normalizeDraft(candidate, existing)).toMatchObject({
+      id: paired.id,
+      isPaired: true,
+      providerData: { ssdpIdentifier: uuid, serviceName: dial },
+    });
+  });
+
+  it('rejects recycled hosts, conflicting UUIDs, cross-platform aliases and names alone', () => {
+    const paired = saved({
+      platform: 'fire-tv',
+      providerData: { identifier: uuid, mdnsIdentifier: mdnsId },
+    });
+    for (const candidate of [
+      discovered({
+        platform: 'fire-tv',
+        providerData: { identifier: otherUuid, mdnsIdentifier: mdnsId },
+      }),
+      discovered({
+        platform: 'fire-tv',
+        providerData: { identifier: 'other._amzn-firetv._tcp.local' },
+      }),
+      discovered({
+        platform: 'apple-tv',
+        providerData: { identifier: uuid, mdnsIdentifier: mdnsId },
+      }),
+    ]) {
+      expect(matchSavedToDiscovered(paired, [candidate])).toBeUndefined();
+      expect(findExistingForDraft(draft({ ...candidate, name: 'TV' }), [paired])).toBeUndefined();
+    }
+    const nameOnly = saved({ platform: 'fire-tv', providerData: { identifier: mdnsId } });
+    expect(
+      matchSavedToDiscovered(nameOnly, [
+        discovered({
+          platform: 'fire-tv',
+          host: '192.168.1.99',
+          providerData: { identifier: mdnsId },
+        }),
+      ])
+    ).toBeUndefined();
+    // Without co-observation, even the same address cannot prove a UUID/name alias.
+    expect(
+      matchSavedToDiscovered(nameOnly, [
+        discovered({ platform: 'fire-tv', providerData: { identifier: uuid } }),
+      ])
+    ).toBeUndefined();
+  });
+});
+
+describe('Fire TV canonical identities', () => {
+  it('matches UUID rediscovery across IP changes and canonicalizes legacy mDNS service spelling', () => {
+    const uuid = 'uuid:12345678-1234-1234-1234-123456789abc';
+    const mdnsId = 'living room._amzn-firetv._tcp.local';
+    const paired = saved({ platform: 'fire-tv', providerData: { identifier: uuid } });
+    const moved = discovered({
+      platform: 'fire-tv',
+      host: '192.168.1.99',
+      providerData: { identifier: uuid.toUpperCase() },
+    });
+    expect(matchSavedToDiscovered(paired, [moved])).toBe(moved);
+    const legacy = saved({
+      platform: 'fire-tv',
+      providerData: { identifier: `${mdnsId.toUpperCase()}.` },
+    });
+    const coObserved = discovered({
+      platform: 'fire-tv',
+      providerData: { identifier: uuid, mdnsIdentifier: mdnsId },
+    });
+    expect(matchSavedToDiscovered(legacy, [coObserved])).toBe(coObserved);
+  });
+});
+
+it('retains the authoritative Fire UUID and DIAL requirement through mDNS-only rediscovery', () => {
+  const uuid = 'uuid:12345678-1234-1234-1234-123456789abc';
+  const mdnsId = 'den._amzn-firetv._tcp.local';
+  const dial = 'urn:dial-multiscreen-org:service:dial:1';
+  const paired = saved({
+    platform: 'fire-tv',
+    providerData: { identifier: uuid, mdnsIdentifier: mdnsId, serviceName: dial },
+  });
+  const mdns = discovered({
+    platform: 'fire-tv',
+    providerData: { identifier: mdnsId, serviceName: `${mdnsId}.` },
+  });
+  const updated = mergeIdentity(paired, mdns);
+  expect(updated.providerData).toMatchObject({
+    identifier: uuid,
+    ssdpIdentifier: uuid,
+    mdnsIdentifier: mdnsId,
+    serviceName: dial,
+  });
+  expect(
+    normalizeDraft(
+      draft({
+        platform: 'fire-tv',
+        providerData: mdns.providerData,
+      }),
+      paired
+    ).providerData
+  ).toEqual(updated.providerData);
 });
